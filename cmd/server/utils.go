@@ -29,12 +29,14 @@ func max(a, b int) int {
 func setupServer(listener net.Listener, gameServer *GameServer) error {
 	// Set up HTTP handlers
 	http.HandleFunc("/ws", gameServer.handleWebSocket)
+	http.HandleFunc("/health", gameServer.handleHealthCheck)
 	http.Handle("/", http.FileServer(http.Dir("../client/")))
 
 	// Start HTTP server with the provided listener
 	server := &http.Server{}
 	log.Printf("Arkham Horror server starting on %s", listener.Addr().String())
 	log.Printf("WebSocket endpoint: ws://localhost%s/ws", listener.Addr().String())
+	log.Printf("Health check: http://localhost%s/health", listener.Addr().String())
 	log.Printf("Client available at: http://localhost%s", listener.Addr().String())
 
 	return server.Serve(listener)

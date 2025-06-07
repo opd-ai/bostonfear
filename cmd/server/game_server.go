@@ -499,6 +499,54 @@ func (gs *GameServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
+// handleHealthCheck provides a health monitoring endpoint
+func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	gs.mutex.RLock()
+	defer gs.mutex.RUnlock()
+
+	// Perform comprehensive health check
+	isHealthy := gs.validator.IsGameStateHealthy(gs.gameState)
+	playerCount := len(gs.gameState.Players)
+	connectionCount := len(gs.connections)
+	corruptionHistory := gs.validator.GetCorruptionHistory()
+	recentCorruptions := 0
+
+	// Count corruptions in last 5 minutes
+	fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
+	for _, event := range corruptionHistory {
+		if event.Timestamp.After(fiveMinutesAgo) {
+			recentCorruptions++
+		}
+	}
+
+	status := "healthy"
+	if !isHealthy {
+		status = "degraded"
+	}
+	if recentCorruptions > 10 {
+		status = "unhealthy"
+	}
+
+	healthData := map[string]interface{}{
+		"status":             status,
+		"gamePhase":          gs.gameState.GamePhase,
+		"playerCount":        playerCount,
+		"connectionCount":    connectionCount,
+		"doomLevel":          gs.gameState.Doom,
+		"gameStarted":        gs.gameState.GameStarted,
+		"recentCorruptions":  recentCorruptions,
+		"isGameStateHealthy": isHealthy,
+		"timestamp":          time.Now().Unix(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if status != "healthy" {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+
+	json.NewEncoder(w).Encode(healthData)
+}
+
 // broadcastHandler processes broadcast messages to all connected clients
 // Moved from: main.go
 func (gs *GameServer) broadcastHandler() {
@@ -539,6 +587,32 @@ func (gs *GameServer) actionHandler() {
 // Moved from: main.go
 func (gs *GameServer) broadcastGameState() {
 	gs.mutex.RLock()
+
+	// Validate game state before broadcasting with error recovery
+	if errors := gs.validator.ValidateGameState(gs.gameState); len(errors) > 0 {
+		log.Printf("Game state validation errors detected: %d errors", len(errors))
+
+		// Attempt recovery for critical/high severity errors
+		hasCriticalErrors := false
+		for _, err := range errors {
+			if err.Severity == "CRITICAL" || err.Severity == "HIGH" {
+				hasCriticalErrors = true
+				break
+			}
+		}
+
+		if hasCriticalErrors {
+			log.Printf("Attempting game state recovery...")
+			recoveredState, recoveryErr := gs.validator.RecoverGameState(gs.gameState, errors)
+			if recoveryErr == nil {
+				gs.gameState = recoveredState
+				log.Printf("Game state successfully recovered")
+			} else {
+				log.Printf("Game state recovery failed: %v", recoveryErr)
+			}
+		}
+	}
+
 	gameStateMsg := map[string]interface{}{
 		"type": "gameState",
 		"data": gs.gameState,

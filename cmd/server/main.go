@@ -6,8 +6,6 @@ import (
 	"net"
 )
 
-
-
 // Main server setup using net.Listener interface
 // Moved from: main.go (original location)
 func main() {
