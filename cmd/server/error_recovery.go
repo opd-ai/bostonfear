@@ -33,11 +33,11 @@ func (v *GameStateValidator) ValidateGameState(gs *GameState) []ValidationError 
 	var errors []ValidationError
 
 	// Validate player count and constraints
-	if len(gs.Players) < 2 && gs.GamePhase == "playing" {
+	if len(gs.Players) < 2 && gs.GamePhase == "playing" && gs.GameStarted {
 		errors = append(errors, ValidationError{
 			Type:        "INSUFFICIENT_PLAYERS",
 			Description: "Game in playing state with less than 2 players",
-			Severity:    "HIGH",
+			Severity:    "MEDIUM", // Changed from HIGH to MEDIUM as this might be temporary during disconnections
 		})
 	}
 
