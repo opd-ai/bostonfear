@@ -49,6 +49,11 @@ class ArkhamHorrorClient {
             'Northside': ['University', 'Rivertown']
         };
         
+        // Connection quality monitoring
+        this.connectionQualities = {};
+        this.latencyHistory = [];
+        this.maxLatencyHistory = 20; // Keep last 20 latency measurements
+        
         // Initialize connection
         this.connect();
         
@@ -153,6 +158,14 @@ class ArkhamHorrorClient {
                 this.displayDiceResult(message);
                 break;
                 
+            case 'ping':
+                this.handlePingMessage(message);
+                break;
+                
+            case 'connectionQuality':
+                this.handleConnectionQuality(message);
+                break;
+                
             default:
                 console.log('Unknown message type:', message.type);
         }
@@ -246,13 +259,15 @@ class ArkhamHorrorClient {
                 playerDiv.classList.add('current-player');
             }
             
-            // Connection status indicator
-            const connectionIcon = player.connected ? '🟢' : '🔴';
+            // Connection status indicator with quality
+            const connectionIcon = player.connected ? this.getConnectionQualityIndicator(player.id) : '🔴';
+            const quality = this.connectionQualities[player.id];
+            const latencyText = quality && quality.latencyMs > 0 ? ` (${Math.round(quality.latencyMs)}ms)` : '';
             
             playerDiv.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <strong>${player.id}</strong>
-                    <span>${connectionIcon}</span>
+                    <span title="Connection Quality${latencyText}">${connectionIcon}</span>
                 </div>
                 <div style="font-size: 0.9em; margin: 5px 0;">📍 ${player.location}</div>
                 <div class="resource-bar">
@@ -339,171 +354,84 @@ class ArkhamHorrorClient {
         `;
     }
     
-    // Check and display game end conditions
-    checkGameEndConditions() {
-        if (this.gameState.winCondition) {
-            this.showGameEndMessage('Victory! The investigators have succeeded!', 'win-condition');
-        } else if (this.gameState.loseCondition) {
-            this.showGameEndMessage('Defeat! The doom has consumed Arkham!', 'lose-condition');
+    // Handle ping messages and respond with pong
+    handlePingMessage(pingMessage) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            return;
+        }
+        
+        // Respond with pong message
+        const pongMessage = {
+            type: 'pong',
+            playerId: pingMessage.playerId,
+            timestamp: pingMessage.timestamp,
+            pingId: pingMessage.pingId
+        };
+        
+        this.ws.send(JSON.stringify(pongMessage));
+    }
+    
+    // Handle connection quality updates
+    handleConnectionQuality(qualityMessage) {
+        // Store connection qualities for all players
+        this.connectionQualities = qualityMessage.allPlayerQualities;
+        
+        // Update player list to show connection quality indicators
+        this.updatePlayersList();
+        
+        // Update own connection status if applicable
+        if (qualityMessage.playerID === this.playerId) {
+            this.updateOwnConnectionStatus(qualityMessage.quality);
         }
     }
     
-    // Display game end message
-    showGameEndMessage(message, className) {
-        // Remove existing end game messages
-        const existingMessages = document.querySelectorAll('.win-condition, .lose-condition');
-        existingMessages.forEach(msg => msg.remove());
+    // Update connection status based on quality
+    updateOwnConnectionStatus(quality) {
+        const statusElement = this.connectionStatus;
         
-        // Create new message
-        const messageDiv = document.createElement('div');
-        messageDiv.className = className;
-        messageDiv.textContent = message;
-        
-        // Insert at the top of the sidebar
-        const sidebar = document.querySelector('.sidebar');
-        sidebar.insertBefore(messageDiv, sidebar.firstChild);
+        // Update text and styling based on connection quality
+        switch (quality.quality) {
+            case 'excellent':
+                statusElement.textContent = `Connected (${Math.round(quality.latencyMs)}ms)`;
+                statusElement.className = 'connection-status connection-excellent';
+                break;
+            case 'good':
+                statusElement.textContent = `Connected (${Math.round(quality.latencyMs)}ms)`;
+                statusElement.className = 'connection-status connection-good';
+                break;
+            case 'fair':
+                statusElement.textContent = `Slow Connection (${Math.round(quality.latencyMs)}ms)`;
+                statusElement.className = 'connection-status connection-fair';
+                break;
+            case 'poor':
+                statusElement.textContent = `Poor Connection (${Math.round(quality.latencyMs)}ms)`;
+                statusElement.className = 'connection-status connection-poor';
+                break;
+            default:
+                statusElement.textContent = 'Connected';
+                statusElement.className = 'connection-status connection-unknown';
+        }
     }
     
-    // Canvas rendering for game board visualization
-    render() {
-        const ctx = this.ctx;
-        const canvas = this.canvas;
-        
-        // Clear canvas with atmospheric background
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, '#1a1a2e');
-        gradient.addColorStop(1, '#16213e');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw location connections
-        this.drawLocationConnections();
-        
-        // Draw locations
-        this.drawLocations();
-        
-        // Draw players if game state is available
-        if (this.gameState && this.gameState.players) {
-            this.drawPlayers();
+    // Get connection quality indicator for a player
+    getConnectionQualityIndicator(playerId) {
+        const quality = this.connectionQualities[playerId];
+        if (!quality) {
+            return '⚪'; // Unknown
         }
         
-        // Draw game information overlay
-        this.drawGameInfo();
-    }
-    
-    // Draw connections between adjacent locations
-    drawLocationConnections() {
-        const ctx = this.ctx;
-        
-        ctx.strokeStyle = '#666';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([10, 5]);
-        
-        // Draw connections based on adjacency rules
-        Object.entries(this.locationAdjacency).forEach(([from, adjacentLocations]) => {
-            const fromLoc = this.locations[from];
-            
-            adjacentLocations.forEach(to => {
-                const toLoc = this.locations[to];
-                
-                ctx.beginPath();
-                ctx.moveTo(fromLoc.x, fromLoc.y);
-                ctx.lineTo(toLoc.x, toLoc.y);
-                ctx.stroke();
-            });
-        });
-        
-        ctx.setLineDash([]); // Reset line dash
-    }
-    
-    // Draw location circles with names
-    drawLocations() {
-        const ctx = this.ctx;
-        
-        Object.entries(this.locations).forEach(([name, location]) => {
-            // Draw location circle
-            ctx.fillStyle = location.color;
-            ctx.strokeStyle = '#DAA520';
-            ctx.lineWidth = 3;
-            
-            ctx.beginPath();
-            ctx.arc(location.x, location.y, 60, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
-            
-            // Draw location name
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 14px Georgia';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(name, location.x, location.y);
-        });
-    }
-    
-    // Draw player tokens at their locations
-    drawPlayers() {
-        const ctx = this.ctx;
-        
-        // Group players by location for proper positioning
-        const playersByLocation = {};
-        Object.values(this.gameState.players).forEach(player => {
-            if (!playersByLocation[player.location]) {
-                playersByLocation[player.location] = [];
-            }
-            playersByLocation[player.location].push(player);
-        });
-        
-        // Draw players with offset positioning for multiple players at same location
-        Object.entries(playersByLocation).forEach(([locationName, players]) => {
-            const location = this.locations[locationName];
-            
-            players.forEach((player, index) => {
-                const angle = (index * 2 * Math.PI) / players.length;
-                const offsetX = Math.cos(angle) * 35;
-                const offsetY = Math.sin(angle) * 35;
-                
-                const playerX = location.x + offsetX;
-                const playerY = location.y + offsetY;
-                
-                // Player token circle
-                ctx.fillStyle = player.id === this.playerId ? '#FFD700' : '#FFF';
-                ctx.strokeStyle = player.id === this.gameState.currentPlayer ? '#00FF00' : '#000';
-                ctx.lineWidth = player.id === this.gameState.currentPlayer ? 4 : 2;
-                
-                ctx.beginPath();
-                ctx.arc(playerX, playerY, 15, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.stroke();
-                
-                // Player ID text
-                ctx.fillStyle = '#000';
-                ctx.font = 'bold 10px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(player.id.replace('player_', 'P'), playerX, playerY);
-            });
-        });
-    }
-    
-    // Draw game information overlay
-    drawGameInfo() {
-        const ctx = this.ctx;
-        
-        // Draw legend
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(10, 10, 200, 120);
-        
-        ctx.fillStyle = '#DAA520';
-        ctx.font = 'bold 16px Georgia';
-        ctx.textAlign = 'left';
-        ctx.fillText('Legend:', 20, 30);
-        
-        ctx.font = '12px Arial';
-        ctx.fillStyle = '#FFF';
-        ctx.fillText('• Yellow circle: Your investigator', 20, 50);
-        ctx.fillText('• Green border: Current player', 20, 70);
-        ctx.fillText('• Dotted lines: Connections', 20, 90);
-        ctx.fillText('• Click actions in sidebar →', 20, 110);
+        switch (quality.quality) {
+            case 'excellent':
+                return '🟢'; // Green
+            case 'good':
+                return '🟡'; // Yellow
+            case 'fair':
+                return '🟠'; // Orange
+            case 'poor':
+                return '🔴'; // Red
+            default:
+                return '⚪'; // Unknown
+        }
     }
 }
 

@@ -224,23 +224,47 @@
             padding: 10px 15px;
             border-radius: 5px;
             font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
-
-        .connection-connected {
-            background: #228B22;
+        
+        /* Connection Quality Status Styles */
+        .connection-excellent {
+            background: rgba(34, 139, 34, 0.9);
             color: white;
+            border: 2px solid #228B22;
         }
-
-        .connection-disconnected {
-            background: #8B0000;
+        
+        .connection-good {
+            background: rgba(255, 215, 0, 0.9);
+            color: #333;
+            border: 2px solid #DAA520;
+        }
+        
+        .connection-fair {
+            background: rgba(255, 140, 0, 0.9);
             color: white;
+            border: 2px solid #FF8C00;
         }
-
-        .connection-reconnecting {
-            background: #DAA520;
-            color: black;
+        
+        .connection-poor {
+            background: rgba(220, 20, 60, 0.9);
+            color: white;
+            border: 2px solid #DC143C;
+            animation: connectionWarning 2s infinite;
         }
-
+        
+        .connection-unknown {
+            background: rgba(128, 128, 128, 0.9);
+            color: white;
+            border: 2px solid #808080;
+        }
+        
+        @keyframes connectionWarning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
         .win-condition {
             background: linear-gradient(135deg, #228B22, #32CD32);
             color: white;

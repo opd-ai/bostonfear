@@ -18,6 +18,14 @@ A functional multiplayer web implementation of Arkham Horror featuring investiga
 - Automatic reconnection handling
 - WebSocket-based communication
 
+### Performance Monitoring
+- **Real-time Dashboard**: Live performance metrics at `/dashboard`
+- **Prometheus Metrics**: Export endpoint at `/metrics` for monitoring tools
+- **Health Checks**: Comprehensive health status at `/health`
+- **Connection Analytics**: Player session tracking and connection insights
+- **Memory Monitoring**: Garbage collection and memory usage metrics
+- **Error Recovery**: Automated game state validation and corruption detection
+
 ## Quick Setup (3 Steps)
 
 ### Step 1: Install Dependencies
@@ -35,7 +43,10 @@ go run main.go
 ### Step 3: Access Client
 Open your browser and navigate to:
 ```
-http://localhost:8080
+http://localhost:8080                # Game client
+http://localhost:8080/dashboard      # Performance monitoring dashboard
+http://localhost:8080/health         # Health check endpoint
+http://localhost:8080/metrics        # Prometheus metrics
 ```
 
 ## Game Rules
@@ -122,6 +133,47 @@ Each player gets 2 actions per turn:
 - Supports continuous gameplay for 15+ minutes
 - Sub-500ms state synchronization across all clients
 - Automatic handling of connection drops with 30-second timeout
+- Sub-100ms response times for health checks
+- Real-time performance monitoring with comprehensive metrics
+
+## Monitoring and Observability
+
+### Performance Dashboard
+Access the real-time performance dashboard at `http://localhost:8080/dashboard` to monitor:
+- Server uptime and connection analytics
+- Memory usage and garbage collection metrics
+- Player session tracking and reconnection rates
+- Game state health and doom level progression
+- Error rates and system alerts
+
+### Prometheus Integration
+Export metrics for monitoring tools at `http://localhost:8080/metrics`:
+```bash
+# Example metrics queries
+curl http://localhost:8080/metrics | grep arkham_horror_active_connections
+curl http://localhost:8080/metrics | grep arkham_horror_memory_usage_percent
+curl http://localhost:8080/metrics | grep arkham_horror_game_doom_level
+```
+
+### Health Monitoring
+Comprehensive health checks available at `http://localhost:8080/health`:
+```json
+{
+  "status": "healthy",
+  "timestamp": 1749441525,
+  "performanceMetrics": {
+    "uptime": 39368523587,
+    "activeConnections": 0,
+    "responseTimeMs": 0.00024,
+    "errorRate": 0
+  },
+  "connectionAnalytics": {
+    "totalPlayers": 0,
+    "activePlayers": 0,
+    "reconnectionRate": 0
+  }
+}
+```
 
 ## Troubleshooting
 

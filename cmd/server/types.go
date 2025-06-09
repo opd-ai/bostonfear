@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 // Location represents a game location identifier
 // Moved from: main.go
 type Location string
@@ -70,4 +72,168 @@ type GameState struct {
 	GameStarted   bool               `json:"gameStarted"`
 	WinCondition  bool               `json:"winCondition"`
 	LoseCondition bool               `json:"loseCondition"`
+}
+
+// PerformanceMetrics represents comprehensive server performance data for monitoring dashboard
+type PerformanceMetrics struct {
+	Uptime                time.Duration `json:"uptime"`
+	ActiveConnections     int           `json:"activeConnections"`
+	PeakConnections       int           `json:"peakConnections"`
+	TotalConnections      int64         `json:"totalConnections"`
+	ConnectionsPerSecond  float64       `json:"connectionsPerSecond"`
+	AverageSessionLength  time.Duration `json:"averageSessionLength"`
+	ActiveSessions        int           `json:"activeSessions"`
+	TotalGamesPlayed      int64         `json:"totalGamesPlayed"`
+	MessagesPerSecond     float64       `json:"messagesPerSecond"`
+	MemoryUsage           MemoryStats   `json:"memoryUsage"`
+	ResponseTimeMs        float64       `json:"responseTimeMs"`
+	ErrorRate             float64       `json:"errorRate"`
+}
+
+// MemoryStats represents memory usage statistics for performance monitoring
+type MemoryStats struct {
+	AllocMB      float64 `json:"allocMB"`
+	TotalAllocMB float64 `json:"totalAllocMB"`
+	SysMB        float64 `json:"sysMB"`
+	NumGC        uint32  `json:"numGC"`
+	GCPauseMs    float64 `json:"gcPauseMs"`
+}
+
+// ConnectionAnalytics represents player connection patterns and engagement metrics
+type ConnectionAnalytics struct {
+	RecentConnections    []ConnectionEvent     `json:"recentConnections"`
+	PlayerEngagement     map[string]float64    `json:"playerEngagement"`
+	ConnectionQuality    ConnectionQualityData `json:"connectionQuality"`
+	SessionDistribution  SessionDistribution   `json:"sessionDistribution"`
+	GeographicData       map[string]int        `json:"geographicData"`
+}
+
+// ConnectionEvent represents individual connection events for analytics
+type ConnectionEvent struct {
+	Type      string    `json:"type"` // "connect", "disconnect", "reconnect"
+	PlayerID  string    `json:"playerId"`
+	Timestamp time.Time `json:"timestamp"`
+	Duration  time.Duration `json:"duration,omitempty"`
+	Reason    string    `json:"reason,omitempty"`
+}
+
+// ConnectionQualityData represents connection stability metrics
+type ConnectionQualityData struct {
+	AverageLatency    time.Duration `json:"averageLatency"`
+	PacketLossRate    float64       `json:"packetLossRate"`
+	ReconnectionRate  float64       `json:"reconnectionRate"`
+	StableConnections int           `json:"stableConnections"`
+}
+
+// SessionDistribution represents session length distribution for analytics
+type SessionDistribution struct {
+	Short  int `json:"short"`  // < 5 minutes
+	Medium int `json:"medium"` // 5-30 minutes
+	Long   int `json:"long"`   // > 30 minutes
+}
+
+// PlayerSessionMetrics tracks individual player session data
+type PlayerSessionMetrics struct {
+	PlayerID        string        `json:"playerId"`
+	SessionStart    time.Time     `json:"sessionStart"`
+	LastActivity    time.Time     `json:"lastActivity"`
+	TotalActions    int           `json:"totalActions"`
+	GamesCompleted  int           `json:"gamesCompleted"`
+	AvgResponseTime time.Duration `json:"avgResponseTime"`
+	Disconnections  int           `json:"disconnections"`
+}
+
+// AlertThreshold represents configurable monitoring thresholds
+type AlertThreshold struct {
+	MaxResponseTime  time.Duration `json:"maxResponseTime"`
+	MaxErrorRate     float64       `json:"maxErrorRate"`
+	MinUptime        float64       `json:"minUptime"`
+	MaxMemoryUsage   float64       `json:"maxMemoryUsage"`
+	MaxConnFailRate  float64       `json:"maxConnFailRate"`
+}
+
+// Additional types for enhanced performance monitoring dashboard
+
+// MemoryMetrics represents detailed memory usage statistics
+type MemoryMetrics struct {
+	AllocatedBytes      uint64  `json:"allocatedBytes"`
+	TotalAllocatedBytes uint64  `json:"totalAllocatedBytes"`
+	SystemBytes         uint64  `json:"systemBytes"`
+	HeapInUse          uint64  `json:"heapInUse"`
+	HeapReleased       uint64  `json:"heapReleased"`
+	GoroutineCount     int     `json:"goroutineCount"`
+	MemoryUsagePercent float64 `json:"memoryUsagePercent"`
+}
+
+// GCMetrics represents garbage collection performance data
+type GCMetrics struct {
+	NumGC       uint32        `json:"numGC"`
+	PauseTotal  time.Duration `json:"pauseTotal"`
+	PauseAvg    time.Duration `json:"pauseAvg"`
+	LastPause   time.Duration `json:"lastPause"`
+	CPUFraction float64       `json:"cpuFraction"`
+}
+
+// MessageThroughputMetrics represents message processing performance
+type MessageThroughputMetrics struct {
+	MessagesPerSecond     float64 `json:"messagesPerSecond"`
+	TotalMessagesSent     int64   `json:"totalMessagesSent"`
+	TotalMessagesReceived int64   `json:"totalMessagesReceived"`
+	AverageLatency        float64 `json:"averageLatency"`
+	BroadcastLatency      float64 `json:"broadcastLatency"`
+}
+
+// ConnectionAnalyticsSimplified represents simplified connection analytics matching game_server.go usage
+type ConnectionAnalyticsSimplified struct {
+	TotalPlayers      int                             `json:"totalPlayers"`
+	ActivePlayers     int                             `json:"activePlayers"`
+	PlayerSessions    []PlayerSessionMetricsSimplified `json:"playerSessions"`
+	AverageLatency    float64                         `json:"averageLatency"`
+	ConnectionsIn5Min int                             `json:"connectionsIn5Min"`
+	DisconnectsIn5Min int                             `json:"disconnectsIn5Min"`
+	ReconnectionRate  float64                         `json:"reconnectionRate"`
+}
+
+// Update PlayerSessionMetrics to match usage in game_server.go
+type PlayerSessionMetricsSimplified struct {
+	PlayerID         string        `json:"playerId"`
+	SessionStart     time.Time     `json:"sessionStart"`
+	SessionLength    time.Duration `json:"sessionLength"`
+	ActionsPerformed int           `json:"actionsPerformed"`
+	Reconnections    int           `json:"reconnections"`
+	LastSeen         time.Time     `json:"lastSeen"`
+	IsActive         bool          `json:"isActive"`
+}
+
+// ConnectionEventSimplified to match usage in game_server.go
+type ConnectionEventSimplified struct {
+	EventType string    `json:"eventType"`
+	PlayerID  string    `json:"playerId"`
+	Timestamp time.Time `json:"timestamp"`
+	Latency   float64   `json:"latency"`
+}
+
+// ConnectionQuality represents real-time connection quality metrics
+type ConnectionQuality struct {
+	LatencyMs     float64   `json:"latencyMs"`
+	Quality       string    `json:"quality"`       // "excellent", "good", "fair", "poor"
+	PacketLoss    float64   `json:"packetLoss"`
+	LastPingTime  time.Time `json:"lastPingTime"`
+	MessageDelay  float64   `json:"messageDelay"`
+}
+
+// ConnectionStatusMessage represents connection quality updates sent to clients
+type ConnectionStatusMessage struct {
+	Type              string                       `json:"type"`
+	PlayerID          string                       `json:"playerId"`
+	Quality           ConnectionQuality            `json:"quality"`
+	AllPlayerQualities map[string]ConnectionQuality `json:"allPlayerQualities"`
+}
+
+// PingMessage represents ping/pong messages for latency measurement
+type PingMessage struct {
+	Type      string    `json:"type"`
+	PlayerID  string    `json:"playerId"`
+	Timestamp time.Time `json:"timestamp"`
+	PingID    string    `json:"pingId"`
 }

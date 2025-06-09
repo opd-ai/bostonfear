@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arkham Horror - Performance Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e);
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-title {
+            color: #DAA520;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin: 10px;
+        }
+
+        .status-healthy { background: #228B22; color: white; }
+        .status-degraded { background: #DAA520; color: black; }
+        .status-unhealthy { background: #8B0000; color: white; }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #8B4513;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .metric-card h3 {
+            color: #DAA520;
+            border-bottom: 2px solid #8B4513;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+        }
+
+        .metric-label {
+            color: #b0b0b0;
+        }
+
+        .metric-value {
+            color: #DAA520;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #8B4513;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 300px;
+            position: relative;
+        }
+
+        .refresh-button {
+            background: linear-gradient(135deg, #8B4513, #A0522D);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-button:hover {
+            background: linear-gradient(135deg, #A0522D, #CD853F);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            color: #b0b0b0;
+        }
+
+        .connection-analytics {
+            grid-column: 1 / -1;
+        }
+
+        .player-sessions {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .session-item {
+            background: rgba(139, 69, 19, 0.2);
+            border-left: 4px solid #DAA520;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        .session-active {
+            border-left-color: #90EE90;
+        }
+
+        .error-message {
+            background: rgba(139, 0, 0, 0.3);
+            border: 1px solid #8B0000;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #FF6347;
+        }
+
+        .loading {
+            text-align: center;
+            color: #DAA520;
+            font-size: 1.2em;
+            margin: 50px 0;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Performance Dashboard</h1>
+            <div id="systemStatus" class="status-indicator">Loading...</div>
+            <div id="lastUpdate" style="color: #b0b0b0; margin-top: 10px;">Last updated: Never</div>
+        </div>
+
+        <button class="refresh-button" onclick="fetchMetrics()">Refresh</button>
+
+        <div class="auto-refresh">
+            <input type="checkbox" id="autoRefresh" checked>
+            <label for="autoRefresh">Auto-refresh every 5 seconds</label>
+        </div>
+
+        <div id="loadingIndicator" class="loading">Loading performance metrics...</div>
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+        <div id="metricsContainer" style="display: none;">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Server Performance</h3>
+                    <div class="metric-item">
+                        <span class="metric-label">Uptime:</span>
+                        <span class="metric-value" id="serverUptime">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Memory Usage:</span>
+                        <span class="metric-value" id="memoryUsage">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Goroutines:</span>
+                        <span class="metric-value" id="goroutineCount">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">GC Cycles:</span>
+                        <span class="metric-value" id="gcCycles">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Connection Metrics</h3>
+                    <div class="metric-item">
+                        <span class="metric-label">Active Connections:</span>
+                        <span class="metric-value" id="activeConnections">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Peak Connections:</span>
+                        <span class="metric-value" id="peakConnections">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Total Connections:</span>
+                        <span class="metric-value" id="totalConnections">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Connections/Sec:</span>
+                        <span class="metric-value" id="connectionsPerSecond">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Game State</h3>
+                    <div class="metric-item">
+                        <span class="metric-label">Game Phase:</span>
+                        <span class="metric-value" id="gamePhase">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Active Players:</span>
+                        <span class="metric-value" id="activePlayers">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Doom Level:</span>
+                        <span class="metric-value" id="doomLevel">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Games Played:</span>
+                        <span class="metric-value" id="totalGames">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Message Throughput</h3>
+                    <div class="metric-item">
+                        <span class="metric-label">Messages/Sec:</span>
+                        <span class="metric-value" id="messagesPerSecond">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Total Sent:</span>
+                        <span class="metric-value" id="totalSent">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Total Received:</span>
+                        <span class="metric-value" id="totalReceived">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Avg Latency:</span>
+                        <span class="metric-value" id="avgLatency">-</span>
+                    </div>
+                </div>
+
+                <div class="metric-card connection-analytics">
+                    <h3>Player Sessions</h3>
+                    <div class="metric-item">
+                        <span class="metric-label">Average Session:</span>
+                        <span class="metric-value" id="avgSession">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Reconnection Rate:</span>
+                        <span class="metric-value" id="reconnectionRate">-</span>
+                    </div>
+                    <div class="player-sessions" id="playerSessions">
+                        <!-- Player sessions will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshInterval;
+        let lastMetricsData = null;
+
+        // Format duration for display
+        function formatDuration(seconds) {
+            if (seconds < 60) return `${seconds.toFixed(1)}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return `${hours}h ${minutes}m`;
+        }
+
+        // Format bytes for display
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Update metrics display
+        function updateMetricsDisplay(data) {
+            const perf = data.performanceMetrics;
+            const conn = data.connectionAnalytics;
+
+            // Server performance
+            document.getElementById('serverUptime').textContent = formatDuration(perf.serverUptime / 1000000000);
+            document.getElementById('memoryUsage').textContent = `${formatBytes(perf.memory.allocatedBytes)} (${perf.memory.memoryUsagePercent.toFixed(1)}%)`;
+            document.getElementById('goroutineCount').textContent = perf.memory.goroutineCount;
+            document.getElementById('gcCycles').textContent = `${perf.garbageCollection.numGC} (${(perf.garbageCollection.cpuFraction * 100).toFixed(2)}% CPU)`;
+
+            // Connection metrics
+            document.getElementById('activeConnections').textContent = perf.activeConnections;
+            document.getElementById('peakConnections').textContent = perf.peakConnections;
+            document.getElementById('totalConnections').textContent = perf.totalConnections;
+            document.getElementById('connectionsPerSecond').textContent = perf.connectionsPerSecond.toFixed(2);
+
+            // Game state
+            document.getElementById('gamePhase').textContent = data.gamePhase;
+            document.getElementById('activePlayers').textContent = `${conn.activePlayers}/${conn.totalPlayers}`;
+            document.getElementById('doomLevel').textContent = `${data.doomLevel}/12`;
+            document.getElementById('totalGames').textContent = perf.totalGamesPlayed;
+
+            // Message throughput
+            document.getElementById('messagesPerSecond').textContent = perf.messageThroughput.messagesPerSecond.toFixed(2);
+            document.getElementById('totalSent').textContent = perf.messageThroughput.totalMessagesSent;
+            document.getElementById('totalReceived').textContent = perf.messageThroughput.totalMessagesReceived;
+            document.getElementById('avgLatency').textContent = `${conn.averageLatency.toFixed(1)}ms`;
+
+            // Player sessions
+            document.getElementById('avgSession').textContent = formatDuration(perf.averageSessionLength / 1000000000);
+            document.getElementById('reconnectionRate').textContent = `${conn.reconnectionRate.toFixed(1)}%`;
+
+            // Update player sessions
+            const sessionsContainer = document.getElementById('playerSessions');
+            sessionsContainer.innerHTML = '';
+            
+            conn.playerSessions.forEach(session => {
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = `session-item ${session.isActive ? 'session-active' : ''}`;
+                sessionDiv.innerHTML = `
+                    <strong>${session.playerId}</strong> ${session.isActive ? '🟢' : '🔴'}
+                    <div style="font-size: 0.9em; color: #b0b0b0;">
+                        Duration: ${formatDuration(session.sessionLength / 1000000000)} | 
+                        Actions: ${session.actionsPerformed} | 
+                        Reconnects: ${session.reconnections}
+                    </div>
+                `;
+                sessionsContainer.appendChild(sessionDiv);
+            });
+        }
+
+        // Update system status indicator
+        function updateSystemStatus(status) {
+            const statusElement = document.getElementById('systemStatus');
+            statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusElement.className = `status-indicator status-${status}`;
+        }
+
+        // Fetch metrics from health endpoint
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                lastMetricsData = data;
+                
+                // Hide loading and error states
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('metricsContainer').style.display = 'block';
+                
+                // Update display
+                updateSystemStatus(data.status);
+                updateMetricsDisplay(data);
+                
+                // Update last refresh time
+                document.getElementById('lastUpdate').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+                
+            } catch (error) {
+                console.error('Failed to fetch metrics:', error);
+                
+                // Show error message
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('metricsContainer').style.display = 'none';
+                const errorElement = document.getElementById('errorMessage');
+                errorElement.style.display = 'block';
+                errorElement.textContent = `Failed to fetch metrics: ${error.message}`;
+                
+                // Update system status
+                updateSystemStatus('unhealthy');
+            }
+        }
+
+        // Setup auto-refresh
+        function setupAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            function updateAutoRefresh() {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+                
+                if (checkbox.checked) {
+                    autoRefreshInterval = setInterval(fetchMetrics, 5000);
+                }
+            }
+            
+            checkbox.addEventListener('change', updateAutoRefresh);
+            updateAutoRefresh();
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchMetrics();
+            setupAutoRefresh();
+        });
+    </script>
+</body>
+</html>

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"runtime"
 	"sync"
 	"time"
 
@@ -26,6 +27,22 @@ type GameServer struct {
 	actionCh    chan PlayerActionMessage
 	shutdownCh  chan struct{}
 	validator   *GameStateValidator // Enhanced error recovery system
+
+	// Performance monitoring fields
+	startTime         time.Time
+	totalConnections  int64
+	peakConnections   int
+	totalGamesPlayed  int64
+	totalMessagesSent int64
+	totalMessagesRecv int64
+	playerSessions    map[string]*PlayerSessionMetricsSimplified
+	connectionEvents  []ConnectionEventSimplified
+	performanceMutex  sync.RWMutex
+
+	// Connection quality monitoring
+	connectionQualities map[string]*ConnectionQuality
+	pingTimers          map[string]*time.Timer
+	qualityMutex        sync.RWMutex
 }
 
 // NewGameServer creates a new game server instance
@@ -49,6 +66,20 @@ func NewGameServer() *GameServer {
 		actionCh:    make(chan PlayerActionMessage, 100),
 		shutdownCh:  make(chan struct{}),
 		validator:   NewGameStateValidator(), // Initialize error recovery system
+
+		// Initialize performance monitoring
+		startTime:         time.Now(),
+		totalConnections:  0,
+		peakConnections:   0,
+		totalGamesPlayed:  0,
+		totalMessagesSent: 0,
+		totalMessagesRecv: 0,
+		playerSessions:    make(map[string]*PlayerSessionMetricsSimplified),
+		connectionEvents:  make([]ConnectionEventSimplified, 0),
+
+		// Initialize connection quality monitoring
+		connectionQualities: make(map[string]*ConnectionQuality),
+		pingTimers:          make(map[string]*time.Timer),
 	}
 }
 
@@ -266,6 +297,9 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 	// Decrement actions remaining
 	player.ActionsRemaining--
 
+	// Track player action for performance monitoring
+	gs.trackPlayerSession(action.PlayerID, "action")
+
 	// Validate resources after action
 	gs.validateResources(&player.Resources)
 
@@ -366,6 +400,13 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 	// Generate unique player ID with better uniqueness
 	playerID := fmt.Sprintf("player_%d", time.Now().UnixNano())
 
+	// Track connection for performance monitoring
+	gs.trackConnection("connect", playerID, 0)
+	gs.trackPlayerSession(playerID, "start")
+
+	// Initialize connection quality monitoring
+	gs.initializeConnectionQuality(playerID)
+
 	// Add player to game with proper validation
 	gs.mutex.Lock()
 	if len(gs.gameState.Players) >= 4 {
@@ -438,8 +479,17 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 			break
 		}
 
+		// Track message received time for latency calculation
+		messageReceiveTime := time.Now()
+
 		var actionMsg PlayerActionMessage
 		if err := json.Unmarshal(messageData, &actionMsg); err != nil {
+			// Try to parse as ping response
+			var pingMsg PingMessage
+			if pingErr := json.Unmarshal(messageData, &pingMsg); pingErr == nil && pingMsg.Type == "pong" {
+				gs.handlePongMessage(pingMsg, messageReceiveTime)
+				continue
+			}
 			log.Printf("Message unmarshal error: %v", err)
 			continue
 		}
@@ -449,6 +499,9 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 			log.Printf("Invalid player ID in action: expected %s, got %s", playerID, actionMsg.PlayerID)
 			continue
 		}
+
+		// Update connection quality based on message timing
+		gs.updateConnectionQuality(playerID, messageReceiveTime)
 
 		// Process action through channel
 		gs.actionCh <- actionMsg
@@ -460,6 +513,13 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		player.Connected = false
 	}
 	gs.mutex.Unlock()
+
+	// Track disconnection for performance monitoring
+	gs.trackConnection("disconnect", playerID, 0)
+	gs.trackPlayerSession(playerID, "end")
+
+	// Cleanup connection quality monitoring
+	gs.cleanupConnectionQuality(playerID)
 
 	// Remove connections using proper cleanup
 	addrStr := conn.RemoteAddr().String()
@@ -474,11 +534,15 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 
 // handleWebSocket handles WebSocket upgrade and connection setup
 func (gs *GameServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	log.Printf("New WebSocket connection attempt from %s", r.RemoteAddr)
+	
 	wsConn, err := gs.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
 		return
 	}
+
+	log.Printf("WebSocket connection established with %s", wsConn.RemoteAddr())
 
 	// Create connection wrapper implementing net.Conn interface
 	addr := wsConn.RemoteAddr()
@@ -489,6 +553,7 @@ func (gs *GameServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	addrStr := addr.String()
 	gs.connections[addrStr] = connWrapper
 	gs.wsConns[addrStr] = wsConn
+	log.Printf("Stored connection %s, total connections: %d", addrStr, len(gs.connections))
 	gs.mutex.Unlock()
 
 	// Handle connection in separate goroutine
@@ -537,6 +602,10 @@ func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 		"recentCorruptions":  recentCorruptions,
 		"isGameStateHealthy": isHealthy,
 		"timestamp":          time.Now().Unix(),
+
+		// Enhanced performance metrics
+		"performanceMetrics":  gs.collectPerformanceMetrics(),
+		"connectionAnalytics": gs.collectConnectionAnalytics(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -547,8 +616,395 @@ func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(healthData)
 }
 
+// handleDashboard serves the performance monitoring dashboard
+func (gs *GameServer) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers for dashboard access
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	// Serve the dashboard HTML file
+	http.ServeFile(w, r, "./client/dashboard.html")
+}
+
+// handleMetrics provides Prometheus-compatible metrics export
+func (gs *GameServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	gs.mutex.RLock()
+	defer gs.mutex.RUnlock()
+
+	// Set content type for Prometheus metrics
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+
+	// Collect comprehensive metrics
+	performanceMetrics := gs.collectPerformanceMetrics()
+	connectionAnalytics := gs.collectConnectionAnalytics()
+	memoryMetrics := gs.collectMemoryMetrics()
+	gcMetrics := gs.collectGCMetrics()
+
+	// Build Prometheus-compatible metrics output
+	metrics := []string{
+		"# HELP arkham_horror_uptime_seconds Total uptime of the server in seconds",
+		"# TYPE arkham_horror_uptime_seconds counter",
+		fmt.Sprintf("arkham_horror_uptime_seconds %.2f", performanceMetrics.Uptime.Seconds()),
+		"",
+		"# HELP arkham_horror_active_connections Current number of active WebSocket connections",
+		"# TYPE arkham_horror_active_connections gauge",
+		fmt.Sprintf("arkham_horror_active_connections %d", performanceMetrics.ActiveConnections),
+		"",
+		"# HELP arkham_horror_peak_connections Peak number of concurrent connections",
+		"# TYPE arkham_horror_peak_connections gauge",
+		fmt.Sprintf("arkham_horror_peak_connections %d", performanceMetrics.PeakConnections),
+		"",
+		"# HELP arkham_horror_total_connections_total Total connections established since server start",
+		"# TYPE arkham_horror_total_connections_total counter",
+		fmt.Sprintf("arkham_horror_total_connections_total %d", performanceMetrics.TotalConnections),
+		"",
+		"# HELP arkham_horror_connections_per_second Rate of new connections per second",
+		"# TYPE arkham_horror_connections_per_second gauge",
+		fmt.Sprintf("arkham_horror_connections_per_second %.2f", performanceMetrics.ConnectionsPerSecond),
+		"",
+		"# HELP arkham_horror_active_players Current number of active players",
+		"# TYPE arkham_horror_active_players gauge",
+		fmt.Sprintf("arkham_horror_active_players %d", connectionAnalytics.ActivePlayers),
+		"",
+		"# HELP arkham_horror_messages_per_second Rate of messages processed per second",
+		"# TYPE arkham_horror_messages_per_second gauge",
+		fmt.Sprintf("arkham_horror_messages_per_second %.2f", performanceMetrics.MessagesPerSecond),
+		"",
+		"# HELP arkham_horror_memory_allocated_bytes Currently allocated memory in bytes",
+		"# TYPE arkham_horror_memory_allocated_bytes gauge",
+		fmt.Sprintf("arkham_horror_memory_allocated_bytes %d", memoryMetrics.AllocatedBytes),
+		"",
+		"# HELP arkham_horror_memory_usage_percent Memory usage as percentage of allocated/system",
+		"# TYPE arkham_horror_memory_usage_percent gauge",
+		fmt.Sprintf("arkham_horror_memory_usage_percent %.2f", memoryMetrics.MemoryUsagePercent),
+		"",
+		"# HELP arkham_horror_goroutines Current number of goroutines",
+		"# TYPE arkham_horror_goroutines gauge",
+		fmt.Sprintf("arkham_horror_goroutines %d", memoryMetrics.GoroutineCount),
+		"",
+		"# HELP arkham_horror_gc_collections_total Total number of garbage collections",
+		"# TYPE arkham_horror_gc_collections_total counter",
+		fmt.Sprintf("arkham_horror_gc_collections_total %d", gcMetrics.NumGC),
+		"",
+		"# HELP arkham_horror_gc_pause_seconds_total Total time spent in garbage collection pauses",
+		"# TYPE arkham_horror_gc_pause_seconds_total counter",
+		fmt.Sprintf("arkham_horror_gc_pause_seconds_total %.6f", gcMetrics.PauseTotal.Seconds()),
+		"",
+		"# HELP arkham_horror_response_time_ms Current health check response time in milliseconds",
+		"# TYPE arkham_horror_response_time_ms gauge",
+		fmt.Sprintf("arkham_horror_response_time_ms %.2f", performanceMetrics.ResponseTimeMs),
+		"",
+		"# HELP arkham_horror_error_rate_percent Current error rate as percentage",
+		"# TYPE arkham_horror_error_rate_percent gauge",
+		fmt.Sprintf("arkham_horror_error_rate_percent %.2f", performanceMetrics.ErrorRate),
+		"",
+		"# HELP arkham_horror_game_doom_level Current doom counter level",
+		"# TYPE arkham_horror_game_doom_level gauge",
+		fmt.Sprintf("arkham_horror_game_doom_level %d", gs.gameState.Doom),
+		"",
+		"# HELP arkham_horror_games_played_total Total number of games played",
+		"# TYPE arkham_horror_games_played_total counter",
+		fmt.Sprintf("arkham_horror_games_played_total %d", performanceMetrics.TotalGamesPlayed),
+		"",
+		"# HELP arkham_horror_reconnection_rate_percent Player reconnection rate percentage",
+		"# TYPE arkham_horror_reconnection_rate_percent gauge",
+		fmt.Sprintf("arkham_horror_reconnection_rate_percent %.2f", connectionAnalytics.ReconnectionRate),
+	}
+
+	// Write metrics to response
+	for _, line := range metrics {
+		fmt.Fprintln(w, line)
+	}
+}
+
+// collectPerformanceMetrics gathers comprehensive server performance data
+func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
+	gs.performanceMutex.RLock()
+	defer gs.performanceMutex.RUnlock()
+
+	// Calculate runtime metrics
+	uptime := time.Since(gs.startTime)
+	activeConnections := len(gs.connections)
+
+	// Calculate connections per second
+	connectionsPerSecond := float64(gs.totalConnections) / uptime.Seconds()
+
+	// Calculate average session length and active sessions
+	var totalSessionTime time.Duration
+	activeSessions := 0
+	for _, session := range gs.playerSessions {
+		sessionDuration := time.Since(session.SessionStart)
+		totalSessionTime += sessionDuration
+		activeSessions++
+	}
+
+	var avgSessionLength time.Duration
+	if len(gs.playerSessions) > 0 {
+		avgSessionLength = totalSessionTime / time.Duration(len(gs.playerSessions))
+	}
+
+	// Calculate messages per second
+	messagesPerSecond := float64(gs.totalMessagesSent+gs.totalMessagesRecv) / uptime.Seconds()
+
+	// Collect memory statistics
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	memoryStats := MemoryStats{
+		AllocMB:      float64(memStats.Alloc) / 1024 / 1024,
+		TotalAllocMB: float64(memStats.TotalAlloc) / 1024 / 1024,
+		SysMB:        float64(memStats.Sys) / 1024 / 1024,
+		NumGC:        memStats.NumGC,
+		GCPauseMs:    float64(memStats.PauseNs[(memStats.NumGC+255)%256]) / 1000000,
+	}
+
+	// Calculate response time (simplified - using health check measurement)
+	responseTimeMs := gs.measureHealthCheckResponseTime()
+
+	// Calculate error rate (corruption events vs total operations)
+	errorRate := gs.calculateErrorRate()
+
+	return PerformanceMetrics{
+		Uptime:               uptime,
+		ActiveConnections:    activeConnections,
+		PeakConnections:      gs.peakConnections,
+		TotalConnections:     gs.totalConnections,
+		ConnectionsPerSecond: connectionsPerSecond,
+		AverageSessionLength: avgSessionLength,
+		ActiveSessions:       activeSessions,
+		TotalGamesPlayed:     gs.totalGamesPlayed,
+		MessagesPerSecond:    messagesPerSecond,
+		MemoryUsage:          memoryStats,
+		ResponseTimeMs:       responseTimeMs,
+		ErrorRate:            errorRate,
+	}
+}
+
+// collectConnectionAnalytics provides player connection insights
+func (gs *GameServer) collectConnectionAnalytics() ConnectionAnalyticsSimplified {
+	gs.performanceMutex.RLock()
+	defer gs.performanceMutex.RUnlock()
+
+	totalPlayers := len(gs.playerSessions)
+	activePlayers := 0
+
+	// Convert session map to slice and update active status
+	playerSessions := make([]PlayerSessionMetricsSimplified, 0, len(gs.playerSessions))
+	for _, session := range gs.playerSessions {
+		// Update session length if still active
+		if session.IsActive {
+			session.SessionLength = time.Since(session.SessionStart)
+			activePlayers++
+		}
+		playerSessions = append(playerSessions, *session)
+	}
+
+	// Calculate recent connection activity (last 5 minutes)
+	fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
+	connectionsIn5Min := 0
+	disconnectsIn5Min := 0
+	totalReconnections := 0
+
+	for _, event := range gs.connectionEvents {
+		if event.Timestamp.After(fiveMinutesAgo) {
+			switch event.EventType {
+			case "connect":
+				connectionsIn5Min++
+			case "disconnect":
+				disconnectsIn5Min++
+			case "reconnect":
+				totalReconnections++
+			}
+		}
+	}
+
+	// Calculate reconnection rate
+	var reconnectionRate float64
+	if connectionsIn5Min > 0 {
+		reconnectionRate = float64(totalReconnections) / float64(connectionsIn5Min) * 100
+	}
+
+	// Calculate average latency from recent events
+	var totalLatency float64
+	latencyCount := 0
+	for _, event := range gs.connectionEvents {
+		if event.Latency > 0 && event.Timestamp.After(fiveMinutesAgo) {
+			totalLatency += event.Latency
+			latencyCount++
+		}
+	}
+
+	var avgLatency float64
+	if latencyCount > 0 {
+		avgLatency = totalLatency / float64(latencyCount)
+	}
+
+	return ConnectionAnalyticsSimplified{
+		TotalPlayers:      totalPlayers,
+		ActivePlayers:     activePlayers,
+		PlayerSessions:    playerSessions,
+		AverageLatency:    avgLatency,
+		ConnectionsIn5Min: connectionsIn5Min,
+		DisconnectsIn5Min: disconnectsIn5Min,
+		ReconnectionRate:  reconnectionRate,
+	}
+}
+
+// collectMemoryMetrics gathers memory usage statistics
+func (gs *GameServer) collectMemoryMetrics() MemoryMetrics {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	// Calculate memory usage percentage (approximate)
+	memUsagePercent := float64(m.Alloc) / float64(m.Sys) * 100
+	if memUsagePercent > 100 {
+		memUsagePercent = 100
+	}
+
+	return MemoryMetrics{
+		AllocatedBytes:      m.Alloc,
+		TotalAllocatedBytes: m.TotalAlloc,
+		SystemBytes:         m.Sys,
+		HeapInUse:           m.HeapInuse,
+		HeapReleased:        m.HeapReleased,
+		GoroutineCount:      runtime.NumGoroutine(),
+		MemoryUsagePercent:  memUsagePercent,
+	}
+}
+
+// collectGCMetrics gathers garbage collection performance data
+func (gs *GameServer) collectGCMetrics() GCMetrics {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	// Calculate average pause time
+	var avgPause time.Duration
+	if m.NumGC > 0 && len(m.PauseNs) > 0 {
+		var totalPause uint64
+		recentPauses := int(m.NumGC)
+		if recentPauses > len(m.PauseNs) {
+			recentPauses = len(m.PauseNs)
+		}
+
+		for i := 0; i < recentPauses; i++ {
+			totalPause += m.PauseNs[i]
+		}
+		avgPause = time.Duration(totalPause / uint64(recentPauses))
+	}
+
+	// Get last pause time
+	var lastPause time.Duration
+	if m.NumGC > 0 {
+		lastPause = time.Duration(m.PauseNs[(m.NumGC+255)%256])
+	}
+
+	return GCMetrics{
+		NumGC:       m.NumGC,
+		PauseTotal:  time.Duration(m.PauseTotalNs),
+		PauseAvg:    avgPause,
+		LastPause:   lastPause,
+		CPUFraction: m.GCCPUFraction,
+	}
+}
+
+// collectMessageThroughput calculates message performance metrics
+func (gs *GameServer) collectMessageThroughput(runtime time.Duration) MessageThroughputMetrics {
+	gs.performanceMutex.RLock()
+	defer gs.performanceMutex.RUnlock()
+
+	// Calculate messages per second
+	totalMessages := gs.totalMessagesSent + gs.totalMessagesRecv
+	messagesPerSecond := float64(totalMessages) / runtime.Seconds()
+
+	// TODO: Implement latency tracking in future iterations
+	// For now, return placeholder values
+	return MessageThroughputMetrics{
+		MessagesPerSecond:     messagesPerSecond,
+		TotalMessagesSent:     gs.totalMessagesSent,
+		TotalMessagesReceived: gs.totalMessagesRecv,
+		AverageLatency:        0, // Placeholder - implement latency tracking
+		BroadcastLatency:      0, // Placeholder - implement broadcast latency tracking
+	}
+}
+
+// trackConnection records connection events for analytics
+func (gs *GameServer) trackConnection(eventType, playerID string, latency float64) {
+	gs.performanceMutex.Lock()
+	defer gs.performanceMutex.Unlock()
+
+	event := ConnectionEventSimplified{
+		EventType: eventType,
+		PlayerID:  playerID,
+		Timestamp: time.Now(),
+		Latency:   latency,
+	}
+
+	gs.connectionEvents = append(gs.connectionEvents, event)
+
+	// Keep only last 1000 events to prevent memory growth
+	if len(gs.connectionEvents) > 1000 {
+		gs.connectionEvents = gs.connectionEvents[len(gs.connectionEvents)-1000:]
+	}
+
+	// Update connection counters
+	if eventType == "connect" {
+		gs.totalConnections++
+		currentConnections := len(gs.connections)
+		if currentConnections > gs.peakConnections {
+			gs.peakConnections = currentConnections
+		}
+	}
+}
+
+// trackPlayerSession manages player session metrics
+func (gs *GameServer) trackPlayerSession(playerID string, eventType string) {
+	gs.performanceMutex.Lock()
+	defer gs.performanceMutex.Unlock()
+
+	switch eventType {
+	case "start":
+		gs.playerSessions[playerID] = &PlayerSessionMetricsSimplified{
+			PlayerID:         playerID,
+			SessionStart:     time.Now(),
+			SessionLength:    0,
+			ActionsPerformed: 0,
+			Reconnections:    0,
+			LastSeen:         time.Now(),
+			IsActive:         true,
+		}
+	case "end":
+		if session, exists := gs.playerSessions[playerID]; exists {
+			session.SessionLength = time.Since(session.SessionStart)
+			session.IsActive = false
+		}
+	case "action":
+		if session, exists := gs.playerSessions[playerID]; exists {
+			session.ActionsPerformed++
+			session.LastSeen = time.Now()
+		}
+	case "reconnect":
+		if session, exists := gs.playerSessions[playerID]; exists {
+			session.Reconnections++
+			session.LastSeen = time.Now()
+			session.IsActive = true
+		}
+	}
+}
+
+// trackMessage increments message counters for throughput analysis
+func (gs *GameServer) trackMessage(messageType string) {
+	gs.performanceMutex.Lock()
+	defer gs.performanceMutex.Unlock()
+
+	switch messageType {
+	case "sent":
+		gs.totalMessagesSent++
+	case "received":
+		gs.totalMessagesRecv++
+	}
+}
+
 // broadcastHandler processes broadcast messages to all connected clients
-// Moved from: main.go
 func (gs *GameServer) broadcastHandler() {
 	for {
 		select {
@@ -557,6 +1013,8 @@ func (gs *GameServer) broadcastHandler() {
 			for _, wsConn := range gs.wsConns {
 				if err := wsConn.WriteMessage(websocket.TextMessage, message); err != nil {
 					log.Printf("Broadcast error: %v", err)
+				} else {
+					gs.trackMessage("sent")
 				}
 			}
 			gs.mutex.RUnlock()
@@ -568,11 +1026,11 @@ func (gs *GameServer) broadcastHandler() {
 }
 
 // actionHandler processes player actions through channel
-// Moved from: main.go
 func (gs *GameServer) actionHandler() {
 	for {
 		select {
 		case action := <-gs.actionCh:
+			gs.trackMessage("received")
 			if err := gs.processAction(action); err != nil {
 				log.Printf("Action processing error: %v", err)
 			}
@@ -584,7 +1042,6 @@ func (gs *GameServer) actionHandler() {
 }
 
 // broadcastGameState sends current game state to all connected clients
-// Moved from: main.go
 func (gs *GameServer) broadcastGameState() {
 	gs.mutex.RLock()
 
@@ -632,4 +1089,328 @@ func (gs *GameServer) broadcastGameState() {
 	default:
 		log.Printf("Broadcast channel full, dropping game state update")
 	}
+}
+
+// Helper methods for performance monitoring dashboard
+
+// measureHealthCheckResponseTime measures the response time of health check operations
+func (gs *GameServer) measureHealthCheckResponseTime() float64 {
+	start := time.Now()
+
+	// Simulate health check operations
+	gs.mutex.RLock()
+	_ = len(gs.gameState.Players)
+	_ = len(gs.connections)
+	gs.mutex.RUnlock()
+
+	// Return response time in milliseconds
+	return float64(time.Since(start).Nanoseconds()) / 1000000
+}
+
+// calculateErrorRate calculates the current error rate based on recent operations
+func (gs *GameServer) calculateErrorRate() float64 {
+	// Simple implementation - can be enhanced with actual error tracking
+	return 0.0
+}
+
+// Connection Quality Management Methods
+
+// initializeConnectionQuality sets up initial connection quality for a player
+func (gs *GameServer) initializeConnectionQuality(playerID string) {
+	gs.qualityMutex.Lock()
+	defer gs.qualityMutex.Unlock()
+
+	gs.connectionQualities[playerID] = &ConnectionQuality{
+		LatencyMs:    0,
+		Quality:      "unknown",
+		PacketLoss:   0,
+		LastPingTime: time.Now(),
+		MessageDelay: 0,
+	}
+
+	// Start ping timer for this player
+	gs.startPingTimer(playerID)
+}
+
+// updateConnectionQuality updates connection quality metrics based on message timing
+func (gs *GameServer) updateConnectionQuality(playerID string, messageTime time.Time) {
+	gs.qualityMutex.Lock()
+	defer gs.qualityMutex.Unlock()
+
+	quality, exists := gs.connectionQualities[playerID]
+	if !exists {
+		return
+	}
+
+	// Calculate message delay (simplified metric)
+	now := time.Now()
+	quality.MessageDelay = float64(now.Sub(messageTime).Nanoseconds()) / 1000000 // Convert to milliseconds
+
+	// Update quality assessment based on current metrics
+	gs.assessConnectionQuality(playerID)
+}
+
+// handlePongMessage processes pong responses and calculates latency
+func (gs *GameServer) handlePongMessage(pingMsg PingMessage, receiveTime time.Time) {
+	gs.qualityMutex.Lock()
+	defer gs.qualityMutex.Unlock()
+
+	quality, exists := gs.connectionQualities[pingMsg.PlayerID]
+	if !exists {
+		return
+	}
+
+	// Calculate round-trip latency
+	latency := float64(receiveTime.Sub(pingMsg.Timestamp).Nanoseconds()) / 1000000 // Convert to milliseconds
+	quality.LatencyMs = latency
+	quality.LastPingTime = receiveTime
+
+	// Update quality assessment
+	gs.assessConnectionQuality(pingMsg.PlayerID)
+
+	// Broadcast quality update to all clients
+	gs.broadcastConnectionQuality()
+}
+
+// assessConnectionQuality determines connection quality rating based on metrics
+func (gs *GameServer) assessConnectionQuality(playerID string) {
+	quality := gs.connectionQualities[playerID]
+
+	// Assess quality based on latency
+	switch {
+	case quality.LatencyMs < 50:
+		quality.Quality = "excellent"
+	case quality.LatencyMs < 100:
+		quality.Quality = "good"
+	case quality.LatencyMs < 200:
+		quality.Quality = "fair"
+	default:
+		quality.Quality = "poor"
+	}
+
+	// Factor in packet loss (simplified - would need more sophisticated tracking)
+	if quality.PacketLoss > 0.05 { // 5% packet loss threshold
+		if quality.Quality == "excellent" {
+			quality.Quality = "good"
+		} else if quality.Quality == "good" {
+			quality.Quality = "fair"
+		} else if quality.Quality == "fair" {
+			quality.Quality = "poor"
+		}
+	}
+}
+
+// startPingTimer starts periodic ping for connection quality monitoring
+func (gs *GameServer) startPingTimer(playerID string) {
+	timer := time.NewTimer(5 * time.Second) // Ping every 5 seconds
+	gs.pingTimers[playerID] = timer
+
+	go func() {
+		for {
+			select {
+			case <-timer.C:
+				gs.sendPingToPlayer(playerID)
+				timer.Reset(5 * time.Second)
+			case <-gs.shutdownCh:
+				timer.Stop()
+				return
+			}
+		}
+	}()
+}
+
+// sendPingToPlayer sends a ping message to measure latency
+func (gs *GameServer) sendPingToPlayer(playerID string) {
+	gs.mutex.RLock()
+	wsConn, exists := gs.wsConns[gs.playerConns[playerID].RemoteAddr().String()]
+	gs.mutex.RUnlock()
+
+	if !exists {
+		return
+	}
+
+	pingMsg := PingMessage{
+		Type:      "ping",
+		PlayerID:  playerID,
+		Timestamp: time.Now(),
+		PingID:    fmt.Sprintf("ping_%d", time.Now().UnixNano()),
+	}
+
+	pingData, err := json.Marshal(pingMsg)
+	if err != nil {
+		log.Printf("Error marshaling ping message: %v", err)
+		return
+	}
+
+	if err := wsConn.WriteMessage(websocket.TextMessage, pingData); err != nil {
+		log.Printf("Error sending ping to player %s: %v", playerID, err)
+		// Mark connection quality as poor on send failure
+		gs.qualityMutex.Lock()
+		if quality, exists := gs.connectionQualities[playerID]; exists {
+			quality.Quality = "poor"
+			quality.PacketLoss += 0.1 // Increase packet loss indicator
+		}
+		gs.qualityMutex.Unlock()
+	}
+}
+
+// broadcastConnectionQuality sends connection quality updates to all clients
+func (gs *GameServer) broadcastConnectionQuality() {
+	gs.qualityMutex.RLock()
+	allQualities := make(map[string]ConnectionQuality)
+	for playerID, quality := range gs.connectionQualities {
+		allQualities[playerID] = *quality
+	}
+	gs.qualityMutex.RUnlock()
+
+	for playerID := range gs.gameState.Players {
+		statusMsg := ConnectionStatusMessage{
+			Type:               "connectionQuality",
+			PlayerID:           playerID,
+			Quality:            allQualities[playerID],
+			AllPlayerQualities: allQualities,
+		}
+
+		statusData, err := json.Marshal(statusMsg)
+		if err != nil {
+			log.Printf("Error marshaling connection status: %v", err)
+			continue
+		}
+
+		gs.broadcastCh <- statusData
+	}
+}
+
+// cleanupConnectionQuality removes connection quality tracking for disconnected player
+func (gs *GameServer) cleanupConnectionQuality(playerID string) {
+	gs.qualityMutex.Lock()
+	defer gs.qualityMutex.Unlock()
+
+	// Stop ping timer
+	if timer, exists := gs.pingTimers[playerID]; exists {
+		timer.Stop()
+		delete(gs.pingTimers, playerID)
+	}
+
+	// Remove quality tracking
+	delete(gs.connectionQualities, playerID)
+}
+
+// Enhanced monitoring methods for comprehensive dashboard support
+
+// getGameStatistics provides detailed game state analytics
+func (gs *GameServer) getGameStatistics() map[string]interface{} {
+	gs.mutex.RLock()
+	defer gs.mutex.RLock()
+
+	// Calculate game statistics
+	totalPlayers := len(gs.gameState.Players)
+	connectedPlayers := 0
+	totalClues := 0
+	avgHealth := 0.0
+	avgSanity := 0.0
+
+	for _, player := range gs.gameState.Players {
+		if player.Connected {
+			connectedPlayers++
+		}
+		totalClues += player.Resources.Clues
+		avgHealth += float64(player.Resources.Health)
+		avgSanity += float64(player.Resources.Sanity)
+	}
+
+	if totalPlayers > 0 {
+		avgHealth /= float64(totalPlayers)
+		avgSanity /= float64(totalPlayers)
+	}
+
+	// Calculate game progress
+	gameProgress := 0.0
+	if totalPlayers > 0 {
+		requiredClues := totalPlayers * 4 // Victory condition
+		gameProgress = float64(totalClues) / float64(requiredClues) * 100
+		if gameProgress > 100 {
+			gameProgress = 100
+		}
+	}
+
+	// Calculate doom threat level
+	doomThreat := "Low"
+	doomPercent := float64(gs.gameState.Doom) / 12.0 * 100
+	if doomPercent > 75 {
+		doomThreat = "Critical"
+	} else if doomPercent > 50 {
+		doomThreat = "High"
+	} else if doomPercent > 25 {
+		doomThreat = "Medium"
+	}
+
+	return map[string]interface{}{
+		"totalPlayers":     totalPlayers,
+		"connectedPlayers": connectedPlayers,
+		"totalClues":       totalClues,
+		"averageHealth":    avgHealth,
+		"averageSanity":    avgSanity,
+		"gameProgress":     gameProgress,
+		"doomThreat":       doomThreat,
+		"doomPercent":      doomPercent,
+		"gamePhase":        gs.gameState.GamePhase,
+		"gameStarted":      gs.gameState.GameStarted,
+	}
+}
+
+// getSystemAlerts checks for system issues and returns alerts
+func (gs *GameServer) getSystemAlerts() []map[string]interface{} {
+	alerts := []map[string]interface{}{}
+
+	// Performance alerts
+	performanceMetrics := gs.collectPerformanceMetrics()
+
+	// High memory usage alert
+	if performanceMetrics.MemoryUsage.AllocMB > 100 {
+		alerts = append(alerts, map[string]interface{}{
+			"type":     "warning",
+			"message":  fmt.Sprintf("High memory usage: %.1f MB", performanceMetrics.MemoryUsage.AllocMB),
+			"severity": "medium",
+		})
+	}
+
+	// High response time alert
+	if performanceMetrics.ResponseTimeMs > 100 {
+		alerts = append(alerts, map[string]interface{}{
+			"type":     "warning",
+			"message":  fmt.Sprintf("High response time: %.1f ms", performanceMetrics.ResponseTimeMs),
+			"severity": "medium",
+		})
+	}
+
+	// High error rate alert
+	if performanceMetrics.ErrorRate > 5 {
+		alerts = append(alerts, map[string]interface{}{
+			"type":     "error",
+			"message":  fmt.Sprintf("High error rate: %.1f%%", performanceMetrics.ErrorRate),
+			"severity": "high",
+		})
+	}
+
+	// Game state alerts
+	gs.mutex.RLock()
+	doomPercent := float64(gs.gameState.Doom) / 12.0 * 100
+	gs.mutex.RUnlock()
+
+	if doomPercent > 80 {
+		alerts = append(alerts, map[string]interface{}{
+			"type":     "error",
+			"message":  fmt.Sprintf("Critical doom level: %d/12 (%.0f%%)", gs.gameState.Doom, doomPercent),
+			"severity": "critical",
+		})
+	} else if doomPercent > 60 {
+		alerts = append(alerts, map[string]interface{}{
+			"type":     "warning",
+			"message":  fmt.Sprintf("High doom level: %d/12 (%.0f%%)", gs.gameState.Doom, doomPercent),
+			"severity": "medium",
+		})
+	}
+
+	return alerts
 }
