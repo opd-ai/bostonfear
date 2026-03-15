@@ -104,7 +104,7 @@ Each player gets 2 actions per turn:
 - **Lose**: Doom counter reaches 12
 
 ### Connection Behaviour
-- The client reconnects automatically every 5 seconds on disconnection.
+- The client attempts reconnection starting after 5 seconds, with exponential backoff (doubling each attempt, maximum 30 seconds). For example: first retry after 5 s, second after 10 s, third after 20 s, all subsequent retries after 30 s.
 - **Note**: In the current version, a disconnected player cannot reclaim their investigator. Reconnecting after a drop creates a new player slot. Full session-persistence with reconnection tokens is planned for a future release.
 
 ## Technical Implementation
@@ -121,7 +121,7 @@ Each player gets 2 actions per turn:
 - **Multi-Resolution Support**: Logical 1280×720 resolution scaled to any display; safe-area insets on mobile
 - **Shader Effects**: Kage shaders for fog-of-war, doom vignette, and interactive highlights
 - **WASM Compatibility**: Same Go codebase compiled to WebAssembly for browser play
-- **WebSocket Connection**: Automatic reconnection with 5-second retry (same protocol as legacy client)
+- **WebSocket Connection**: Automatic reconnection with exponential backoff (5 s initial, doubles per attempt, 30 s cap)
 
 ### Legacy JavaScript Client (Deprecated — being replaced by Ebitengine client)
 > The HTML5 Canvas / JavaScript client (`client/index.html`, `client/game.js`) is

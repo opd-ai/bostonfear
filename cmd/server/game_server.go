@@ -363,8 +363,9 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 	return nil
 }
 
-// advanceTurn progresses to the next player's turn
-// Moved from: main.go
+// advanceTurn progresses to the next connected player's turn.
+// Disconnected players are skipped so the game never stalls waiting for a
+// player whose goroutine has already exited.
 func (gs *GameServer) advanceTurn() {
 	if len(gs.gameState.TurnOrder) == 0 {
 		return
@@ -379,23 +380,31 @@ func (gs *GameServer) advanceTurn() {
 		}
 	}
 
-	// Move to next player
-	nextIndex := (currentIndex + 1) % len(gs.gameState.TurnOrder)
-	gs.gameState.CurrentPlayer = gs.gameState.TurnOrder[nextIndex]
-
-	// Reset actions for new turn
-	if player, exists := gs.gameState.Players[gs.gameState.CurrentPlayer]; exists {
-		player.ActionsRemaining = 2
+	// Walk forward through the turn order, skipping disconnected players.
+	// A full rotation without finding a connected player means all players
+	// have disconnected — in that case we leave CurrentPlayer as-is.
+	total := len(gs.gameState.TurnOrder)
+	for i := 1; i <= total; i++ {
+		nextIndex := (currentIndex + i) % total
+		candidateID := gs.gameState.TurnOrder[nextIndex]
+		candidate, exists := gs.gameState.Players[candidateID]
+		if exists && candidate.Connected {
+			gs.gameState.CurrentPlayer = candidateID
+			candidate.ActionsRemaining = 2
+			return
+		}
 	}
 }
 
-// checkGameEndConditions evaluates win/lose states
-// Moved from: main.go
+// checkGameEndConditions evaluates win/lose states.
+// Increments totalGamesPlayed when the game transitions to "ended" so that
+// the arkham_horror_games_played_total metric reflects real completions.
 func (gs *GameServer) checkGameEndConditions() {
 	// Lose condition: Doom reaches 12
 	if gs.gameState.Doom >= 12 {
 		gs.gameState.LoseCondition = true
 		gs.gameState.GamePhase = "ended"
+		atomic.AddInt64(&gs.totalGamesPlayed, 1)
 		log.Printf("Game ended: Doom counter reached 12")
 		return
 	}
@@ -414,6 +423,7 @@ func (gs *GameServer) checkGameEndConditions() {
 	if totalClues >= requiredClues {
 		gs.gameState.WinCondition = true
 		gs.gameState.GamePhase = "ended"
+		atomic.AddInt64(&gs.totalGamesPlayed, 1)
 		log.Printf("Game ended: Victory! Players collected %d/%d clues", totalClues, requiredClues)
 	}
 }
@@ -432,9 +442,11 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		log.Printf("Failed to set read deadline: %v", err)
 	}
 
-	// For this implementation, we need to cast back to WebSocket for message handling
-	// In a production environment, you'd implement a proper abstraction layer
+	// For this implementation, we need to cast back to WebSocket for message handling.
+	// Acquire RLock before reading the shared wsConns map.
+	gs.mutex.RLock()
 	wsConn, ok := gs.wsConns[conn.RemoteAddr().String()]
+	gs.mutex.RUnlock()
 	if !ok {
 		return fmt.Errorf("websocket connection not found for %s", conn.RemoteAddr().String())
 	}
@@ -571,11 +583,13 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 	// Cleanup connection quality monitoring
 	gs.cleanupConnectionQuality(playerID)
 
-	// Remove connections using proper cleanup
+	// Remove connections under mutex to prevent concurrent map reads/writes.
 	addrStr := conn.RemoteAddr().String()
+	gs.mutex.Lock()
 	delete(gs.connections, addrStr)
 	delete(gs.wsConns, addrStr)
 	delete(gs.playerConns, playerID)
+	gs.mutex.Unlock()
 
 	gs.broadcastGameState()
 
@@ -658,6 +672,9 @@ func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 		"performanceMetrics":  gs.collectPerformanceMetrics(),
 		"connectionAnalytics": gs.collectConnectionAnalytics(),
 		"gameStatistics":      gs.getGameStatistics(),
+
+		// System alerts: high memory, slow response, high error rate, critical doom
+		"systemAlerts": gs.getSystemAlerts(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -688,10 +705,12 @@ func (gs *GameServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 
 	// Collect comprehensive metrics
+	uptime := time.Since(gs.startTime)
 	performanceMetrics := gs.collectPerformanceMetrics()
 	connectionAnalytics := gs.collectConnectionAnalytics()
 	memoryMetrics := gs.collectMemoryMetrics()
 	gcMetrics := gs.collectGCMetrics()
+	throughput := gs.collectMessageThroughput(uptime) // wire in broadcast latency
 
 	// Build Prometheus-compatible metrics output
 	metrics := []string{
@@ -722,6 +741,10 @@ func (gs *GameServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		"# HELP arkham_horror_messages_per_second Rate of messages processed per second",
 		"# TYPE arkham_horror_messages_per_second gauge",
 		fmt.Sprintf("arkham_horror_messages_per_second %.2f", performanceMetrics.MessagesPerSecond),
+		"",
+		"# HELP arkham_horror_broadcast_latency_ms Rolling average broadcast write latency in milliseconds",
+		"# TYPE arkham_horror_broadcast_latency_ms gauge",
+		fmt.Sprintf("arkham_horror_broadcast_latency_ms %.4f", throughput.BroadcastLatency),
 		"",
 		"# HELP arkham_horror_memory_allocated_bytes Currently allocated memory in bytes",
 		"# TYPE arkham_horror_memory_allocated_bytes gauge",
@@ -910,21 +933,21 @@ func (gs *GameServer) collectConnectionAnalytics() ConnectionAnalyticsSimplified
 
 // collectMemoryMetrics gathers memory usage statistics
 func (gs *GameServer) collectMemoryMetrics() MemoryMetrics {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
 
 	// Calculate memory usage percentage (approximate)
-	memUsagePercent := float64(m.Alloc) / float64(m.Sys) * 100
+	memUsagePercent := float64(ms.Alloc) / float64(ms.Sys) * 100
 	if memUsagePercent > 100 {
 		memUsagePercent = 100
 	}
 
 	return MemoryMetrics{
-		AllocatedBytes:      m.Alloc,
-		TotalAllocatedBytes: m.TotalAlloc,
-		SystemBytes:         m.Sys,
-		HeapInUse:           m.HeapInuse,
-		HeapReleased:        m.HeapReleased,
+		AllocatedBytes:      ms.Alloc,
+		TotalAllocatedBytes: ms.TotalAlloc,
+		SystemBytes:         ms.Sys,
+		HeapInUse:           ms.HeapInuse,
+		HeapReleased:        ms.HeapReleased,
 		GoroutineCount:      runtime.NumGoroutine(),
 		MemoryUsagePercent:  memUsagePercent,
 	}
@@ -932,36 +955,36 @@ func (gs *GameServer) collectMemoryMetrics() MemoryMetrics {
 
 // collectGCMetrics gathers garbage collection performance data
 func (gs *GameServer) collectGCMetrics() GCMetrics {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
 
 	// Calculate average pause time
 	var avgPause time.Duration
-	if m.NumGC > 0 && len(m.PauseNs) > 0 {
+	if ms.NumGC > 0 && len(ms.PauseNs) > 0 {
 		var totalPause uint64
-		recentPauses := int(m.NumGC)
-		if recentPauses > len(m.PauseNs) {
-			recentPauses = len(m.PauseNs)
+		recentPauses := int(ms.NumGC)
+		if recentPauses > len(ms.PauseNs) {
+			recentPauses = len(ms.PauseNs)
 		}
 
 		for i := 0; i < recentPauses; i++ {
-			totalPause += m.PauseNs[i]
+			totalPause += ms.PauseNs[i]
 		}
 		avgPause = time.Duration(totalPause / uint64(recentPauses))
 	}
 
 	// Get last pause time
 	var lastPause time.Duration
-	if m.NumGC > 0 {
-		lastPause = time.Duration(m.PauseNs[(m.NumGC+255)%256])
+	if ms.NumGC > 0 {
+		lastPause = time.Duration(ms.PauseNs[(ms.NumGC+255)%256])
 	}
 
 	return GCMetrics{
-		NumGC:       m.NumGC,
-		PauseTotal:  time.Duration(m.PauseTotalNs),
+		NumGC:       ms.NumGC,
+		PauseTotal:  time.Duration(ms.PauseTotalNs),
 		PauseAvg:    avgPause,
 		LastPause:   lastPause,
-		CPUFraction: m.GCCPUFraction,
+		CPUFraction: ms.GCCPUFraction,
 	}
 }
 
@@ -1249,23 +1272,26 @@ func (gs *GameServer) updateConnectionQuality(playerID string, messageTime time.
 	gs.assessConnectionQuality(playerID)
 }
 
-// handlePongMessage processes pong responses and calculates latency
+// handlePongMessage processes pong responses and calculates latency.
+// The write lock is released before calling broadcastConnectionQuality to
+// prevent a deadlock: broadcastConnectionQuality acquires qualityMutex.RLock,
+// and Go's sync.RWMutex is not reentrant.
 func (gs *GameServer) handlePongMessage(pingMsg PingMessage, receiveTime time.Time) {
 	gs.qualityMutex.Lock()
-	defer gs.qualityMutex.Unlock()
-
 	quality, exists := gs.connectionQualities[pingMsg.PlayerID]
 	if !exists {
+		gs.qualityMutex.Unlock()
 		return
 	}
 
-	// Calculate round-trip latency
-	latency := float64(receiveTime.Sub(pingMsg.Timestamp).Nanoseconds()) / 1000000 // Convert to milliseconds
+	// Calculate round-trip latency in milliseconds
+	latency := float64(receiveTime.Sub(pingMsg.Timestamp).Nanoseconds()) / 1e6
 	quality.LatencyMs = latency
 	quality.LastPingTime = receiveTime
 
-	// Update quality assessment
+	// Update quality assessment while still holding the lock
 	gs.assessConnectionQuality(pingMsg.PlayerID)
+	gs.qualityMutex.Unlock() // release before broadcasting to avoid reentrant lock
 
 	// Broadcast quality update to all clients
 	gs.broadcastConnectionQuality()
@@ -1318,13 +1344,20 @@ func (gs *GameServer) startPingTimer(playerID string) {
 	}()
 }
 
-// sendPingToPlayer sends a ping message to measure latency
+// sendPingToPlayer sends a ping message to measure latency.
+// Guards against nil connections that can appear when a concurrent disconnect
+// cleanup removes playerConns[playerID] while this function is running.
 func (gs *GameServer) sendPingToPlayer(playerID string) {
 	gs.mutex.RLock()
-	wsConn, exists := gs.wsConns[gs.playerConns[playerID].RemoteAddr().String()]
+	conn, connExists := gs.playerConns[playerID]
+	var wsConn *websocket.Conn
+	var wsExists bool
+	if connExists && conn != nil {
+		wsConn, wsExists = gs.wsConns[conn.RemoteAddr().String()]
+	}
 	gs.mutex.RUnlock()
 
-	if !exists {
+	if !connExists || conn == nil || !wsExists {
 		return
 	}
 
@@ -1385,7 +1418,14 @@ func (gs *GameServer) broadcastConnectionQuality() {
 			continue
 		}
 
-		gs.broadcastCh <- statusData
+		// Non-blocking send mirrors the broadcastGameState pattern.
+		// When the channel is full the quality update is dropped rather than
+		// causing the ping goroutine to accumulate blocked sends under load.
+		select {
+		case gs.broadcastCh <- statusData:
+		default:
+			log.Printf("Broadcast channel full, dropping quality update for %s", playerID)
+		}
 	}
 }
 
