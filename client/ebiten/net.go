@@ -111,27 +111,32 @@ func (c *NetClient) reconnectLoop() {
 // It blocks until the connection is closed or fails.
 func (c *NetClient) runConnection(conn *websocket.Conn) {
 	done := make(chan struct{})
+	go c.writeLoop(conn, done)
+	c.readLoop(conn, done)
+}
 
-	// Write loop: forward queued actions to the server.
-	go func() {
-		defer close(done)
-		for {
-			select {
-			case action := <-c.actionsCh:
-				data, err := json.Marshal(action)
-				if err != nil {
-					log.Printf("net: marshal action: %v", err)
-					continue
-				}
-				if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-					log.Printf("net: write: %v", err)
-					return
-				}
+// writeLoop forwards queued actions to the server until the connection fails.
+// It signals completion by closing done.
+func (c *NetClient) writeLoop(conn *websocket.Conn, done chan struct{}) {
+	defer close(done)
+	for {
+		select {
+		case action := <-c.actionsCh:
+			data, err := json.Marshal(action)
+			if err != nil {
+				log.Printf("net: marshal action: %v", err)
+				continue
+			}
+			if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+				log.Printf("net: write: %v", err)
+				return
 			}
 		}
-	}()
+	}
+}
 
-	// Read loop: parse and route incoming messages.
+// readLoop reads and routes incoming messages until the connection closes or done is signalled.
+func (c *NetClient) readLoop(conn *websocket.Conn, done chan struct{}) {
 	for {
 		select {
 		case <-done:
@@ -161,52 +166,67 @@ func (c *NetClient) routeMessage(data []byte) {
 
 	switch msg.Type {
 	case "gameState":
-		// Full game state is inlined at the top level of the message.
-		gs := GameState{
-			Players:       msg.Players,
-			CurrentPlayer: msg.CurrentPlayer,
-			Doom:          msg.Doom,
-			GamePhase:     msg.GamePhase,
-			TurnOrder:     msg.TurnOrder,
-			GameStarted:   msg.GameStarted,
-			WinCondition:  msg.WinCondition,
-			LoseCondition: msg.LoseCondition,
-			RequiredClues: msg.RequiredClues,
-		}
-		if gs.Players == nil {
-			gs.Players = make(map[string]*Player)
-		}
-		c.state.UpdateGame(gs)
-
+		c.state.UpdateGame(decodeGameState(msg))
 	case "diceResult":
-		var dr DiceResultData
-		if err := json.Unmarshal(data, &dr); err != nil {
-			log.Printf("net: unmarshal diceResult: %v", err)
-			return
-		}
-		c.state.UpdateDiceResult(dr)
-
+		c.applyDiceResult(data)
 	case "gameUpdate":
-		var gu GameUpdateData
-		if err := json.Unmarshal(data, &gu); err != nil {
-			log.Printf("net: unmarshal gameUpdate: %v", err)
-			return
-		}
-		c.state.UpdateGameEvent(gu)
-
+		c.applyGameUpdate(data)
 	case "connectionStatus":
-		var cs ConnectionStatusData
-		if err := json.Unmarshal(data, &cs); err != nil {
-			log.Printf("net: unmarshal connectionStatus: %v", err)
-			return
-		}
-		// Extract our player ID from the first connectionStatus we receive.
-		if c.state.PlayerID == "" && cs.PlayerID != "" {
-			c.state.SetPlayerID(cs.PlayerID)
-		}
-		c.state.UpdateConnectionStatus(cs)
-
+		c.applyConnectionStatus(data)
 	default:
 		// Unknown message type; ignore silently to remain forward-compatible.
 	}
+}
+
+// decodeGameState converts a serverMessage into a GameState value.
+func decodeGameState(msg serverMessage) GameState {
+	gs := GameState{
+		Players:       msg.Players,
+		CurrentPlayer: msg.CurrentPlayer,
+		Doom:          msg.Doom,
+		GamePhase:     msg.GamePhase,
+		TurnOrder:     msg.TurnOrder,
+		GameStarted:   msg.GameStarted,
+		WinCondition:  msg.WinCondition,
+		LoseCondition: msg.LoseCondition,
+		RequiredClues: msg.RequiredClues,
+	}
+	if gs.Players == nil {
+		gs.Players = make(map[string]*Player)
+	}
+	return gs
+}
+
+// applyDiceResult decodes and forwards a diceResult payload to LocalState.
+func (c *NetClient) applyDiceResult(data []byte) {
+	var dr DiceResultData
+	if err := json.Unmarshal(data, &dr); err != nil {
+		log.Printf("net: unmarshal diceResult: %v", err)
+		return
+	}
+	c.state.UpdateDiceResult(dr)
+}
+
+// applyGameUpdate decodes and forwards a gameUpdate payload to LocalState.
+func (c *NetClient) applyGameUpdate(data []byte) {
+	var gu GameUpdateData
+	if err := json.Unmarshal(data, &gu); err != nil {
+		log.Printf("net: unmarshal gameUpdate: %v", err)
+		return
+	}
+	c.state.UpdateGameEvent(gu)
+}
+
+// applyConnectionStatus decodes and forwards a connectionStatus payload to LocalState.
+// It also extracts the player ID on the first connectionStatus received.
+func (c *NetClient) applyConnectionStatus(data []byte) {
+	var cs ConnectionStatusData
+	if err := json.Unmarshal(data, &cs); err != nil {
+		log.Printf("net: unmarshal connectionStatus: %v", err)
+		return
+	}
+	if c.state.PlayerID == "" && cs.PlayerID != "" {
+		c.state.SetPlayerID(cs.PlayerID)
+	}
+	c.state.UpdateConnectionStatus(cs)
 }

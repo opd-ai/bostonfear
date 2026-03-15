@@ -1,0 +1,5 @@
+?   	github.com/opd-ai/bostonfear/client/ebiten	[no test files]
+?   	github.com/opd-ai/bostonfear/client/ebiten/render	[no test files]
+?   	github.com/opd-ai/bostonfear/cmd/desktop	[no test files]
+?   	github.com/opd-ai/bostonfear/cmd/mobile	[no test files]
+ok  	github.com/opd-ai/bostonfear/cmd/server	1.238s

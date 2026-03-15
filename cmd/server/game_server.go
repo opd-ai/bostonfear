@@ -177,50 +177,77 @@ func (gs *GameServer) rollDice(numDice int) ([]DiceResult, int, int) {
 func (gs *GameServer) processAction(action PlayerActionMessage) error {
 	gs.mutex.Lock()
 
-	// Validate game state
-	if gs.gameState.GamePhase != "playing" {
+	player, err := gs.validateActionRequest(action)
+	if err != nil {
 		gs.mutex.Unlock()
-		return fmt.Errorf("game is not in playing state")
+		return err
 	}
 
+	prevResources := player.Resources
+	diceResult, doomIncrease, actionResult, actionErr := gs.dispatchAction(action, player)
+	if actionErr != nil {
+		gs.mutex.Unlock()
+		return actionErr
+	}
+
+	if doomIncrease > 0 {
+		gs.gameState.Doom = min(gs.gameState.Doom+doomIncrease, 12)
+	}
+
+	player.ActionsRemaining--
+	gs.trackPlayerSession(action.PlayerID, "action")
+	gs.validateResources(&player.Resources)
+	gs.checkGameEndConditions()
+	if player.ActionsRemaining == 0 {
+		gs.advanceTurn()
+	}
+
+	gameUpdateMsg := gs.buildGameUpdateMessage(action, actionResult, doomIncrease, prevResources, player.Resources)
+	gs.mutex.Unlock()
+
+	gs.broadcastActionResults(gameUpdateMsg, diceResult)
+	gs.broadcastGameState()
+	return nil
+}
+
+// validateActionRequest checks game phase, player existence, turn ownership, and action type.
+// Caller must hold gs.mutex.
+func (gs *GameServer) validateActionRequest(action PlayerActionMessage) (*Player, error) {
+	if gs.gameState.GamePhase != "playing" {
+		return nil, fmt.Errorf("game is not in playing state")
+	}
 	player, exists := gs.gameState.Players[action.PlayerID]
 	if !exists {
-		gs.mutex.Unlock()
-		return fmt.Errorf("player %s not found", action.PlayerID)
+		return nil, fmt.Errorf("player %s not found", action.PlayerID)
 	}
-
-	// Validate it's the player's turn and they have actions remaining
 	if gs.gameState.CurrentPlayer != action.PlayerID {
-		gs.mutex.Unlock()
-		return fmt.Errorf("not player %s's turn (current: %s)", action.PlayerID, gs.gameState.CurrentPlayer)
+		return nil, fmt.Errorf("not player %s's turn (current: %s)", action.PlayerID, gs.gameState.CurrentPlayer)
 	}
-
 	if player.ActionsRemaining <= 0 {
-		gs.mutex.Unlock()
-		return fmt.Errorf("player %s has no actions remaining", action.PlayerID)
+		return nil, fmt.Errorf("player %s has no actions remaining", action.PlayerID)
 	}
+	if !isValidActionType(action.Action) {
+		return nil, fmt.Errorf("invalid action type: %s", action.Action)
+	}
+	return player, nil
+}
 
-	// Validate action type
-	validActions := []ActionType{ActionMove, ActionGather, ActionInvestigate, ActionCastWard}
-	isValidAction := false
-	for _, validAction := range validActions {
-		if action.Action == validAction {
-			isValidAction = true
-			break
+// isValidActionType returns true when the given action type is one of the four known actions.
+func isValidActionType(a ActionType) bool {
+	for _, v := range []ActionType{ActionMove, ActionGather, ActionInvestigate, ActionCastWard} {
+		if a == v {
+			return true
 		}
 	}
-	if !isValidAction {
-		gs.mutex.Unlock()
-		return fmt.Errorf("invalid action type: %s", action.Action)
-	}
+	return false
+}
 
-	// Snapshot resources before action to compute delta for gameUpdate message
-	prevResources := player.Resources
+// dispatchAction routes the action to its specific handler and returns the results.
+// Caller must hold gs.mutex.
+func (gs *GameServer) dispatchAction(action PlayerActionMessage, player *Player) (*DiceResultMessage, int, string, error) {
 	actionResult := "success"
-
-	// Dispatch to per-action handlers; each returns a dice result and doom delta.
 	var diceResult *DiceResultMessage
-	doomIncrease := 0
+	var doomIncrease int
 	var actionErr error
 
 	switch action.Action {
@@ -237,72 +264,50 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 		diceResult, doomIncrease, actionResult, actionErr = gs.performCastWard(player, action.PlayerID)
 	}
 
-	if actionErr != nil {
-		gs.mutex.Unlock()
-		return actionErr
-	}
+	return diceResult, doomIncrease, actionResult, actionErr
+}
 
-	// Apply doom increase from tentacle results
-	if doomIncrease > 0 {
-		gs.gameState.Doom = min(gs.gameState.Doom+doomIncrease, 12)
-	}
-
-	// Decrement actions remaining
-	player.ActionsRemaining--
-
-	// Track player action for performance monitoring
-	gs.trackPlayerSession(action.PlayerID, "action")
-
-	// Validate resources after action
-	gs.validateResources(&player.Resources)
-
-	// Check win/lose conditions
-	gs.checkGameEndConditions()
-
-	// Advance turn if player has no actions left
-	if player.ActionsRemaining == 0 {
-		gs.advanceTurn()
-	}
-
-	// Snapshot outbound messages while holding the lock, then release before sending.
-	gameUpdateMsg := &GameUpdateMessage{
+// buildGameUpdateMessage constructs the gameUpdate broadcast message from action results.
+// Caller must hold gs.mutex.
+func (gs *GameServer) buildGameUpdateMessage(
+	action PlayerActionMessage,
+	actionResult string,
+	doomDelta int,
+	prev, curr Resources,
+) *GameUpdateMessage {
+	return &GameUpdateMessage{
 		Type:      "gameUpdate",
 		PlayerID:  action.PlayerID,
 		Event:     string(action.Action),
 		Result:    actionResult,
-		DoomDelta: doomIncrease,
+		DoomDelta: doomDelta,
 		ResourceDelta: ResourcesDelta{
-			Health: player.Resources.Health - prevResources.Health,
-			Sanity: player.Resources.Sanity - prevResources.Sanity,
-			Clues:  player.Resources.Clues - prevResources.Clues,
+			Health: curr.Health - prev.Health,
+			Sanity: curr.Sanity - prev.Sanity,
+			Clues:  curr.Clues - prev.Clues,
 		},
 		Timestamp: time.Now(),
 	}
-	gs.mutex.Unlock() // release before broadcasting — broadcastGameState re-acquires the lock
+}
 
-	// Emit gameUpdate event message (fifth required JSON protocol message type).
-	if updateData, err := json.Marshal(gameUpdateMsg); err == nil {
-		select {
-		case gs.broadcastCh <- updateData:
-		default:
-			log.Printf("Broadcast channel full, dropping gameUpdate")
-		}
+// broadcastActionResults sends the gameUpdate and optional diceResult to all clients.
+func (gs *GameServer) broadcastActionResults(update *GameUpdateMessage, diceResult *DiceResultMessage) {
+	if updateData, err := json.Marshal(update); err == nil {
+		gs.trySendBroadcast(updateData, "gameUpdate")
 	}
-
-	// Broadcast dice result if applicable — non-blocking to match broadcastGameState.
 	if diceResult != nil {
 		diceData, _ := json.Marshal(diceResult)
-		select {
-		case gs.broadcastCh <- diceData:
-		default:
-			log.Printf("Broadcast channel full, dropping diceResult")
-		}
+		gs.trySendBroadcast(diceData, "diceResult")
 	}
+}
 
-	// Broadcast updated game state
-	gs.broadcastGameState()
-
-	return nil
+// trySendBroadcast enqueues data on the broadcast channel or logs a drop warning.
+func (gs *GameServer) trySendBroadcast(data []byte, msgType string) {
+	select {
+	case gs.broadcastCh <- data:
+	default:
+		log.Printf("Broadcast channel full, dropping %s", msgType)
+	}
 }
 
 // performMove executes the Move action: validates adjacency and updates player location.
@@ -473,13 +478,10 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		}
 	}()
 
-	// Set connection timeout for 30 seconds as specified in requirements
 	if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 		log.Printf("Failed to set read deadline: %v", err)
 	}
 
-	// For this implementation, we need to cast back to WebSocket for message handling.
-	// Acquire RLock before reading the shared wsConns map.
 	gs.mutex.RLock()
 	wsConn, ok := gs.wsConns[conn.RemoteAddr().String()]
 	gs.mutex.RUnlock()
@@ -487,27 +489,38 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		return fmt.Errorf("websocket connection not found for %s", conn.RemoteAddr().String())
 	}
 
-	// Generate unique player ID with better uniqueness
-	playerID := fmt.Sprintf("player_%d", time.Now().UnixNano())
-
-	// Track connection for performance monitoring
-	gs.trackConnection("connect", playerID, 0)
-	gs.trackPlayerSession(playerID, "start")
-
-	// Initialize connection quality monitoring
-	gs.initializeConnectionQuality(playerID)
-
-	// Add player to game with proper validation
-	gs.mutex.Lock()
-	if len(gs.gameState.Players) >= MaxPlayers {
-		gs.mutex.Unlock()
-		return fmt.Errorf("game is full (max %d players)", MaxPlayers)
+	playerID, err := gs.registerPlayer(conn)
+	if err != nil {
+		return err
 	}
 
-	// Initialize new player
-	newPlayer := &Player{
+	gs.sendConnectionStatus(wsConn, playerID)
+	gs.broadcastGameState()
+	gs.runMessageLoop(conn, wsConn, playerID)
+
+	gs.handlePlayerDisconnect(playerID, conn.RemoteAddr().String())
+	return nil
+}
+
+// registerPlayer adds a new player to the game state and starts their monitoring.
+// Returns the new player's ID or an error if the game is full.
+func (gs *GameServer) registerPlayer(conn net.Conn) (string, error) {
+	playerID := fmt.Sprintf("player_%d", time.Now().UnixNano())
+
+	gs.trackConnection("connect", playerID, 0)
+	gs.trackPlayerSession(playerID, "start")
+	gs.initializeConnectionQuality(playerID)
+
+	gs.mutex.Lock()
+	defer gs.mutex.Unlock()
+
+	if len(gs.gameState.Players) >= MaxPlayers {
+		return "", fmt.Errorf("game is full (max %d players)", MaxPlayers)
+	}
+
+	gs.gameState.Players[playerID] = &Player{
 		ID:       playerID,
-		Location: Downtown, // Start at Downtown
+		Location: Downtown,
 		Resources: Resources{
 			Health: 10,
 			Sanity: 10,
@@ -516,54 +529,43 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		ActionsRemaining: 0,
 		Connected:        true,
 	}
-
-	gs.gameState.Players[playerID] = newPlayer
 	gs.gameState.TurnOrder = append(gs.gameState.TurnOrder, playerID)
-
-	// Store player connection mapping for proper net.Conn interface usage
 	gs.playerConns[playerID] = conn
 
-	// Start game if we have enough players and the game hasn't started yet
 	if len(gs.gameState.Players) >= MinPlayers && !gs.gameState.GameStarted {
 		gs.gameState.GameStarted = true
 		gs.gameState.GamePhase = "playing"
 		gs.gameState.CurrentPlayer = gs.gameState.TurnOrder[0]
 		gs.gameState.Players[gs.gameState.CurrentPlayer].ActionsRemaining = 2
 	} else if gs.gameState.GameStarted && gs.gameState.GamePhase == "playing" {
-		// Player is joining a game already in progress — they were initialized
-		// with ActionsRemaining=0 (see newPlayer above) and will receive their
-		// turn when the rotation reaches them.
 		log.Printf("Player %s joined game in progress (turn order position %d)", playerID, len(gs.gameState.TurnOrder))
 	}
 
-	gs.mutex.Unlock()
+	return playerID, nil
+}
 
-	// Send connection status
-	connectionMsg := map[string]interface{}{
+// sendConnectionStatus sends the connectionStatus message to the newly connected client.
+func (gs *GameServer) sendConnectionStatus(wsConn *websocket.Conn, playerID string) {
+	msg := map[string]interface{}{
 		"type":     "connectionStatus",
 		"playerId": playerID,
 		"status":   "connected",
 	}
-	connData, _ := json.Marshal(connectionMsg)
-	wsConn.WriteMessage(websocket.TextMessage, connData)
+	data, _ := json.Marshal(msg)
+	wsConn.WriteMessage(websocket.TextMessage, data)
+}
 
-	// Broadcast updated game state
-	gs.broadcastGameState()
-
-	// Handle incoming messages with timeout
+// runMessageLoop reads incoming WebSocket messages until the connection closes or errors.
+func (gs *GameServer) runMessageLoop(conn net.Conn, wsConn *websocket.Conn, playerID string) {
 	for {
-		// Reset read deadline for each message via the net.Conn interface (30-second timeout).
-		// ConnectionWrapper.SetReadDeadline now delegates to the underlying WebSocket connection.
 		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 			log.Printf("Failed to set read deadline: %v", err)
 		}
 
 		_, messageData, err := wsConn.ReadMessage()
 		if err != nil {
-			// Check if it's a timeout error
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				log.Printf("Connection timeout for player %s", playerID)
-				// Increment doom counter on timeout as per requirements
 				gs.mutex.Lock()
 				gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
 				gs.checkGameEndConditions()
@@ -575,38 +577,37 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 			break
 		}
 
-		// Track message received time for latency calculation
-		messageReceiveTime := time.Now()
-
-		var actionMsg PlayerActionMessage
-		if err := json.Unmarshal(messageData, &actionMsg); err != nil {
-			// Try to parse as ping response
-			var pingMsg PingMessage
-			if pingErr := json.Unmarshal(messageData, &pingMsg); pingErr == nil && pingMsg.Type == "pong" {
-				gs.handlePongMessage(pingMsg, messageReceiveTime)
-				continue
-			}
-			log.Printf("Message unmarshal error: %v", err)
-			atomic.AddInt64(&gs.errorCount, 1)
-			continue
+		receiveTime := time.Now()
+		if !gs.handleIncomingMessage(messageData, playerID, receiveTime) {
+			break
 		}
+	}
+}
 
-		// Validate action message
-		if actionMsg.PlayerID != playerID {
-			log.Printf("Invalid player ID in action: expected %s, got %s", playerID, actionMsg.PlayerID)
-			atomic.AddInt64(&gs.errorCount, 1)
-			continue
+// handleIncomingMessage parses and dispatches a single raw WebSocket message.
+// Returns false only when the caller should stop the message loop.
+func (gs *GameServer) handleIncomingMessage(data []byte, playerID string, receiveTime time.Time) bool {
+	var actionMsg PlayerActionMessage
+	if err := json.Unmarshal(data, &actionMsg); err != nil {
+		var pingMsg PingMessage
+		if pingErr := json.Unmarshal(data, &pingMsg); pingErr == nil && pingMsg.Type == "pong" {
+			gs.handlePongMessage(pingMsg, receiveTime)
+			return true
 		}
-
-		// Update connection quality based on message timing
-		gs.updateConnectionQuality(playerID, messageReceiveTime)
-
-		// Process action through channel
-		gs.actionCh <- actionMsg
+		log.Printf("Message unmarshal error: %v", err)
+		atomic.AddInt64(&gs.errorCount, 1)
+		return true
 	}
 
-	gs.handlePlayerDisconnect(playerID, conn.RemoteAddr().String())
-	return nil
+	if actionMsg.PlayerID != playerID {
+		log.Printf("Invalid player ID in action: expected %s, got %s", playerID, actionMsg.PlayerID)
+		atomic.AddInt64(&gs.errorCount, 1)
+		return true
+	}
+
+	gs.updateConnectionQuality(playerID, receiveTime)
+	gs.actionCh <- actionMsg
+	return true
 }
 
 // handlePlayerDisconnect cleans up all state for a disconnecting player.
@@ -905,69 +906,76 @@ func (gs *GameServer) collectConnectionAnalytics() ConnectionAnalyticsSimplified
 	gs.performanceMutex.RLock()
 	defer gs.performanceMutex.RUnlock()
 
-	totalPlayers := len(gs.playerSessions)
-	activePlayers := 0
+	totalPlayers, activePlayers, playerSessions := gs.aggregatePlayerSessions()
+	window := time.Now().Add(-5 * time.Minute)
+	connectionsIn5Min, disconnectsIn5Min, totalReconnections := gs.countRecentConnectionEvents(window)
 
-	// Convert session map to slice and update active status
-	playerSessions := make([]PlayerSessionMetricsSimplified, 0, len(gs.playerSessions))
-	for _, session := range gs.playerSessions {
-		// Update session length if still active
-		if session.IsActive {
-			session.SessionLength = time.Since(session.SessionStart)
-			activePlayers++
-		}
-		playerSessions = append(playerSessions, *session)
-	}
-
-	// Calculate recent connection activity (last 5 minutes)
-	fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
-	connectionsIn5Min := 0
-	disconnectsIn5Min := 0
-	totalReconnections := 0
-
-	for _, event := range gs.connectionEvents {
-		if event.Timestamp.After(fiveMinutesAgo) {
-			switch event.EventType {
-			case "connect":
-				connectionsIn5Min++
-			case "disconnect":
-				disconnectsIn5Min++
-			case "reconnect":
-				totalReconnections++
-			}
-		}
-	}
-
-	// Calculate reconnection rate
 	var reconnectionRate float64
 	if connectionsIn5Min > 0 {
 		reconnectionRate = float64(totalReconnections) / float64(connectionsIn5Min) * 100
-	}
-
-	// Calculate average latency from recent events
-	var totalLatency float64
-	latencyCount := 0
-	for _, event := range gs.connectionEvents {
-		if event.Latency > 0 && event.Timestamp.After(fiveMinutesAgo) {
-			totalLatency += event.Latency
-			latencyCount++
-		}
-	}
-
-	var avgLatency float64
-	if latencyCount > 0 {
-		avgLatency = totalLatency / float64(latencyCount)
 	}
 
 	return ConnectionAnalyticsSimplified{
 		TotalPlayers:      totalPlayers,
 		ActivePlayers:     activePlayers,
 		PlayerSessions:    playerSessions,
-		AverageLatency:    avgLatency,
+		AverageLatency:    gs.computeAverageLatency(window),
 		ConnectionsIn5Min: connectionsIn5Min,
 		DisconnectsIn5Min: disconnectsIn5Min,
 		ReconnectionRate:  reconnectionRate,
 	}
+}
+
+// aggregatePlayerSessions converts the playerSessions map into a slice and counts active players.
+// Caller must hold gs.performanceMutex at least for reading.
+func (gs *GameServer) aggregatePlayerSessions() (int, int, []PlayerSessionMetricsSimplified) {
+	total := len(gs.playerSessions)
+	active := 0
+	sessions := make([]PlayerSessionMetricsSimplified, 0, total)
+	for _, session := range gs.playerSessions {
+		if session.IsActive {
+			session.SessionLength = time.Since(session.SessionStart)
+			active++
+		}
+		sessions = append(sessions, *session)
+	}
+	return total, active, sessions
+}
+
+// countRecentConnectionEvents counts connect, disconnect, and reconnect events after cutoff.
+// Caller must hold gs.performanceMutex at least for reading.
+func (gs *GameServer) countRecentConnectionEvents(after time.Time) (connects, disconnects, reconnects int) {
+	for _, event := range gs.connectionEvents {
+		if !event.Timestamp.After(after) {
+			continue
+		}
+		switch event.EventType {
+		case "connect":
+			connects++
+		case "disconnect":
+			disconnects++
+		case "reconnect":
+			reconnects++
+		}
+	}
+	return
+}
+
+// computeAverageLatency returns the mean latency of events with Latency > 0 after cutoff.
+// Caller must hold gs.performanceMutex at least for reading.
+func (gs *GameServer) computeAverageLatency(after time.Time) float64 {
+	var total float64
+	count := 0
+	for _, event := range gs.connectionEvents {
+		if event.Latency > 0 && event.Timestamp.After(after) {
+			total += event.Latency
+			count++
+		}
+	}
+	if count == 0 {
+		return 0
+	}
+	return total / float64(count)
 }
 
 // collectMemoryMetrics gathers memory usage statistics
@@ -1197,33 +1205,7 @@ func (gs *GameServer) actionHandler() {
 // Uses a full write lock because the recovery path may assign gs.gameState.
 func (gs *GameServer) broadcastGameState() {
 	gs.mutex.Lock()
-
-	// Validate game state before broadcasting with error recovery
-	if errors := gs.validator.ValidateGameState(gs.gameState); len(errors) > 0 {
-		log.Printf("Game state validation errors detected: %d errors", len(errors))
-
-		// Attempt recovery for critical/high severity errors
-		hasCriticalErrors := false
-		for _, err := range errors {
-			if err.Severity == "CRITICAL" || err.Severity == "HIGH" {
-				hasCriticalErrors = true
-				break
-			}
-		}
-
-		if hasCriticalErrors {
-			log.Printf("Attempting game state recovery...")
-			recoveredState, recoveryErr := gs.validator.RecoverGameState(gs.gameState, errors)
-			if recoveryErr == nil {
-				gs.gameState = recoveredState
-				log.Printf("Game state successfully recovered")
-			} else {
-				log.Printf("Game state recovery failed: %v", recoveryErr)
-				atomic.AddInt64(&gs.errorCount, 1)
-			}
-		}
-	}
-
+	gs.validateAndRecoverState()
 	gameStateMsg := map[string]interface{}{
 		"type": "gameState",
 		"data": gs.gameState,
@@ -1236,12 +1218,31 @@ func (gs *GameServer) broadcastGameState() {
 		return
 	}
 
-	// Non-blocking send to broadcast channel
-	select {
-	case gs.broadcastCh <- data:
-		// Successfully queued broadcast
-	default:
-		log.Printf("Broadcast channel full, dropping game state update")
+	gs.trySendBroadcast(data, "gameState")
+}
+
+// validateAndRecoverState validates the current game state and attempts recovery when
+// critical or high-severity errors are found. Caller must hold gs.mutex.
+func (gs *GameServer) validateAndRecoverState() {
+	errors := gs.validator.ValidateGameState(gs.gameState)
+	if len(errors) == 0 {
+		return
+	}
+	log.Printf("Game state validation errors detected: %d errors", len(errors))
+
+	for _, err := range errors {
+		if err.Severity == "CRITICAL" || err.Severity == "HIGH" {
+			log.Printf("Attempting game state recovery...")
+			recovered, recoveryErr := gs.validator.RecoverGameState(gs.gameState, errors)
+			if recoveryErr == nil {
+				gs.gameState = recovered
+				log.Printf("Game state successfully recovered")
+			} else {
+				log.Printf("Game state recovery failed: %v", recoveryErr)
+				atomic.AddInt64(&gs.errorCount, 1)
+			}
+			return
+		}
 	}
 }
 
@@ -1490,47 +1491,9 @@ func (gs *GameServer) getGameStatistics() map[string]interface{} {
 	gs.mutex.RLock()
 	defer gs.mutex.RUnlock()
 
-	// Calculate game statistics
-	totalPlayers := len(gs.gameState.Players)
-	connectedPlayers := 0
-	totalClues := 0
-	avgHealth := 0.0
-	avgSanity := 0.0
-
-	for _, player := range gs.gameState.Players {
-		if player.Connected {
-			connectedPlayers++
-		}
-		totalClues += player.Resources.Clues
-		avgHealth += float64(player.Resources.Health)
-		avgSanity += float64(player.Resources.Sanity)
-	}
-
-	if totalPlayers > 0 {
-		avgHealth /= float64(totalPlayers)
-		avgSanity /= float64(totalPlayers)
-	}
-
-	// Calculate game progress
-	gameProgress := 0.0
-	if totalPlayers > 0 {
-		requiredClues := totalPlayers * 4 // Victory condition
-		gameProgress = float64(totalClues) / float64(requiredClues) * 100
-		if gameProgress > 100 {
-			gameProgress = 100
-		}
-	}
-
-	// Calculate doom threat level
-	doomThreat := "Low"
+	totalPlayers, connectedPlayers, totalClues, avgHealth, avgSanity := aggregatePlayerStats(gs.gameState.Players)
+	gameProgress := computeGameProgress(totalPlayers, totalClues)
 	doomPercent := float64(gs.gameState.Doom) / 12.0 * 100
-	if doomPercent > 75 {
-		doomThreat = "Critical"
-	} else if doomPercent > 50 {
-		doomThreat = "High"
-	} else if doomPercent > 25 {
-		doomThreat = "Medium"
-	}
 
 	return map[string]interface{}{
 		"totalPlayers":     totalPlayers,
@@ -1539,10 +1502,54 @@ func (gs *GameServer) getGameStatistics() map[string]interface{} {
 		"averageHealth":    avgHealth,
 		"averageSanity":    avgSanity,
 		"gameProgress":     gameProgress,
-		"doomThreat":       doomThreat,
+		"doomThreat":       classifyDoomThreat(doomPercent),
 		"doomPercent":      doomPercent,
 		"gamePhase":        gs.gameState.GamePhase,
 		"gameStarted":      gs.gameState.GameStarted,
+	}
+}
+
+// aggregatePlayerStats computes per-player totals and averages from the players map.
+func aggregatePlayerStats(players map[string]*Player) (total, connected, totalClues int, avgHealth, avgSanity float64) {
+	total = len(players)
+	for _, p := range players {
+		if p.Connected {
+			connected++
+		}
+		totalClues += p.Resources.Clues
+		avgHealth += float64(p.Resources.Health)
+		avgSanity += float64(p.Resources.Sanity)
+	}
+	if total > 0 {
+		avgHealth /= float64(total)
+		avgSanity /= float64(total)
+	}
+	return
+}
+
+// computeGameProgress returns the clue-collection progress (0–100) toward victory.
+func computeGameProgress(totalPlayers, totalClues int) float64 {
+	if totalPlayers == 0 {
+		return 0
+	}
+	progress := float64(totalClues) / float64(totalPlayers*4) * 100
+	if progress > 100 {
+		return 100
+	}
+	return progress
+}
+
+// classifyDoomThreat maps a doom percentage to a human-readable threat level.
+func classifyDoomThreat(doomPercent float64) string {
+	switch {
+	case doomPercent > 75:
+		return "Critical"
+	case doomPercent > 50:
+		return "High"
+	case doomPercent > 25:
+		return "Medium"
+	default:
+		return "Low"
 	}
 }
 
