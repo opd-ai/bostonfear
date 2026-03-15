@@ -15,11 +15,14 @@ type Location string
 type DiceResult string
 
 // Resources mirrors the server's Resources type for JSON decoding.
-// Health and Sanity range 1-10; Clues range 0-5.
+// Health and Sanity range 1-10; Clues range 0-5; Money 0-99; Remnants 0-5; Focus 0-3.
 type Resources struct {
-	Health int `json:"health"`
-	Sanity int `json:"sanity"`
-	Clues  int `json:"clues"`
+	Health   int `json:"health"`
+	Sanity   int `json:"sanity"`
+	Clues    int `json:"clues"`
+	Money    int `json:"money"`
+	Remnants int `json:"remnants"`
+	Focus    int `json:"focus"`
 }
 
 // Player mirrors the server's Player type for JSON decoding.

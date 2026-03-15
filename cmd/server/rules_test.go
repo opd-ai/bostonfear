@@ -246,12 +246,28 @@ func TestRulesFullActionSet(t *testing.T) {
 }
 
 // --- TestRulesDicePoolFocusModifier ---
-// AH3e: Investigators may spend focus tokens to add dice to their pool;
-// skill ratings scale the base pool size.
-// Status: NOT IMPLEMENTED — engine uses a fixed 3-die pool with no focus spend.
+// AH3e: Investigators may spend focus tokens to add dice to their pool.
+// Status: IMPLEMENTED — rollDicePool deducts focus tokens and adds extra dice with rerolls.
 
 func TestRulesDicePoolFocusModifier(t *testing.T) {
-	t.Skip("Dice pool focus-token modifier not yet implemented (RULES.md §Dice Resolution, GAPS.md)")
+	gs, p1ID := newTestServer(t)
+	gs.gameState.Players[p1ID].Resources.Focus = 2
+
+	// Send an Investigate action spending 1 focus token.
+	before := gs.gameState.Players[p1ID].Resources.Focus
+	msg := PlayerActionMessage{
+		Type:       "playerAction",
+		PlayerID:   p1ID,
+		Action:     ActionInvestigate,
+		FocusSpend: 1,
+	}
+	_ = gs.processAction(msg)
+
+	// After the action, 1 focus token should have been deducted.
+	after := gs.gameState.Players[p1ID].Resources.Focus
+	if after != before-1 {
+		t.Errorf("focus after spending 1 = %d, want %d", after, before-1)
+	}
 }
 
 // --- TestRulesAnomalyGateMechanics ---

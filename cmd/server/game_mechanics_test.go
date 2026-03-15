@@ -806,3 +806,53 @@ func TestProcessAction_ComponentActionRejected(t *testing.T) {
 		t.Error("error message must not be empty")
 	}
 }
+
+// --- Dice Pool Focus Modifiers ---
+
+// TestDicePool_ZeroFocusNoChange verifies that a focusSpend of 0 behaves like
+// the original rollDice call (no extra dice, no rerolls).
+func TestDicePool_ZeroFocusNoChange(t *testing.T) {
+gs := NewGameServer()
+player := &Player{Resources: Resources{Focus: 2}}
+_, _, _ = gs.rollDicePool(3, 0, player)
+if player.Resources.Focus != 2 {
+t.Errorf("Focus should not be deducted with focusSpend=0; got %d", player.Resources.Focus)
+}
+}
+
+// TestDicePool_FocusSpendDeductsTokens verifies that spending N focus tokens
+// deducts N from the player's focus pool.
+func TestDicePool_FocusSpendDeductsTokens(t *testing.T) {
+gs := NewGameServer()
+player := &Player{Resources: Resources{Focus: 3}}
+gs.rollDicePool(3, 2, player)
+if player.Resources.Focus != 1 {
+t.Errorf("Focus after spending 2 = %d, want 1", player.Resources.Focus)
+}
+}
+
+// TestDicePool_InvalidFocusSpend verifies that spending more focus than available
+// is clamped to what the player actually has (no negative focus).
+func TestDicePool_InvalidFocusSpend(t *testing.T) {
+gs := NewGameServer()
+player := &Player{Resources: Resources{Focus: 1}}
+// Attempt to spend 5 but only 1 is available.
+gs.rollDicePool(3, 5, player)
+if player.Resources.Focus < 0 {
+t.Errorf("Focus must not go negative; got %d", player.Resources.Focus)
+}
+}
+
+// TestDicePool_FocusSpendAddsExtraDice verifies that spending focus adds dice
+// to the pool (the returned results slice is longer than baseDice).
+func TestDicePool_FocusSpendAddsExtraDice(t *testing.T) {
+gs := NewGameServer()
+// Run many times so statistical variance doesn't mask the effect.
+for i := 0; i < 20; i++ {
+player := &Player{Resources: Resources{Focus: 2}}
+results, _, _ := gs.rollDicePool(3, 2, player)
+if len(results) != 5 {
+t.Errorf("expected 5 dice results (3 base + 2 focus); got %d", len(results))
+}
+}
+}

@@ -36,10 +36,11 @@ type Message struct {
 // PlayerActionMessage represents player action requests in the JSON protocol,
 // containing the player ID, action type, and optional target.
 type PlayerActionMessage struct {
-	Type     string     `json:"type"`
-	PlayerID string     `json:"playerId"`
-	Action   ActionType `json:"action"`
-	Target   string     `json:"target,omitempty"`
+	Type       string     `json:"type"`
+	PlayerID   string     `json:"playerId"`
+	Action     ActionType `json:"action"`
+	Target     string     `json:"target,omitempty"`
+	FocusSpend int        `json:"focusSpend,omitempty"` // focus tokens to spend for extra dice
 }
 
 // DiceResultMessage represents dice roll results in the JSON protocol,
