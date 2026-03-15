@@ -222,7 +222,7 @@ class ArkhamHorrorClient {
         
         switch (phase) {
             case 'waiting':
-                statusText = `Waiting for players... (${Object.keys(this.gameState.players).length}/4)`;
+                statusText = `Waiting for players... (${Object.keys(this.gameState.players).length}/6)`;
                 statusClass = 'status-waiting';
                 break;
             case 'playing':

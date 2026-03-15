@@ -1,10 +1,10 @@
 # Arkham Horror - Multiplayer Game
 
-A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and a Go/Ebitengine game client supporting desktop, web (WASM), and mobile platforms with 1-6 concurrent players. Players can join a game already in progress.
+A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and an HTML/JS canvas client with 1-6 concurrent players. Players can join a game already in progress. A Go/Ebitengine client supporting desktop, web (WASM), and mobile platforms is planned — see `ROADMAP.md`.
 
 > **Migration in progress:** The client is being migrated from HTML/JS canvas to
 > Go/Ebitengine. See `ROADMAP.md` for the phased plan. The WebSocket server and its
-> protocol remain unchanged throughout the migration.
+> protocol remain stable after the Phase 0 baseline fixes described in `PLAN.md`.
 
 ## Features
 
@@ -36,8 +36,8 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 | Platform | Entrypoint | Build Command | Status |
 |---|---|---|---|
 | **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Planned (ROADMAP Phase 2) |
-| **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o game.wasm ./cmd/web` | Planned (ROADMAP Phase 3) |
-| **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/mobile.go` | `ebitenmobile bind -target android ./cmd/mobile` | Planned (ROADMAP Phase 4) |
+| **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Planned (ROADMAP Phase 3) |
+| **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/mobile.go` | `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile` | Planned (ROADMAP Phase 4) |
 | **Legacy browser** (current) | `client/index.html` | N/A — served by Go server | Active (to be replaced) |
 
 ## Quick Setup

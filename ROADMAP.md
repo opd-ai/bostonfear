@@ -26,8 +26,9 @@ This roadmap covers **engine, client, and rules-engine infrastructure only**.
 
 Replace the existing HTML5 Canvas / JavaScript client (`client/index.html`,
 `client/game.js`) with a Go-based game client built on
-[Ebitengine](https://ebitengine.org), while keeping the current `gorilla/websocket`
-server completely unchanged.
+[Ebitengine](https://ebitengine.org). The `gorilla/websocket` server and its
+protocol remain stable after the Phase 0 baseline fixes described in `PLAN.md`;
+no further server changes are required during this phase.
 
 ### Scope Boundaries
 
