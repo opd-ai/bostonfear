@@ -498,6 +498,33 @@ func (gs *GameServer) resolveMythosToken(token string) {
 	}
 }
 
+// rescaleActDeck adjusts the clue thresholds of the Act deck to match the
+// documented AH3e win condition: 4 clues per investigator collectively
+// (4 for 1P, 8 for 2P, 16 for 4P, 24 for 6P).  Thresholds are distributed
+// evenly across three acts: base/3, 2*base/3, base (integer division).
+// Call this once when the game starts, after all joining players are counted.
+// Caller must hold gs.mutex.
+func (gs *GameServer) rescaleActDeck(playerCount int) {
+	n := max(playerCount, 1)
+	base := 4 * n
+	for i := range gs.gameState.ActDeck {
+		switch i {
+		case 0:
+			gs.gameState.ActDeck[i].ClueThreshold = base / 3
+		case 1:
+			gs.gameState.ActDeck[i].ClueThreshold = (2 * base) / 3
+		default:
+			gs.gameState.ActDeck[i].ClueThreshold = base
+		}
+	}
+	log.Printf("Act deck rescaled for %d player(s): thresholds %d / %d / %d",
+		n,
+		gs.gameState.ActDeck[0].ClueThreshold,
+		gs.gameState.ActDeck[1].ClueThreshold,
+		gs.gameState.ActDeck[2].ClueThreshold,
+	)
+}
+
 // checkActAdvance evaluates whether the investigators have accumulated enough clues
 // to advance the Act deck (AH3e §Act/Agenda).  On act completion the win condition
 // is set when the final act card is advanced.

@@ -215,7 +215,7 @@ func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
 
 	// Calculate runtime metrics
 	uptime := time.Since(gs.startTime)
-	activeConnections := len(gs.connections)
+	activeConnections := int(atomic.LoadInt64(&gs.activeConnections))
 
 	// Calculate connections per second — guard against division by zero on startup
 	connectionsPerSecond := 0.0
@@ -479,7 +479,7 @@ func (gs *GameServer) trackConnection(eventType, playerID string, latency float6
 	// Update connection counters
 	if eventType == "connect" {
 		gs.totalConnections++
-		currentConnections := len(gs.connections)
+		currentConnections := int(atomic.LoadInt64(&gs.activeConnections))
 		if currentConnections > gs.peakConnections {
 			gs.peakConnections = currentConnections
 		}

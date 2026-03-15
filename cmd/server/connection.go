@@ -99,6 +99,10 @@ func (gs *GameServer) registerPlayer(conn net.Conn) (string, error) {
 		gs.gameState.GamePhase = "playing"
 		gs.gameState.CurrentPlayer = gs.gameState.TurnOrder[0]
 		gs.gameState.Players[gs.gameState.CurrentPlayer].ActionsRemaining = 2
+		// Rescale act deck thresholds to match player count (4 clues/investigator).
+		if len(gs.gameState.ActDeck) >= 3 {
+			gs.rescaleActDeck(len(gs.gameState.Players))
+		}
 	} else if gs.gameState.GameStarted && gs.gameState.GamePhase == "playing" {
 		log.Printf("Player %s joined game in progress (turn order position %d)", playerID, len(gs.gameState.TurnOrder))
 	}
@@ -208,6 +212,7 @@ func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
 	delete(gs.connections, addrStr)
 	delete(gs.wsConns, addrStr)
 	delete(gs.playerConns, playerID)
+	atomic.AddInt64(&gs.activeConnections, -1)
 	gs.mutex.Unlock()
 
 	gs.broadcastGameState()
@@ -286,6 +291,7 @@ func (gs *GameServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	addrStr := remoteAddr.String()
 	gs.connections[addrStr] = connWrapper
 	gs.wsConns[addrStr] = wsConn
+	atomic.AddInt64(&gs.activeConnections, 1)
 	log.Printf("Stored connection %s, total connections: %d", addrStr, len(gs.connections))
 
 	// Token-based reconnection: restore disconnected player if token matches.

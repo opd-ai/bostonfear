@@ -34,6 +34,7 @@ type GameServer struct {
 	// Performance monitoring fields
 	startTime         time.Time
 	totalConnections  int64
+	activeConnections int64 // managed atomically; mirrors len(gs.connections)
 	peakConnections   int
 	totalGamesPlayed  int64
 	totalMessagesSent int64

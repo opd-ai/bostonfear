@@ -10,6 +10,7 @@ package main
 // Run with: go test -run TestRules ./cmd/server/
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -654,4 +655,87 @@ func TestRulesScenarioSystem(t *testing.T) {
 			t.Error("custom WinFn returning true should set WinCondition")
 		}
 	})
+}
+
+// TestRulesActAgendaProgression_PlayerCountScaling verifies that rescaleActDeck
+// sets the final Act threshold to 4 × playerCount (4 clues per investigator as
+// documented in the README win condition).
+func TestRulesActAgendaProgression_PlayerCountScaling(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		playerCount     int
+		wantFinalThresh int
+	}{
+		{1, 4},
+		{2, 8},
+		{3, 12},
+		{4, 16},
+		{5, 20},
+		{6, 24},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(fmt.Sprintf("%dP", tc.playerCount), func(t *testing.T) {
+			t.Parallel()
+			gs, _ := newTestServer(t)
+			// Reset to default 3-card act deck.
+			gs.gameState.ActDeck = defaultActDeck()
+
+			gs.mutex.Lock()
+			gs.rescaleActDeck(tc.playerCount)
+			gs.mutex.Unlock()
+
+			if len(gs.gameState.ActDeck) != 3 {
+				t.Fatalf("expected 3 act cards, got %d", len(gs.gameState.ActDeck))
+			}
+			got := gs.gameState.ActDeck[2].ClueThreshold
+			if got != tc.wantFinalThresh {
+				t.Errorf("final act threshold = %d, want %d (player count %d)",
+					got, tc.wantFinalThresh, tc.playerCount)
+			}
+			// Act 1 < Act 2 < Act 3.
+			if !(gs.gameState.ActDeck[0].ClueThreshold < gs.gameState.ActDeck[1].ClueThreshold &&
+				gs.gameState.ActDeck[1].ClueThreshold < gs.gameState.ActDeck[2].ClueThreshold) {
+				t.Errorf("act thresholds not strictly increasing: %d / %d / %d",
+					gs.gameState.ActDeck[0].ClueThreshold,
+					gs.gameState.ActDeck[1].ClueThreshold,
+					gs.gameState.ActDeck[2].ClueThreshold)
+			}
+		})
+	}
+}
+
+// TestRulesActAgendaProgression_1PGameWinsAt4Clues verifies end-to-end that a
+// single-player game is won exactly when the investigator accumulates 4 clues.
+func TestRulesActAgendaProgression_1PGameWinsAt4Clues(t *testing.T) {
+	gs, p1ID := newTestServer(t)
+	gs.gameState.ActDeck = defaultActDeck()
+
+	gs.mutex.Lock()
+	gs.rescaleActDeck(1) // 1P → final threshold = 4
+	gs.mutex.Unlock()
+
+	// Accumulate clues one at a time; WinCondition must be false until 4.
+	for clues := 1; clues <= 3; clues++ {
+		gs.gameState.Players[p1ID].Resources.Clues = clues
+		gs.mutex.Lock()
+		gs.checkActAdvance()
+		gs.mutex.Unlock()
+		if gs.gameState.WinCondition {
+			t.Errorf("WinCondition set at %d clue(s); expected false before 4", clues)
+		}
+	}
+
+	// Reaching 4 clues should eventually exhaust all acts (via repeated advance).
+	// Give the player 4 clues and drive the full check.
+	gs.gameState.Players[p1ID].Resources.Clues = 4
+	gs.mutex.Lock()
+	gs.checkGameEndConditions()
+	gs.mutex.Unlock()
+
+	if !gs.gameState.WinCondition {
+		t.Error("WinCondition should be set when 1P reaches 4 clues")
+	}
 }

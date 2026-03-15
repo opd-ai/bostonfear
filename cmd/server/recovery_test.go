@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -128,10 +129,11 @@ func TestCollectConnectionAnalytics_ReconnectionRate(t *testing.T) {
 
 func TestTrackConnection_PeakConnections(t *testing.T) {
 	gs, _ := newTestServer(t)
-	// Add two fake connections to connections map
+	// Add two fake connections to connections map and keep atomic counter in sync.
 	gs.mutex.Lock()
 	gs.connections["addr1"] = nil
 	gs.connections["addr2"] = nil
+	atomic.AddInt64(&gs.activeConnections, 2)
 	gs.mutex.Unlock()
 
 	gs.trackConnection("connect", "p1", 0)

@@ -6,7 +6,7 @@ class ArkhamHorrorClient {
         // WebSocket connection with automatic reconnection
         this.ws = null;
         this.playerId = null;
-        this.reconnectToken = null; // stored for session restoration on reconnect
+        this.reconnectToken = localStorage.getItem('arkham_reconnect_token') || null; // restored from storage on page load
         this.gameState = null;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = Infinity;
@@ -148,7 +148,8 @@ class ArkhamHorrorClient {
             case 'connectionStatus':
                 this.playerId = message.playerId;
                 if (message.token) {
-                    this.reconnectToken = message.token; // persist for reconnection
+                    this.reconnectToken = message.token;
+                    localStorage.setItem('arkham_reconnect_token', message.token); // persist across page refreshes
                 }
                 console.log('Player ID assigned:', this.playerId);
                 break;

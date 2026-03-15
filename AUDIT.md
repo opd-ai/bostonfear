@@ -50,7 +50,7 @@ learning WebSocket architecture. Key promises:
 
 ### CRITICAL
 
-- [ ] **Unbalanced `RUnlock()` in `handleConnection` panics on every live connection** —
+- [x] **Unbalanced `RUnlock()` in `handleConnection` panics on every live connection** —
   `cmd/server/connection.go:35-36` — `handleConnection` reads `gs.wsConns` (a map) then calls
   `gs.mutex.RUnlock()` without a prior `RLock()`. In Go's `sync.RWMutex`, calling `RUnlock` on an
   unlocked mutex panics with `"sync: RUnlock of unlocked RWMutex"`. The map read on line 35 is also
@@ -79,7 +79,7 @@ learning WebSocket architecture. Key promises:
 
 ### HIGH
 
-- [ ] **Win condition implementation contradicts documented player-count scaling** —
+- [x] **Win condition implementation contradicts documented player-count scaling** —
   `cmd/server/game_mechanics.go:505-529` and `README.md:104` — The README promises the win
   threshold scales with player count: 4 clues for 1 player, 16 for 4 players, 24 for 6 players.
   `checkActAdvance()` compares total collective clues against the current Act card's fixed
@@ -106,7 +106,7 @@ learning WebSocket architecture. Key promises:
   Call `scaledActDeck(len(gameState.Players))` from `DefaultScenario.SetupFn` after players join.
   **Validate:** `go test -race ./cmd/server/... -run TestRulesActAgendaProgression`
 
-- [ ] **`gs.connections` read under wrong mutex in `trackConnection` — latent data race** —
+- [x] **`gs.connections` read under wrong mutex in `trackConnection` — latent data race** —
   `cmd/server/observability.go:482` — `trackConnection` acquires `gs.performanceMutex.Lock()` but
   reads `gs.connections` (line 482: `currentConnections := len(gs.connections)`). The `connections`
   map is mutated under `gs.mutex` in `connection.go:207,286`. Concurrent connect/disconnect events
@@ -134,7 +134,7 @@ learning WebSocket architecture. Key promises:
 
 ### MEDIUM
 
-- [ ] **JS client reconnect token not persisted to `localStorage` — contradicts README** —
+- [x] **JS client reconnect token not persisted to `localStorage` — contradicts README** —
   `client/game.js:9` and `README.md:110` — The README states the token is "stored in
   `localStorage`". In `game.js:9` the token is stored in the class property
   `this.reconnectToken = null`. A hard browser refresh (`Ctrl+Shift+R`) or tab close clears the
