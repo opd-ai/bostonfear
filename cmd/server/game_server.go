@@ -401,7 +401,7 @@ func (gs *GameServer) checkGameEndConditions() {
 	}
 
 	// Win condition: Cooperative victory based on total clues collected
-	// Scale based on number of players: 2 players = 8 clues, 3 players = 12 clues, 4 players = 16 clues
+	// Scale based on number of players: 4 clues per player (e.g. 4 for 1 player, 8 for 2, up to 24 for 6)
 	totalClues := 0
 	playerCount := len(gs.gameState.Players)
 	for _, player := range gs.gameState.Players {
@@ -451,9 +451,9 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 
 	// Add player to game with proper validation
 	gs.mutex.Lock()
-	if len(gs.gameState.Players) >= 4 {
+	if len(gs.gameState.Players) >= MaxPlayers {
 		gs.mutex.Unlock()
-		return fmt.Errorf("game is full (max 4 players)")
+		return fmt.Errorf("game is full (max %d players)", MaxPlayers)
 	}
 
 	// Initialize new player
@@ -475,12 +475,17 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 	// Store player connection mapping for proper net.Conn interface usage
 	gs.playerConns[playerID] = conn
 
-	// Start game if we have at least 2 players
-	if len(gs.gameState.Players) >= 2 && !gs.gameState.GameStarted {
+	// Start game if we have enough players and the game hasn't started yet
+	if len(gs.gameState.Players) >= MinPlayers && !gs.gameState.GameStarted {
 		gs.gameState.GameStarted = true
 		gs.gameState.GamePhase = "playing"
 		gs.gameState.CurrentPlayer = gs.gameState.TurnOrder[0]
 		gs.gameState.Players[gs.gameState.CurrentPlayer].ActionsRemaining = 2
+	} else if gs.gameState.GameStarted && gs.gameState.GamePhase == "playing" {
+		// Player is joining a game already in progress — they were initialized
+		// with ActionsRemaining=0 (see newPlayer above) and will receive their
+		// turn when the rotation reaches them.
+		log.Printf("Player %s joined game in progress (turn order position %d)", playerID, len(gs.gameState.TurnOrder))
 	}
 
 	gs.mutex.Unlock()

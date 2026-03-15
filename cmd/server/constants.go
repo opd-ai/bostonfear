@@ -5,6 +5,12 @@ package main
 // that a single change keeps them in sync.
 const clientDir = "../client"
 
+// Player count limits matching AH3e core rulebook (1-6 investigators).
+const (
+	MinPlayers = 1 // Minimum players required to start a game
+	MaxPlayers = 6 // Maximum concurrent players per game
+)
+
 // Location constants define the 4 interconnected neighborhoods
 // Moved from: main.go
 const (
