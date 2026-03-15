@@ -33,8 +33,9 @@ func (gs *GameServer) validateResources(resources *Resources) {
 }
 
 // checkInvestigatorDefeat transitions a player to the defeated state when their
-// Health or Sanity reaches 0. Defeated players are skipped in turn rotation and
-// have their ActionsRemaining zeroed. Caller must hold gs.mutex.
+// Health or Sanity reaches 0. Defeated players are placed in the LostInTimeAndSpace
+// state: moved to Downtown, resources reset to half max, actions zeroed.
+// Caller must hold gs.mutex.
 func (gs *GameServer) checkInvestigatorDefeat(playerID string) {
 	player, exists := gs.gameState.Players[playerID]
 	if !exists || player.Defeated {
@@ -42,10 +43,28 @@ func (gs *GameServer) checkInvestigatorDefeat(playerID string) {
 	}
 	if player.Resources.Health == 0 || player.Resources.Sanity == 0 {
 		player.Defeated = true
+		player.LostInTimeAndSpace = true
 		player.ActionsRemaining = 0
-		log.Printf("Investigator %s defeated (health=%d, sanity=%d)",
-			playerID, player.Resources.Health, player.Resources.Sanity)
+		player.Location = Downtown
+		player.Resources.Health = MaxHealth / 2
+		player.Resources.Sanity = MaxSanity / 2
+		log.Printf("Investigator %s defeated — lost in time and space (reset to Downtown)",
+			playerID)
 	}
+}
+
+// recoverInvestigator clears the defeated and LostInTimeAndSpace flags for
+// the given player, allowing them to re-enter the turn rotation normally.
+// ActionsRemaining is left at 0; advanceTurn grants actions when their turn arrives.
+// Caller must hold gs.mutex.
+func (gs *GameServer) recoverInvestigator(playerID string) {
+	player, exists := gs.gameState.Players[playerID]
+	if !exists {
+		return
+	}
+	player.Defeated = false
+	player.LostInTimeAndSpace = false
+	log.Printf("Investigator %s recovered", playerID)
 }
 
 // rollDice performs dice resolution with configurable difficulty
@@ -224,7 +243,8 @@ func (gs *GameServer) performInvestigate(player *Player, playerID string, focusS
 }
 
 // performCastWard executes the Cast Ward action: costs 1 Sanity and rolls 3 dice requiring 3 successes.
-// On success, reduces the doom counter by 2. Returns dice result, doom increase, result string, and any error.
+// On success, reduces the doom counter by 2 and seals any anomaly in the player's current location.
+// Returns dice result, doom increase, result string, and any error.
 // focusSpend tokens are deducted from the player and add dice plus rerolls.
 // The caller (processAction) holds gs.mutex and is responsible for releasing it.
 func (gs *GameServer) performCastWard(player *Player, playerID string, focusSpend int) (*DiceResultMessage, int, string, error) {
@@ -237,6 +257,8 @@ func (gs *GameServer) performCastWard(player *Player, playerID string, focusSpen
 	actionResult := "success"
 	if successes >= requiredSuccesses {
 		gs.gameState.Doom = max(gs.gameState.Doom-2, 0)
+		// Seal any anomaly at the player's current location.
+		gs.sealAnomalyAtLocation(string(player.Location))
 	} else {
 		actionResult = "fail"
 	}
@@ -436,6 +458,10 @@ func (gs *GameServer) runMythosPhase() {
 		gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
 		gs.gameState.MythosEvents = append(gs.gameState.MythosEvents, evt)
 		log.Printf("Mythos Phase: event placed at %s (spread=%v)", target, evt.Spread)
+		// Spawn an anomaly if this event is an anomaly-type event.
+		if evt.Effect == MythosEventAnomaly {
+			gs.spawnAnomaly(target)
+		}
 	}
 
 	// Draw and resolve mythos cup token.
@@ -566,4 +592,43 @@ func (gs *GameServer) checkGameEndConditions() {
 	} else {
 		gs.checkActAdvance()
 	}
+}
+
+// spawnAnomaly places an anomaly at the given neighbourhood during the Mythos Phase.
+// Each anomaly contributes 1 doom token to its location. Caller must hold gs.mutex.
+func (gs *GameServer) spawnAnomaly(neighbourhood string) {
+	gs.gameState.Anomalies = append(gs.gameState.Anomalies, Anomaly{
+		NeighbourhoodID: neighbourhood,
+		DoomTokens:      1,
+	})
+	gs.gameState.LocationDoomTokens[neighbourhood]++
+	gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
+	log.Printf("Anomaly spawned at %s (doom=%d)", neighbourhood, gs.gameState.Doom)
+}
+
+// sealAnomalyAtLocation removes the first anomaly found at neighbourhood and
+// reduces doom by 2. This is the sealing effect applied on a successful Ward.
+// Caller must hold gs.mutex.
+func (gs *GameServer) sealAnomalyAtLocation(neighbourhood string) {
+	for i, a := range gs.gameState.Anomalies {
+		if a.NeighbourhoodID == neighbourhood {
+			gs.gameState.Anomalies = append(gs.gameState.Anomalies[:i], gs.gameState.Anomalies[i+1:]...)
+			gs.gameState.Doom = max(gs.gameState.Doom-2, 0)
+			log.Printf("Anomaly sealed at %s (doom=%d)", neighbourhood, gs.gameState.Doom)
+			return
+		}
+	}
+}
+
+// applyDifficulty configures game setup parameters from the DifficultyConfig table.
+// Must be called before the game starts (during the waiting phase).
+// Returns an error if the difficulty name is unrecognised.
+func (gs *GameServer) applyDifficulty(difficulty string) error {
+	cfg, ok := DifficultyConfig[difficulty]
+	if !ok {
+		return fmt.Errorf("invalid difficulty %q: must be easy, standard, or hard", difficulty)
+	}
+	gs.gameState.Difficulty = difficulty
+	gs.gameState.Doom = cfg.InitialDoom
+	return nil
 }

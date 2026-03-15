@@ -59,14 +59,15 @@ type DiceResultMessage struct {
 // Player represents an investigator with location, resources, and turn state.
 // Each player has a unique ID and tracks their connection status.
 type Player struct {
-	ID               string    `json:"id"`
-	Location         Location  `json:"location"`
-	Resources        Resources `json:"resources"`
-	ActionsRemaining int       `json:"actionsRemaining"`
-	Connected        bool      `json:"connected"`
-	Defeated         bool      `json:"defeated"`       // true when Health or Sanity reaches 0
-	ReconnectToken   string    `json:"reconnectToken"` // opaque token for session restoration
-	DisconnectedAt   time.Time `json:"disconnectedAt"` // zero value means currently connected
+	ID                 string    `json:"id"`
+	Location           Location  `json:"location"`
+	Resources          Resources `json:"resources"`
+	ActionsRemaining   int       `json:"actionsRemaining"`
+	Connected          bool      `json:"connected"`
+	Defeated           bool      `json:"defeated"`             // true when Health or Sanity reaches 0
+	LostInTimeAndSpace bool      `json:"lostInTimeAndSpace"`   // true when investigator is defeated and awaiting recovery
+	ReconnectToken     string    `json:"reconnectToken"`       // opaque token for session restoration
+	DisconnectedAt     time.Time `json:"disconnectedAt"`       // zero value means currently connected
 }
 
 // Scenario defines the setup and win/lose conditions for a game session.
@@ -93,9 +94,10 @@ type EncounterCard struct {
 // During the Mythos Phase, 2 events are drawn, placed on target neighborhoods,
 // and spread to adjacent neighborhoods if a doom token is already present.
 type MythosEvent struct {
-	LocationID string `json:"locationId"` // target neighborhood
-	Effect     string `json:"effect"`     // narrative effect description
-	Spread     bool   `json:"spread"`     // true when placed via spread rule
+	LocationID      string `json:"locationId"`      // target neighborhood
+	Effect          string `json:"effect"`          // narrative effect description
+	Spread          bool   `json:"spread"`          // true when placed via spread rule
+	MythosEventType string `json:"mythosEventType"` // event category, e.g. "anomaly"
 }
 
 // ActCard represents a single card in the Act deck (AH3e §Act/Agenda).
@@ -115,18 +117,27 @@ type AgendaCard struct {
 	Effect        string `json:"effect"`        // narrative outcome when advanced
 }
 
+// Anomaly represents a spatial tear spawned during the Mythos Phase.
+// Investigators can seal anomalies by successfully casting a Ward (3 successes).
+// Sealing an anomaly removes it and reduces global doom by 2.
+type Anomaly struct {
+	NeighbourhoodID string `json:"neighbourhoodId"` // location where anomaly is placed
+	DoomTokens      int    `json:"doomTokens"`      // doom tokens this anomaly has accumulated
+}
+
 // GameState represents the complete game state including all players,
 // turn order, doom counter, and win/lose conditions.
 type GameState struct {
 	Players       map[string]*Player `json:"players"`
 	CurrentPlayer string             `json:"currentPlayer"`
-	Doom          int                `json:"doom"`      // 0-12 doom counter
-	GamePhase     string             `json:"gamePhase"` // "waiting", "playing", "mythos", "ended"
+	Doom          int                `json:"doom"`       // 0-12 doom counter
+	GamePhase     string             `json:"gamePhase"`  // "waiting", "playing", "mythos", "ended"
 	TurnOrder     []string           `json:"turnOrder"`
 	GameStarted   bool               `json:"gameStarted"`
 	WinCondition  bool               `json:"winCondition"`
 	LoseCondition bool               `json:"loseCondition"`
 	RequiredClues int                `json:"requiredClues"` // kept for backward compatibility; derived from ActDeck
+	Difficulty    string             `json:"difficulty"`    // "easy", "standard", "hard"
 	// Act/Agenda deck state
 	ActDeck    []ActCard    `json:"actDeck"`    // remaining act cards
 	AgendaDeck []AgendaCard `json:"agendaDeck"` // remaining agenda cards
@@ -135,6 +146,8 @@ type GameState struct {
 	LocationDoomTokens map[string]int `json:"locationDoomTokens"` // doom tokens per neighborhood
 	MythosToken        string         `json:"mythosToken"`        // current cup token drawn
 	MythosEvents       []MythosEvent  `json:"mythosEvents"`       // events resolved this phase
+	// Anomalies spawned during the Mythos Phase
+	Anomalies []Anomaly `json:"anomalies"`
 	// Encounter decks keyed by location name
 	EncounterDecks map[string][]EncounterCard `json:"encounterDecks"`
 }

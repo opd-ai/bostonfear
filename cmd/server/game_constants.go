@@ -112,6 +112,24 @@ const (
 	MythosTokenBlank    = "blank"    // no effect
 )
 
+// MythosEventAnomaly marks a MythosEvent as an anomaly-spawning event.
+// When runMythosPhase processes an event whose Effect equals this constant,
+// it calls spawnAnomaly at the target neighbourhood.
+const MythosEventAnomaly = "anomaly"
+
+// DifficultySetup holds the initial game setup parameters per difficulty level.
+type DifficultySetup struct {
+	InitialDoom     int // doom counter starting value
+	ExtraDoomTokens int // extra doom tokens added to MythosCup
+}
+
+// DifficultyConfig maps difficulty names to their AH3e setup parameters.
+var DifficultyConfig = map[string]DifficultySetup{
+	"easy":     {InitialDoom: 0, ExtraDoomTokens: 0},
+	"standard": {InitialDoom: 1, ExtraDoomTokens: 1},
+	"hard":     {InitialDoom: 3, ExtraDoomTokens: 3},
+}
+
 // defaultMythosEventDeck returns the starting event draw pile with one event
 // per neighborhood.  Events cycle: when the deck empties it is rebuilt.
 func defaultMythosEventDeck() []MythosEvent {

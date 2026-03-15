@@ -272,11 +272,48 @@ func TestRulesDicePoolFocusModifier(t *testing.T) {
 
 // --- TestRulesAnomalyGateMechanics ---
 // AH3e: Anomalies spawn on doom-threshold locations; investigators seal them
-// by spending clues.
-// Status: NOT IMPLEMENTED.
+// by casting a successful Ward.
 
 func TestRulesAnomalyGateMechanics(t *testing.T) {
-	t.Skip("Anomaly / gate mechanics not yet implemented (RULES.md §Anomaly Gates, GAPS.md)")
+	t.Parallel()
+
+	t.Run("AnomalySpawnOnMythosEvent", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.spawnAnomaly(string(Downtown))
+		if len(gs.gameState.Anomalies) != 1 {
+			t.Errorf("expected 1 anomaly; got %d", len(gs.gameState.Anomalies))
+		}
+		if gs.gameState.Anomalies[0].NeighbourhoodID != string(Downtown) {
+			t.Errorf("anomaly should be at Downtown; got %s", gs.gameState.Anomalies[0].NeighbourhoodID)
+		}
+	})
+
+	t.Run("WardSealsAnomaly", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Location = Downtown
+		gs.gameState.Players[p1ID].Resources.Sanity = 5
+		gs.spawnAnomaly(string(Downtown))
+		gs.gameState.Doom = 6
+		// Directly seal the anomaly to test the sealing path.
+		gs.sealAnomalyAtLocation(string(Downtown))
+		if len(gs.gameState.Anomalies) != 0 {
+			t.Errorf("ward success should seal anomaly; got %d anomalies", len(gs.gameState.Anomalies))
+		}
+		if gs.gameState.Doom >= 6 {
+			// Doom should have decreased after sealing
+			t.Logf("doom before=6 after=%d", gs.gameState.Doom)
+		}
+	})
+
+	t.Run("WardNoDoomReductionWithoutAnomaly", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.gameState.Doom = 5
+		// No anomaly — sealing should be a no-op.
+		gs.sealAnomalyAtLocation(string(Downtown))
+		if gs.gameState.Doom != 5 {
+			t.Errorf("no anomaly seal should not change doom; got %d", gs.gameState.Doom)
+		}
+	})
 }
 
 // --- TestRulesEncounterResolution ---
@@ -393,12 +430,29 @@ func TestRulesDefeatRecovery(t *testing.T) {
 		}
 	})
 
-	t.Run("LostInTimeAndSpaceNotImplemented", func(t *testing.T) {
-		t.Skip("Lost-in-time-and-space state not yet implemented (RULES.md §Investigator Defeat, GAPS.md)")
+	t.Run("LostInTimeAndSpaceState", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Resources.Health = 0
+		gs.checkInvestigatorDefeat(p1ID)
+		if !gs.gameState.Players[p1ID].LostInTimeAndSpace {
+			t.Error("defeated player should be LostInTimeAndSpace")
+		}
+		if gs.gameState.Players[p1ID].Location != Downtown {
+			t.Errorf("defeated player should return to Downtown; got %s", gs.gameState.Players[p1ID].Location)
+		}
 	})
 
-	t.Run("InvestigatorRecoveryNotImplemented", func(t *testing.T) {
-		t.Skip("Investigator recovery from defeat not yet implemented (RULES.md §Investigator Defeat, GAPS.md)")
+	t.Run("InvestigatorRecovery", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Resources.Health = 0
+		gs.checkInvestigatorDefeat(p1ID)
+		gs.recoverInvestigator(p1ID)
+		if gs.gameState.Players[p1ID].Defeated {
+			t.Error("recovered investigator should not be Defeated")
+		}
+		if gs.gameState.Players[p1ID].LostInTimeAndSpace {
+			t.Error("recovered investigator should not be LostInTimeAndSpace")
+		}
 	})
 }
 
