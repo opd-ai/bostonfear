@@ -367,6 +367,8 @@ func (gs *GameServer) actionHandler() {
 
 // broadcastGameState sends current game state to all connected clients.
 // Uses a full write lock because the recovery path may assign gs.gameState.
+// json.Marshal is performed inside the lock so no concurrent write can race
+// against the serialization of the gameState pointer's fields.
 func (gs *GameServer) broadcastGameState() {
 	gs.mutex.Lock()
 	gs.validateAndRecoverState()
@@ -374,9 +376,9 @@ func (gs *GameServer) broadcastGameState() {
 		"type": "gameState",
 		"data": gs.gameState,
 	}
+	data, err := json.Marshal(gameStateMsg)
 	gs.mutex.Unlock()
 
-	data, err := json.Marshal(gameStateMsg)
 	if err != nil {
 		log.Printf("Game state marshal error: %v", err)
 		return
