@@ -33,6 +33,7 @@ go.work.sum
 
 # Compiled binaries (root level)
 /server
+/desktop
 /arkham-server
 /connection_wrapper
 
@@ -41,6 +42,8 @@ go.work.sum
 server.log
 
 # Analysis artifacts
+baseline.json
+post.json
 pre-cleanup.json
 post-cleanup.json
 *-baseline.json
