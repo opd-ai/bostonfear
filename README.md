@@ -71,7 +71,8 @@ go run ./cmd/desktop -server ws://localhost:8080/ws
 **Web WASM client** (after ROADMAP Phase 3):
 ```bash
 GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
-# Serve client/wasm/ via HTTP, then open in browser
+# Serve via the Go server at /play, or use any static HTTP server:
+# python3 -m http.server 8080 --directory client/wasm/
 ```
 
 **Mobile client** (after ROADMAP Phase 4):

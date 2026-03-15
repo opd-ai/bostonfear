@@ -107,7 +107,7 @@ Produce native desktop binaries for Linux, macOS, and Windows from a single
   build-macos-arm64:
       GOOS=darwin GOARCH=arm64 go build -o dist/bostonfear-macos-arm64 ./cmd/desktop
   build-windows:
-      GOOS=windows GOARCH=amd64 go build -o dist/bostonfear.exe ./cmd/desktop
+      GOOS=windows GOARCH=amd64 go build -o dist/bostonfear-windows-amd64.exe ./cmd/desktop
   ```
 - Ensure Ebitengine's platform dependencies are documented (e.g., X11/Wayland dev
   headers on Linux, Xcode command-line tools on macOS).
