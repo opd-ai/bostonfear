@@ -202,16 +202,16 @@
 
 **Gap**: GAPS.md contains outdated entries (GAP-11 RUnlock issue, GAP-14 localStorage, GAP-15 atomic counter, GAP-16 test coverage) that have already been resolved.
 
-- [x] Remove or mark as resolved: GAP-11 through GAP-20 (all resolved; GAP-21 remains open).
-  _(GAP-11 through GAP-16 were already closed in the previous cycle; GAP-17, 18, 19, 20 resolved in this cycle — acceptance tests added for GAP-17 and GAP-19; GAP-20 promoted to live feature)_
+- [x] Remove or mark as resolved: GAP-11 through GAP-21 (all resolved).
+  _(GAP-11 through GAP-16 were already closed in the previous cycle; GAP-17, 18, 19, 20 resolved in this cycle — acceptance tests added for GAP-17 and GAP-19; GAP-20 promoted to live feature; GAP-21 resolved by adding Xvfb to CI)_
 - [x] Add new gaps:
   - ~~GAP-17: `performComponent` action stub.~~ _(was added in previous GAPS.md update; now resolved)_
   - ~~GAP-18: Attack/Evade actions not implemented.~~ _(was added; now resolved)_
   - ~~GAP-19: Mobile build not device-verified.~~ _(moved to ROADMAP Priority 3 as out-of-scope)_
   - ~~GAP-20: Placeholder sprites only.~~ _(moved to ROADMAP Priority 4 as out-of-scope)_
-  - GAP-21: Ebitengine `app`/`render` tests blocked by GLFW `init()` in headless CI _(open — LOW severity)_
+  - ~~GAP-21: Ebitengine `app`/`render` tests blocked by GLFW `init()` in headless CI~~ _(resolved — Xvfb added to CI pipeline)_
 - [x] **Validation**: GAPS.md reflects only actionable current gaps.
-  _(Only GAP-21 remains open; all HIGH and MEDIUM gaps resolved)_
+  _(All gaps (GAP-11 through GAP-21) are resolved; no open gaps remain)_
 
 ---
 
