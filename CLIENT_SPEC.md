@@ -2,7 +2,9 @@
 
 > This document defines the UI/UX requirements for the BostonFear Ebitengine client.
 > It is intended to be self-sufficient for an Ebitengine developer with no prior
-> context on the legacy HTML/JS client. Every requirement cites its source document.
+> context on the legacy HTML/JS client. Requirements cite their source document
+> where one exists; items without a cited source are new UX decisions introduced by
+> this spec.
 
 ---
 
@@ -22,7 +24,8 @@ stateDiagram-v2
     SceneConnect --> SceneCharacterSelect : connected + slots available
     SceneConnect --> SceneConnect : reconnect attempt (60s grace)
     SceneCharacterSelect --> SceneGame : all players confirmed
-    SceneGame --> SceneGameOver : win or doom==12
+    SceneGame --> SceneGameOver : win (clues ≥ requiredClues)
+    SceneGame --> SceneGameOver : lose (doom == 12)
     SceneGameOver --> SceneConnect : Play Again
     SceneGameOver --> [*] : Quit
 ```
@@ -30,7 +33,7 @@ stateDiagram-v2
 ### Rendering
 
 - **Logical resolution**: 1280×720, scalable to window size (source: ROADMAP.md Phase 5 — resolution strategy)
-- **Minimum window size**: 1024×600
+- **Minimum window size**: 1024×600 (derived from logical resolution 1280×720 at ~80% scale)
 - **Target frame rate**: 60 FPS (Ebitengine default; source: ROADMAP.md Phase 5 — "≥ 60 FPS on desktop")
 - **Layout method**: `ebiten.Game.Layout` returns the logical size (1280×720); the framework handles scaling to the actual display
 
@@ -50,7 +53,7 @@ stateDiagram-v2
 
 ### Input Fields
 
-- **Server address**: text field, default `localhost:8080` (source: README.md Quick Setup — default server address)
+- **Server address**: text field, default `localhost:8080` — the client appends the WebSocket path (`/ws`) internally (source: README.md Quick Setup — default server address; ROADMAP.md Phase 2 — `-server ws://localhost:8080/ws` flag)
 - **Player display name**: text field, required before connection attempt
 
 ### Connection States
@@ -76,7 +79,6 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 
 - **Server unreachable**: "Cannot connect to <address> — retrying every 5 s" (source: README.md — "Automatic reconnection with 5-second retry")
 - **Game full (6/6)**: "Game is full. Waiting for a slot…"
-- **Protocol mismatch**: "Incompatible server version — expected protocol vN"
 
 ---
 
@@ -153,7 +155,7 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
   - Blank ○
   - Tentacle 🐙
 - Auto-dismiss after 2.5 seconds or on any input
-- Must not block the action panel
+- Must not block the action panel (UX: overlay renders above the board but does not capture input from the action panel region)
 
 ### 4.6 Event Log Panel
 
@@ -217,7 +219,7 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 | Input latency | < 16 ms click → action send | 1-frame budget at 60 FPS |
 | State render lag | ≤ 1 frame after `gameState` receipt | README.md Performance Standards |
 | Reconnect token storage | `~/.bostonfear/session.json` | PLAN.md Step 5 |
-| Minimum window size | 1024×600 | — |
+| Minimum window size | 1024×600 | Derived from logical 1280×720 at ~80% scale |
 | Max players | 6 | RULES.md — "1-6 player support"; `cmd/server/constants.go` |
 | State sync SLA | < 500 ms | README.md Performance Standards — "Sub-500ms state synchronization" |
 | Automatic reconnection retry | Every 5 seconds | README.md — "Automatic reconnection with 5-second retry" |
