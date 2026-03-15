@@ -174,6 +174,8 @@ func (gs *GameServer) dispatchAction(action PlayerActionMessage, player *Player)
 		diceResult, doomIncrease, actionResult, actionErr = gs.performAttack(player, action.PlayerID)
 	case ActionEvade:
 		diceResult, doomIncrease, actionResult, actionErr = gs.performEvade(player, action.PlayerID)
+	case ActionCloseGate:
+		actionResult, actionErr = gs.performCloseGate(player, action.PlayerID)
 	}
 
 	return diceResult, doomIncrease, actionResult, actionErr
@@ -428,6 +430,106 @@ func (gs *GameServer) performComponent(player *Player, playerID string) (string,
 	return "success", nil
 }
 
+// performAttack executes the Attack action against the first enemy engaged with the player.
+// Combat dice pool equals 2 (base) + focus spent. Each Success deals 1 damage; an enemy
+// defeated at 0 health is removed and the investigator gains 1 Clue. Each Tentacle result
+// increments the doom counter. Returns an error if the player is not engaged with any enemy.
+// Caller must hold gs.mutex.
+func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResultMessage, int, string, error) {
+	engaged := gs.findEngagedEnemy(playerID)
+	if engaged == nil {
+		return nil, 0, "fail", fmt.Errorf("player %s is not engaged with any enemy", playerID)
+	}
+
+	results, successes, tentacles := gs.rollDicePool(2, 0, player)
+	doomIncrease := 0
+	if tentacles > 0 {
+		doomIncrease = tentacles
+		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
+	}
+
+	engaged.Health -= successes
+	actionResult := "success"
+	if successes == 0 {
+		actionResult = "fail"
+	}
+
+	if engaged.Health <= 0 {
+		// Enemy defeated — remove it and award a clue.
+		delete(gs.gameState.Enemies, engaged.ID)
+		player.Resources.Clues = min(player.Resources.Clues+1, MaxClues)
+		log.Printf("Enemy %s defeated by %s; clue awarded", engaged.Name, playerID)
+	}
+
+	diceResult := &DiceResultMessage{
+		Type:      "diceResult",
+		PlayerID:  playerID,
+		Results:   results,
+		Successes: successes,
+		Success:   successes > 0,
+		Action:    ActionAttack,
+	}
+	log.Printf("Attack by %s on %s: %d successes, doom +%d", playerID, engaged.Name, successes, doomIncrease)
+	return diceResult, doomIncrease, actionResult, nil
+}
+
+// performEvade executes the Evade action against the first engaged enemy.
+// Agility dice pool equals 2 (base) + focus spent. On ≥1 Success the player is
+// removed from the enemy's Engaged list. Tentacle results still increment doom.
+// Returns an error when the player is not engaged with any enemy.
+// Caller must hold gs.mutex.
+func (gs *GameServer) performEvade(player *Player, playerID string) (*DiceResultMessage, int, string, error) {
+	engaged := gs.findEngagedEnemy(playerID)
+	if engaged == nil {
+		return nil, 0, "fail", fmt.Errorf("player %s is not engaged with any enemy", playerID)
+	}
+
+	results, successes, tentacles := gs.rollDicePool(2, 0, player)
+	doomIncrease := 0
+	if tentacles > 0 {
+		doomIncrease = tentacles
+		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
+	}
+
+	actionResult := "fail"
+	if successes >= 1 {
+		actionResult = "success"
+		// Remove the player from this enemy's Engaged list.
+		updated := make([]string, 0, len(engaged.Engaged))
+		for _, id := range engaged.Engaged {
+			if id != playerID {
+				updated = append(updated, id)
+			}
+		}
+		engaged.Engaged = updated
+	}
+
+	diceResult := &DiceResultMessage{
+		Type:      "diceResult",
+		PlayerID:  playerID,
+		Results:   results,
+		Successes: successes,
+		Success:   successes >= 1,
+		Action:    ActionEvade,
+	}
+	log.Printf("Evade by %s from %s: %d successes, doom +%d", playerID, engaged.Name, successes, doomIncrease)
+	return diceResult, doomIncrease, actionResult, nil
+}
+
+// findEngagedEnemy returns the first enemy that has playerID in its Engaged list,
+// or nil when the player is not engaged with any enemy.
+// Caller must hold gs.mutex.
+func (gs *GameServer) findEngagedEnemy(playerID string) *Enemy {
+	for _, e := range gs.gameState.Enemies {
+		for _, id := range e.Engaged {
+			if id == playerID {
+				return e
+			}
+		}
+	}
+	return nil
+}
+
 // Disconnected and defeated players are skipped so the game never stalls.
 // When all players complete a round, runMythosPhase is called before starting
 // the next round (AH3e §Mythos Phase).
@@ -470,13 +572,16 @@ func (gs *GameServer) advanceTurn() {
 //  2. Place each event on its target neighborhood; spread to an adjacent
 //     neighborhood if a doom token is already present there.
 //  3. Increment doom by 1 for each placed event.
-//  4. Draw and resolve a Mythos cup token.
-//  5. Restore GamePhase to "playing".
+//  4. Resolve each event's typed mechanical effect (sanity loss, clue loss, etc.).
+//  5. Draw and resolve a Mythos cup token.
+//  6. Spawn enemies scaled to accumulated doom.
+//  7. Restore GamePhase to "playing".
 //
 // Caller must hold gs.mutex.
 func (gs *GameServer) runMythosPhase() {
 	gs.gameState.GamePhase = "mythos"
 	gs.gameState.MythosEvents = gs.gameState.MythosEvents[:0]
+	gs.gameState.ActiveEvents = gs.gameState.ActiveEvents[:0]
 
 	// Rebuild event deck when exhausted.
 	if len(gs.gameState.MythosEventDeck) == 0 {
@@ -503,10 +608,12 @@ func (gs *GameServer) runMythosPhase() {
 		gs.gameState.LocationDoomTokens[target]++
 		gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
 		gs.gameState.MythosEvents = append(gs.gameState.MythosEvents, evt)
-		log.Printf("Mythos Phase: event placed at %s (spread=%v)", target, evt.Spread)
-		// Spawn an anomaly if this event is an anomaly-type event.
-		if evt.Effect == MythosEventAnomaly {
-			gs.spawnAnomaly(target)
+		gs.gameState.ActiveEvents = append(gs.gameState.ActiveEvents, evt.Effect)
+		log.Printf("Mythos Phase: event placed at %s (spread=%v type=%s)", target, evt.Spread, evt.MythosEventType)
+		gs.resolveEventEffect(evt)
+		// Open a gate when a neighbourhood accumulates ≥ 2 doom tokens.
+		if gs.gameState.LocationDoomTokens[target] >= 2 {
+			gs.openGateAtLocation(Location(target))
 		}
 	}
 
@@ -514,9 +621,54 @@ func (gs *GameServer) runMythosPhase() {
 	gs.gameState.MythosToken = gs.drawMythosToken()
 	gs.resolveMythosToken(gs.gameState.MythosToken)
 
-	log.Printf("Mythos Phase complete: doom=%d token=%s", gs.gameState.Doom, gs.gameState.MythosToken)
+	// Spawn enemies: 1 per 3 accumulated doom (e.g., doom=6 → 2 spawns), capped at maxEnemiesOnBoard.
+	gs.spawnEnemiesForDoom()
+
+	log.Printf("Mythos Phase complete: doom=%d token=%s activeEvents=%d", gs.gameState.Doom, gs.gameState.MythosToken, len(gs.gameState.ActiveEvents))
 	gs.gameState.GamePhase = "playing"
 	gs.checkGameEndConditions()
+}
+
+// resolveEventEffect applies the typed mechanical effect of a Mythos event.
+// Caller must hold gs.mutex.
+func (gs *GameServer) resolveEventEffect(evt MythosEvent) {
+	switch evt.MythosEventType {
+	case MythosEventAnomaly:
+		gs.spawnAnomaly(evt.LocationID)
+
+	case MythosEventFogMadness:
+		// All connected investigators lose 1 Sanity.
+		for _, p := range gs.gameState.Players {
+			if !p.Defeated {
+				p.Resources.Sanity = max(p.Resources.Sanity-1, 0)
+				gs.validateResources(&p.Resources)
+			}
+		}
+
+	case MythosEventClueDrought:
+		// All investigators lose 1 Clue (clues washed away).
+		for _, p := range gs.gameState.Players {
+			if !p.Defeated {
+				p.Resources.Clues = max(p.Resources.Clues-1, 0)
+			}
+		}
+
+	case MythosEventDoomSpread:
+		// Doom +1 per open gate (minimum +1 when no gates are open).
+		inc := len(gs.gameState.OpenGates)
+		if inc < 1 {
+			inc = 1
+		}
+		gs.gameState.Doom = min(gs.gameState.Doom+inc, 12)
+
+	case MythosEventResurgence:
+		// Each engaged enemy regains 1 Health (capped at its template max).
+		for _, e := range gs.gameState.Enemies {
+			if len(e.Engaged) > 0 {
+				e.Health++
+			}
+		}
+	}
 }
 
 // drawMythosToken returns a random cup token for the Mythos Phase.
@@ -689,6 +841,38 @@ func (gs *GameServer) spawnAnomaly(neighbourhood string) {
 	log.Printf("Anomaly spawned at %s (doom=%d)", neighbourhood, gs.gameState.Doom)
 }
 
+// spawnEnemiesForDoom spawns 1 enemy for every 3 doom on the board, up to maxEnemiesOnBoard.
+// Each new enemy is placed at a random location from the canonical four neighbourhoods.
+// Caller must hold gs.mutex.
+func (gs *GameServer) spawnEnemiesForDoom() {
+	targetCount := gs.gameState.Doom / 3
+	if targetCount > maxEnemiesOnBoard {
+		targetCount = maxEnemiesOnBoard
+	}
+	current := len(gs.gameState.Enemies)
+	toSpawn := targetCount - current
+	if toSpawn <= 0 {
+		return
+	}
+	locations := []Location{Downtown, University, Rivertown, Northside}
+	for i := 0; i < toSpawn; i++ {
+		tmpl := enemyTemplates[mathrand.Intn(len(enemyTemplates))]
+		loc := locations[mathrand.Intn(len(locations))]
+		id := fmt.Sprintf("enemy_%d", mathrand.Int())
+		e := &Enemy{
+			ID:       id,
+			Name:     tmpl.Name,
+			Health:   tmpl.Health,
+			Damage:   tmpl.Damage,
+			Horror:   tmpl.Horror,
+			Location: loc,
+			Engaged:  nil,
+		}
+		gs.gameState.Enemies[id] = e
+		log.Printf("Enemy spawned: %s at %s (doom=%d)", e.Name, loc, gs.gameState.Doom)
+	}
+}
+
 // sealAnomalyAtLocation removes the first anomaly found at neighbourhood and
 // reduces doom by 2. This is the sealing effect applied on a successful Ward.
 // Caller must hold gs.mutex.
@@ -701,6 +885,42 @@ func (gs *GameServer) sealAnomalyAtLocation(neighbourhood string) {
 			return
 		}
 	}
+}
+
+// openGateAtLocation opens a new Gate at the given neighbourhood if one is not
+// already present there. Called from runMythosPhase when a location accumulates
+// ≥ 2 doom tokens. Caller must hold gs.mutex.
+func (gs *GameServer) openGateAtLocation(loc Location) {
+	for _, g := range gs.gameState.OpenGates {
+		if g.Location == loc {
+			return // gate already open here
+		}
+	}
+	id := fmt.Sprintf("gate_%s_%d", loc, mathrand.Int())
+	gs.gameState.OpenGates = append(gs.gameState.OpenGates, Gate{ID: id, Location: loc})
+	log.Printf("Gate opened at %s (doom=%d)", loc, gs.gameState.Doom)
+}
+
+// performCloseGate executes the CloseGate action: the investigator spends 2 Clues
+// to seal a Gate at their current location. Doom decreases by 1 on success.
+// Returns an error if the player lacks clues or there is no gate at their location.
+// Caller must hold gs.mutex.
+func (gs *GameServer) performCloseGate(player *Player, playerID string) (string, error) {
+	const clueCost = 2
+	if player.Resources.Clues < clueCost {
+		return "fail", fmt.Errorf("closing a gate requires %d clues (have %d)", clueCost, player.Resources.Clues)
+	}
+	loc := player.Location
+	for i, g := range gs.gameState.OpenGates {
+		if g.Location == loc {
+			gs.gameState.OpenGates = append(gs.gameState.OpenGates[:i], gs.gameState.OpenGates[i+1:]...)
+			player.Resources.Clues -= clueCost
+			gs.gameState.Doom = max(gs.gameState.Doom-1, 0)
+			log.Printf("Gate closed at %s by %s (doom=%d)", loc, playerID, gs.gameState.Doom)
+			return "success", nil
+		}
+	}
+	return "fail", fmt.Errorf("no open gate at %s", loc)
 }
 
 // applyDifficulty configures game setup parameters from the DifficultyConfig table.

@@ -306,7 +306,7 @@ remaining stated-goal impact), then **code hygiene**.
 
 ---
 
-### Step 8: Implement Attack/Evade Actions and Enemy Spawning (ROADMAP Priority 2)
+### Step 8: Implement Attack/Evade Actions and Enemy Spawning (ROADMAP Priority 2) ✅ COMPLETE
 
 - **Deliverable**: Add combat mechanics required by RULES.md §Attack/Evade:
   1. Define `Enemy` struct in `cmd/server/game_types.go`:
@@ -354,7 +354,7 @@ remaining stated-goal impact), then **code hygiene**.
 
 ---
 
-### Step 9: Implement Mythos Phase Events (ROADMAP Priority 6)
+### Step 9: Implement Mythos Phase Events (ROADMAP Priority 6) ✅ COMPLETE
 
 - **Deliverable**: Extend `runMythosPhase` in `cmd/server/game_mechanics.go` to draw and
   resolve event cards (currently it only advances Doom):

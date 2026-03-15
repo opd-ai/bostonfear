@@ -131,6 +131,14 @@ type Enemy struct {
 	Engaged  []string `json:"engaged"` // player IDs currently engaged with this enemy
 }
 
+// Gate represents an interdimensional rift at a neighbourhood location.
+// Gates open when a location accumulates ≥ 2 doom tokens and can be closed
+// by an investigator spending 2 Clues (ActionCloseGate).
+type Gate struct {
+	ID       string   `json:"id"`
+	Location Location `json:"location"`
+}
+
 // Anomaly represents a spatial tear spawned during the Mythos Phase.
 // Investigators can seal anomalies by successfully casting a Ward (3 successes).
 // Sealing an anomaly removes it and reduces global doom by 2.
@@ -162,8 +170,13 @@ type GameState struct {
 	MythosEvents       []MythosEvent  `json:"mythosEvents"`       // events resolved this phase
 	// Anomalies spawned during the Mythos Phase
 	Anomalies []Anomaly `json:"anomalies"`
+	// OpenGates lists currently open interdimensional rifts; keyed indirectly via the slice.
+	OpenGates []Gate `json:"openGates"`
 	// Enemies present on the board; keyed by enemy ID.
 	Enemies map[string]*Enemy `json:"enemies"`
+	// ActiveEvents holds the descriptions of Mythos events resolved in the last Mythos Phase.
+	// Clients display this list as the current "active event" overlay.
+	ActiveEvents []string `json:"activeEvents"`
 	// Encounter decks keyed by location name
 	EncounterDecks map[string][]EncounterCard `json:"encounterDecks"`
 }

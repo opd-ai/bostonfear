@@ -75,11 +75,15 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 	ch := make(chan []byte, 100)
 	gs := &GameServer{
 		gameState: &GameState{
-			Players:     make(map[string]*Player),
-			Doom:        scenario.StartingDoom,
-			GamePhase:   "waiting",
-			TurnOrder:   []string{},
-			GameStarted: false,
+			Players:            make(map[string]*Player),
+			Doom:               scenario.StartingDoom,
+			GamePhase:          "waiting",
+			TurnOrder:          []string{},
+			GameStarted:        false,
+			Enemies:            make(map[string]*Enemy),
+			OpenGates:          []Gate{},
+			LocationDoomTokens: make(map[string]int),
+			EncounterDecks:     make(map[string][]EncounterCard),
 		},
 		connections: make(map[string]net.Conn),
 		wsConns:     make(map[string]*websocket.Conn),
@@ -247,7 +251,7 @@ func isValidActionType(a ActionType) bool {
 	for _, v := range []ActionType{
 		ActionMove, ActionGather, ActionInvestigate, ActionCastWard,
 		ActionFocus, ActionResearch, ActionTrade,
-		ActionEncounter, ActionComponent, ActionAttack, ActionEvade,
+		ActionEncounter, ActionComponent, ActionAttack, ActionEvade, ActionCloseGate,
 	} {
 		if a == v {
 			return true

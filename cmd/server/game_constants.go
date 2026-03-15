@@ -32,8 +32,9 @@ const (
 	ActionTrade       ActionType = "trade"
 	ActionComponent   ActionType = "component" // Per-investigator special ability (ROADMAP Priority 1)
 	ActionEncounter   ActionType = "encounter"
-	ActionAttack      ActionType = "attack" // Combat: roll dice against an engaged enemy
-	ActionEvade       ActionType = "evade"  // Combat: disengage from an engaged enemy
+	ActionAttack      ActionType = "attack"    // Combat: roll dice against an engaged enemy
+	ActionEvade       ActionType = "evade"     // Combat: disengage from an engaged enemy
+	ActionCloseGate   ActionType = "closegate" // Spend 2 Clues to close a gate at current location
 )
 
 // InvestigatorType identifies which investigator archetype a player is using.
@@ -198,6 +199,15 @@ const (
 // it calls spawnAnomaly at the target neighbourhood.
 const MythosEventAnomaly = "anomaly"
 
+// Additional Mythos event type constants.
+// Each constant maps to a distinct mechanical resolution in resolveEventEffect.
+const (
+	MythosEventFogMadness  = "fog_madness"  // All investigators lose 1 Sanity
+	MythosEventClueDrought = "clue_drought" // All investigators lose 1 Clue
+	MythosEventDoomSpread  = "doom_spread"  // Doom +1 (per open gate once Step 10 is complete)
+	MythosEventResurgence  = "resurgence"   // Each engaged enemy restores 1 Health
+)
+
 // DifficultySetup holds the initial game setup parameters per difficulty level.
 type DifficultySetup struct {
 	InitialDoom     int // doom counter starting value
@@ -211,14 +221,18 @@ var DifficultyConfig = map[string]DifficultySetup{
 	"hard":     {InitialDoom: 3, ExtraDoomTokens: 3},
 }
 
-// defaultMythosEventDeck returns the starting event draw pile with one event
-// per neighborhood.  Events cycle: when the deck empties it is rebuilt.
+// defaultMythosEventDeck returns the starting event draw pile with a variety of
+// event types spanning all four neighbourhoods. Events cycle when the deck empties.
 func defaultMythosEventDeck() []MythosEvent {
 	return []MythosEvent{
-		{LocationID: string(Downtown), Effect: "Strange lights flicker in the streets", Spread: false},
-		{LocationID: string(University), Effect: "Forbidden texts vanish from the library", Spread: false},
-		{LocationID: string(Rivertown), Effect: "River runs black with ichor", Spread: false},
-		{LocationID: string(Northside), Effect: "Whispers from the old asylum grow louder", Spread: false},
+		{LocationID: string(Downtown), Effect: "Strange lights flicker in the streets", MythosEventType: MythosEventAnomaly},
+		{LocationID: string(University), Effect: "Fog of Madness descends — all investigators lose 1 Sanity", MythosEventType: MythosEventFogMadness},
+		{LocationID: string(Rivertown), Effect: "River runs black; clues wash away", MythosEventType: MythosEventClueDrought},
+		{LocationID: string(Northside), Effect: "Doom spreads from the asylum", MythosEventType: MythosEventDoomSpread},
+		{LocationID: string(Downtown), Effect: "Forbidden texts vanish; no new clues surface", MythosEventType: MythosEventClueDrought},
+		{LocationID: string(University), Effect: "Ancient wards crumble — anomaly emerges", MythosEventType: MythosEventAnomaly},
+		{LocationID: string(Rivertown), Effect: "Whispers of the deep drive investigators mad", MythosEventType: MythosEventFogMadness},
+		{LocationID: string(Northside), Effect: "Monster resurgence — wounded creatures recover", MythosEventType: MythosEventResurgence},
 	}
 }
 
