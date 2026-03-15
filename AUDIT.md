@@ -152,7 +152,7 @@ learning WebSocket architecture. Key promises:
   **Validate:** Open game, copy token from DevTools Application → Local Storage, hard-refresh page,
   confirm the `?token=` parameter appears in the WebSocket upgrade request.
 
-- [ ] **`performComponent` always errors but is registered as a valid action type** —
+- [x] **`performComponent` always errors but is registered as a valid action type** —
   `cmd/server/game_mechanics.go:345-347` and `cmd/server/game_server.go` (`isValidActionType`) —
   `ActionComponent = "component"` is included in `isValidActionType()`, so the server accepts the
   action and routes it. `performComponent()` unconditionally returns
