@@ -14,6 +14,31 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// ConnectionQuality represents real-time connection quality metrics for a single player.
+type ConnectionQuality struct {
+	LatencyMs    float64   `json:"latencyMs"`
+	Quality      string    `json:"quality"` // "excellent", "good", "fair", "poor"
+	PacketLoss   float64   `json:"packetLoss"`
+	LastPingTime time.Time `json:"lastPingTime"`
+	MessageDelay float64   `json:"messageDelay"`
+}
+
+// ConnectionStatusMessage represents connection quality updates broadcast to clients.
+type ConnectionStatusMessage struct {
+	Type               string                       `json:"type"`
+	PlayerID           string                       `json:"playerId"`
+	Quality            ConnectionQuality            `json:"quality"`
+	AllPlayerQualities map[string]ConnectionQuality `json:"allPlayerQualities"`
+}
+
+// PingMessage represents ping/pong messages used for round-trip latency measurement.
+type PingMessage struct {
+	Type      string    `json:"type"`
+	PlayerID  string    `json:"playerId"`
+	Timestamp time.Time `json:"timestamp"`
+	PingID    string    `json:"pingId"`
+}
+
 // handleDashboard serves the performance monitoring dashboard
 func (gs *GameServer) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers for dashboard access
