@@ -14,8 +14,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// GameServer manages the central game state
-// Moved from: main.go
+// GameServer manages the central game state for the Arkham Horror multiplayer game,
+// handling WebSocket connections, player actions, turn management, and state broadcasting.
 type GameServer struct {
 	gameState   *GameState
 	connections map[string]net.Conn        // Using net.Conn interface
@@ -535,7 +535,7 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 // handleWebSocket handles WebSocket upgrade and connection setup
 func (gs *GameServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Printf("New WebSocket connection attempt from %s", r.RemoteAddr)
-	
+
 	wsConn, err := gs.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
@@ -957,7 +957,7 @@ func (gs *GameServer) trackConnection(eventType, playerID string, latency float6
 }
 
 // trackPlayerSession manages player session metrics
-func (gs *GameServer) trackPlayerSession(playerID string, eventType string) {
+func (gs *GameServer) trackPlayerSession(playerID, eventType string) {
 	gs.performanceMutex.Lock()
 	defer gs.performanceMutex.Unlock()
 

@@ -1,8 +1,0 @@
-nohup: ignoring input
-2025/06/09 04:32:16 Game server started with broadcast and action handlers
-2025/06/09 04:32:16 Arkham Horror server starting on [::]:8080
-2025/06/09 04:32:16 WebSocket endpoint: ws://localhost[::]:8080/ws
-2025/06/09 04:32:16 Health check: http://localhost[::]:8080/health
-2025/06/09 04:32:16 Prometheus metrics: http://localhost[::]:8080/metrics
-2025/06/09 04:32:16 Performance Dashboard: http://localhost[::]:8080/dashboard
-2025/06/09 04:32:16 Client available at: http://localhost[::]:8080

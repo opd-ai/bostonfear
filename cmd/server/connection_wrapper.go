@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// ConnectionWrapper implements net.Conn interface for testing
-// Moved from: main.go
+// ConnectionWrapper implements net.Conn interface around a WebSocket connection,
+// enabling interface-based testing and abstraction over the underlying transport.
 type ConnectionWrapper struct {
 	ws   *websocket.Conn
 	addr net.Addr

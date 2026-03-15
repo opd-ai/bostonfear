@@ -2,35 +2,35 @@ package main
 
 import "time"
 
-// Location represents a game location identifier
-// Moved from: main.go
+// Location represents a game location identifier for one of the four interconnected
+// neighborhoods in the Arkham Horror game map.
 type Location string
 
-// ActionType represents available player actions
-// Moved from: main.go
+// ActionType represents available player actions during a turn including
+// movement, resource gathering, investigation, and ward casting.
 type ActionType string
 
-// DiceResult represents the outcome of a dice roll
-// Moved from: main.go
+// DiceResult represents the outcome of a single die roll with three possible
+// results: success, blank, or tentacle.
 type DiceResult string
 
-// Resources represents player resource tracking with bounds validation
-// Moved from: main.go
+// Resources represents player resource tracking with bounds validation.
+// Health and Sanity range from 1-10, while Clues range from 0-5.
 type Resources struct {
 	Health int `json:"health"` // 1-10
 	Sanity int `json:"sanity"` // 1-10
 	Clues  int `json:"clues"`  // 0-5
 }
 
-// Message represents the base JSON protocol message structure
-// Moved from: main.go
+// Message represents the base JSON protocol message structure for WebSocket
+// communication between server and clients.
 type Message struct {
 	Type string      `json:"type"`
 	Data interface{} `json:"data"`
 }
 
-// PlayerActionMessage represents player action requests in JSON protocol
-// Moved from: main.go
+// PlayerActionMessage represents player action requests in the JSON protocol,
+// containing the player ID, action type, and optional target.
 type PlayerActionMessage struct {
 	Type     string     `json:"type"`
 	PlayerID string     `json:"playerId"`
@@ -38,21 +38,21 @@ type PlayerActionMessage struct {
 	Target   string     `json:"target,omitempty"`
 }
 
-// DiceResultMessage represents dice roll results in JSON protocol
-// Moved from: main.go
+// DiceResultMessage represents dice roll results in the JSON protocol,
+// including individual die results, success/tentacle counts, and doom impact.
 type DiceResultMessage struct {
-	Type        string       `json:"type"`
-	PlayerID    string       `json:"playerId"`
-	Action      ActionType   `json:"action"`
-	Results     []DiceResult `json:"results"`
-	Successes   int          `json:"successes"`
-	Tentacles   int          `json:"tentacles"`
-	Success     bool         `json:"success"`
-	DoomIncrease int         `json:"doomIncrease"`
+	Type         string       `json:"type"`
+	PlayerID     string       `json:"playerId"`
+	Action       ActionType   `json:"action"`
+	Results      []DiceResult `json:"results"`
+	Successes    int          `json:"successes"`
+	Tentacles    int          `json:"tentacles"`
+	Success      bool         `json:"success"`
+	DoomIncrease int          `json:"doomIncrease"`
 }
 
-// Player represents an investigator with location and resources
-// Moved from: server/main.go
+// Player represents an investigator with location, resources, and turn state.
+// Each player has a unique ID and tracks their connection status.
 type Player struct {
 	ID               string    `json:"id"`
 	Location         Location  `json:"location"`
@@ -61,13 +61,13 @@ type Player struct {
 	Connected        bool      `json:"connected"`
 }
 
-// GameState represents the complete game state
-// Moved from: server/main.go
+// GameState represents the complete game state including all players,
+// turn order, doom counter, and win/lose conditions.
 type GameState struct {
 	Players       map[string]*Player `json:"players"`
 	CurrentPlayer string             `json:"currentPlayer"`
-	Doom          int                `json:"doom"`          // 0-12 doom counter
-	GamePhase     string             `json:"gamePhase"`     // "waiting", "playing", "ended"
+	Doom          int                `json:"doom"`      // 0-12 doom counter
+	GamePhase     string             `json:"gamePhase"` // "waiting", "playing", "ended"
 	TurnOrder     []string           `json:"turnOrder"`
 	GameStarted   bool               `json:"gameStarted"`
 	WinCondition  bool               `json:"winCondition"`
@@ -76,18 +76,18 @@ type GameState struct {
 
 // PerformanceMetrics represents comprehensive server performance data for monitoring dashboard
 type PerformanceMetrics struct {
-	Uptime                time.Duration `json:"uptime"`
-	ActiveConnections     int           `json:"activeConnections"`
-	PeakConnections       int           `json:"peakConnections"`
-	TotalConnections      int64         `json:"totalConnections"`
-	ConnectionsPerSecond  float64       `json:"connectionsPerSecond"`
-	AverageSessionLength  time.Duration `json:"averageSessionLength"`
-	ActiveSessions        int           `json:"activeSessions"`
-	TotalGamesPlayed      int64         `json:"totalGamesPlayed"`
-	MessagesPerSecond     float64       `json:"messagesPerSecond"`
-	MemoryUsage           MemoryStats   `json:"memoryUsage"`
-	ResponseTimeMs        float64       `json:"responseTimeMs"`
-	ErrorRate             float64       `json:"errorRate"`
+	Uptime               time.Duration `json:"uptime"`
+	ActiveConnections    int           `json:"activeConnections"`
+	PeakConnections      int           `json:"peakConnections"`
+	TotalConnections     int64         `json:"totalConnections"`
+	ConnectionsPerSecond float64       `json:"connectionsPerSecond"`
+	AverageSessionLength time.Duration `json:"averageSessionLength"`
+	ActiveSessions       int           `json:"activeSessions"`
+	TotalGamesPlayed     int64         `json:"totalGamesPlayed"`
+	MessagesPerSecond    float64       `json:"messagesPerSecond"`
+	MemoryUsage          MemoryStats   `json:"memoryUsage"`
+	ResponseTimeMs       float64       `json:"responseTimeMs"`
+	ErrorRate            float64       `json:"errorRate"`
 }
 
 // MemoryStats represents memory usage statistics for performance monitoring
@@ -101,20 +101,20 @@ type MemoryStats struct {
 
 // ConnectionAnalytics represents player connection patterns and engagement metrics
 type ConnectionAnalytics struct {
-	RecentConnections    []ConnectionEvent     `json:"recentConnections"`
-	PlayerEngagement     map[string]float64    `json:"playerEngagement"`
-	ConnectionQuality    ConnectionQualityData `json:"connectionQuality"`
-	SessionDistribution  SessionDistribution   `json:"sessionDistribution"`
-	GeographicData       map[string]int        `json:"geographicData"`
+	RecentConnections   []ConnectionEvent     `json:"recentConnections"`
+	PlayerEngagement    map[string]float64    `json:"playerEngagement"`
+	ConnectionQuality   ConnectionQualityData `json:"connectionQuality"`
+	SessionDistribution SessionDistribution   `json:"sessionDistribution"`
+	GeographicData      map[string]int        `json:"geographicData"`
 }
 
 // ConnectionEvent represents individual connection events for analytics
 type ConnectionEvent struct {
-	Type      string    `json:"type"` // "connect", "disconnect", "reconnect"
-	PlayerID  string    `json:"playerId"`
-	Timestamp time.Time `json:"timestamp"`
+	Type      string        `json:"type"` // "connect", "disconnect", "reconnect"
+	PlayerID  string        `json:"playerId"`
+	Timestamp time.Time     `json:"timestamp"`
 	Duration  time.Duration `json:"duration,omitempty"`
-	Reason    string    `json:"reason,omitempty"`
+	Reason    string        `json:"reason,omitempty"`
 }
 
 // ConnectionQualityData represents connection stability metrics
@@ -145,11 +145,11 @@ type PlayerSessionMetrics struct {
 
 // AlertThreshold represents configurable monitoring thresholds
 type AlertThreshold struct {
-	MaxResponseTime  time.Duration `json:"maxResponseTime"`
-	MaxErrorRate     float64       `json:"maxErrorRate"`
-	MinUptime        float64       `json:"minUptime"`
-	MaxMemoryUsage   float64       `json:"maxMemoryUsage"`
-	MaxConnFailRate  float64       `json:"maxConnFailRate"`
+	MaxResponseTime time.Duration `json:"maxResponseTime"`
+	MaxErrorRate    float64       `json:"maxErrorRate"`
+	MinUptime       float64       `json:"minUptime"`
+	MaxMemoryUsage  float64       `json:"maxMemoryUsage"`
+	MaxConnFailRate float64       `json:"maxConnFailRate"`
 }
 
 // Additional types for enhanced performance monitoring dashboard
@@ -159,10 +159,10 @@ type MemoryMetrics struct {
 	AllocatedBytes      uint64  `json:"allocatedBytes"`
 	TotalAllocatedBytes uint64  `json:"totalAllocatedBytes"`
 	SystemBytes         uint64  `json:"systemBytes"`
-	HeapInUse          uint64  `json:"heapInUse"`
-	HeapReleased       uint64  `json:"heapReleased"`
-	GoroutineCount     int     `json:"goroutineCount"`
-	MemoryUsagePercent float64 `json:"memoryUsagePercent"`
+	HeapInUse           uint64  `json:"heapInUse"`
+	HeapReleased        uint64  `json:"heapReleased"`
+	GoroutineCount      int     `json:"goroutineCount"`
+	MemoryUsagePercent  float64 `json:"memoryUsagePercent"`
 }
 
 // GCMetrics represents garbage collection performance data
@@ -185,16 +185,17 @@ type MessageThroughputMetrics struct {
 
 // ConnectionAnalyticsSimplified represents simplified connection analytics matching game_server.go usage
 type ConnectionAnalyticsSimplified struct {
-	TotalPlayers      int                             `json:"totalPlayers"`
-	ActivePlayers     int                             `json:"activePlayers"`
+	TotalPlayers      int                              `json:"totalPlayers"`
+	ActivePlayers     int                              `json:"activePlayers"`
 	PlayerSessions    []PlayerSessionMetricsSimplified `json:"playerSessions"`
-	AverageLatency    float64                         `json:"averageLatency"`
-	ConnectionsIn5Min int                             `json:"connectionsIn5Min"`
-	DisconnectsIn5Min int                             `json:"disconnectsIn5Min"`
-	ReconnectionRate  float64                         `json:"reconnectionRate"`
+	AverageLatency    float64                          `json:"averageLatency"`
+	ConnectionsIn5Min int                              `json:"connectionsIn5Min"`
+	DisconnectsIn5Min int                              `json:"disconnectsIn5Min"`
+	ReconnectionRate  float64                          `json:"reconnectionRate"`
 }
 
-// Update PlayerSessionMetrics to match usage in game_server.go
+// PlayerSessionMetricsSimplified tracks individual player session data with
+// a simplified structure optimized for real-time dashboard display.
 type PlayerSessionMetricsSimplified struct {
 	PlayerID         string        `json:"playerId"`
 	SessionStart     time.Time     `json:"sessionStart"`
@@ -205,7 +206,8 @@ type PlayerSessionMetricsSimplified struct {
 	IsActive         bool          `json:"isActive"`
 }
 
-// ConnectionEventSimplified to match usage in game_server.go
+// ConnectionEventSimplified represents connection events with a simplified
+// structure optimized for analytics tracking in the game server.
 type ConnectionEventSimplified struct {
 	EventType string    `json:"eventType"`
 	PlayerID  string    `json:"playerId"`
@@ -215,18 +217,18 @@ type ConnectionEventSimplified struct {
 
 // ConnectionQuality represents real-time connection quality metrics
 type ConnectionQuality struct {
-	LatencyMs     float64   `json:"latencyMs"`
-	Quality       string    `json:"quality"`       // "excellent", "good", "fair", "poor"
-	PacketLoss    float64   `json:"packetLoss"`
-	LastPingTime  time.Time `json:"lastPingTime"`
-	MessageDelay  float64   `json:"messageDelay"`
+	LatencyMs    float64   `json:"latencyMs"`
+	Quality      string    `json:"quality"` // "excellent", "good", "fair", "poor"
+	PacketLoss   float64   `json:"packetLoss"`
+	LastPingTime time.Time `json:"lastPingTime"`
+	MessageDelay float64   `json:"messageDelay"`
 }
 
 // ConnectionStatusMessage represents connection quality updates sent to clients
 type ConnectionStatusMessage struct {
-	Type              string                       `json:"type"`
-	PlayerID          string                       `json:"playerId"`
-	Quality           ConnectionQuality            `json:"quality"`
+	Type               string                       `json:"type"`
+	PlayerID           string                       `json:"playerId"`
+	Quality            ConnectionQuality            `json:"quality"`
 	AllPlayerQualities map[string]ConnectionQuality `json:"allPlayerQualities"`
 }
 

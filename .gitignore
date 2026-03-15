@@ -30,4 +30,19 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Compiled binaries (root level)
 /server
+/arkham-server
+/connection_wrapper
+
+# Server logs
+*.log
+server.log
+
+# Analysis artifacts
+pre-cleanup.json
+post-cleanup.json
+*-baseline.json
+*-post.json
+diff-report*.json
