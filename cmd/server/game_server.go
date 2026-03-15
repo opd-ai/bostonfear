@@ -171,28 +171,32 @@ func (gs *GameServer) rollDice(numDice int) ([]DiceResult, int, int) {
 	return results, successes, tentacles
 }
 
-// processAction handles individual player actions with mechanic integration
-// Moved from: main.go
+// processAction handles individual player actions with mechanic integration.
+// The mutex is acquired at the start for all state validation and mutation,
+// then released before broadcasting so broadcastGameState can re-acquire it.
 func (gs *GameServer) processAction(action PlayerActionMessage) error {
 	gs.mutex.Lock()
-	defer gs.mutex.Unlock()
 
 	// Validate game state
 	if gs.gameState.GamePhase != "playing" {
+		gs.mutex.Unlock()
 		return fmt.Errorf("game is not in playing state")
 	}
 
 	player, exists := gs.gameState.Players[action.PlayerID]
 	if !exists {
+		gs.mutex.Unlock()
 		return fmt.Errorf("player %s not found", action.PlayerID)
 	}
 
 	// Validate it's the player's turn and they have actions remaining
 	if gs.gameState.CurrentPlayer != action.PlayerID {
+		gs.mutex.Unlock()
 		return fmt.Errorf("not player %s's turn (current: %s)", action.PlayerID, gs.gameState.CurrentPlayer)
 	}
 
 	if player.ActionsRemaining <= 0 {
+		gs.mutex.Unlock()
 		return fmt.Errorf("player %s has no actions remaining", action.PlayerID)
 	}
 
@@ -206,102 +210,36 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 		}
 	}
 	if !isValidAction {
+		gs.mutex.Unlock()
 		return fmt.Errorf("invalid action type: %s", action.Action)
 	}
 
-	var diceResult *DiceResultMessage
-	doomIncrease := 0
 	// Snapshot resources before action to compute delta for gameUpdate message
 	prevResources := player.Resources
 	actionResult := "success"
 
+	// Dispatch to per-action handlers; each returns a dice result and doom delta.
+	var diceResult *DiceResultMessage
+	doomIncrease := 0
+	var actionErr error
+
 	switch action.Action {
 	case ActionMove:
-		targetLocation := Location(action.Target)
-		if !gs.validateMovement(player.Location, targetLocation) {
-			return fmt.Errorf("invalid movement from %s to %s", player.Location, targetLocation)
-		}
-		player.Location = targetLocation
-
+		actionErr = gs.performMove(player, action.Target)
 	case ActionGather:
-		// Gather resources with dice roll
-		results, successes, tentacles := gs.rollDice(2)
-		if successes >= 1 {
-			player.Resources.Health = min(player.Resources.Health+1, 10)
-			player.Resources.Sanity = min(player.Resources.Sanity+1, 10)
+		diceResult, doomIncrease = gs.performGather(player, action.PlayerID)
+		if diceResult != nil && !diceResult.Success {
+			actionResult = "fail"
 		}
-		if tentacles > 0 {
-			doomIncrease = tentacles
-		}
-
-		diceResult = &DiceResultMessage{
-			Type:         "diceResult",
-			PlayerID:     action.PlayerID,
-			Action:       action.Action,
-			Results:      results,
-			Successes:    successes,
-			Tentacles:    tentacles,
-			Success:      successes >= 1,
-			DoomIncrease: doomIncrease,
-		}
-
 	case ActionInvestigate:
-		// Investigate requires 1-2 successes
-		requiredSuccesses := 2
-		results, successes, tentacles := gs.rollDice(3)
-
-		success := successes >= requiredSuccesses
-		if success {
-			player.Resources.Clues = min(player.Resources.Clues+1, 5)
-		} else {
-			actionResult = "fail"
-		}
-		if tentacles > 0 {
-			doomIncrease = tentacles
-		}
-
-		diceResult = &DiceResultMessage{
-			Type:         "diceResult",
-			PlayerID:     action.PlayerID,
-			Action:       action.Action,
-			Results:      results,
-			Successes:    successes,
-			Tentacles:    tentacles,
-			Success:      success,
-			DoomIncrease: doomIncrease,
-		}
-
+		diceResult, doomIncrease, actionResult = gs.performInvestigate(player, action.PlayerID)
 	case ActionCastWard:
-		// Cast Ward costs 1 Sanity and requires 2-3 successes
-		if player.Resources.Sanity <= 1 {
-			return fmt.Errorf("insufficient sanity to cast ward")
-		}
+		diceResult, doomIncrease, actionResult, actionErr = gs.performCastWard(player, action.PlayerID)
+	}
 
-		player.Resources.Sanity--
-		requiredSuccesses := 3
-		results, successes, tentacles := gs.rollDice(3)
-
-		success := successes >= requiredSuccesses
-		if success {
-			// Ward success reduces doom counter
-			gs.gameState.Doom = max(gs.gameState.Doom-2, 0)
-		} else {
-			actionResult = "fail"
-		}
-		if tentacles > 0 {
-			doomIncrease = tentacles
-		}
-
-		diceResult = &DiceResultMessage{
-			Type:         "diceResult",
-			PlayerID:     action.PlayerID,
-			Action:       action.Action,
-			Results:      results,
-			Successes:    successes,
-			Tentacles:    tentacles,
-			Success:      success,
-			DoomIncrease: doomIncrease,
-		}
+	if actionErr != nil {
+		gs.mutex.Unlock()
+		return actionErr
 	}
 
 	// Apply doom increase from tentacle results
@@ -326,10 +264,7 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 		gs.advanceTurn()
 	}
 
-	// Emit gameUpdate event message before the full state snapshot.
-	// This satisfies the fifth required JSON protocol message type and lets
-	// clients display transient action notifications without waiting for the
-	// full gameState payload.
+	// Snapshot outbound messages while holding the lock, then release before sending.
 	gameUpdateMsg := &GameUpdateMessage{
 		Type:      "gameUpdate",
 		PlayerID:  action.PlayerID,
@@ -343,6 +278,9 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 		},
 		Timestamp: time.Now(),
 	}
+	gs.mutex.Unlock() // release before broadcasting — broadcastGameState re-acquires the lock
+
+	// Emit gameUpdate event message (fifth required JSON protocol message type).
 	if updateData, err := json.Marshal(gameUpdateMsg); err == nil {
 		select {
 		case gs.broadcastCh <- updateData:
@@ -351,16 +289,114 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 		}
 	}
 
-	// Broadcast dice result if applicable
+	// Broadcast dice result if applicable — non-blocking to match broadcastGameState.
 	if diceResult != nil {
 		diceData, _ := json.Marshal(diceResult)
-		gs.broadcastCh <- diceData
+		select {
+		case gs.broadcastCh <- diceData:
+		default:
+			log.Printf("Broadcast channel full, dropping diceResult")
+		}
 	}
 
 	// Broadcast updated game state
 	gs.broadcastGameState()
 
 	return nil
+}
+
+// performMove executes the Move action: validates adjacency and updates player location.
+// The caller (processAction) holds gs.mutex and is responsible for releasing it.
+func (gs *GameServer) performMove(player *Player, target string) error {
+	targetLocation := Location(target)
+	if !gs.validateMovement(player.Location, targetLocation) {
+		return fmt.Errorf("invalid movement from %s to %s", player.Location, targetLocation)
+	}
+	player.Location = targetLocation
+	return nil
+}
+
+// performGather executes the Gather action: rolls dice and conditionally restores resources.
+// Returns the dice result message and the doom increase from any tentacle results.
+func (gs *GameServer) performGather(player *Player, playerID string) (*DiceResultMessage, int) {
+	results, successes, tentacles := gs.rollDice(2)
+	if successes >= 1 {
+		player.Resources.Health = min(player.Resources.Health+1, 10)
+		player.Resources.Sanity = min(player.Resources.Sanity+1, 10)
+	}
+	doomIncrease := 0
+	if tentacles > 0 {
+		doomIncrease = tentacles
+	}
+	return &DiceResultMessage{
+		Type:         "diceResult",
+		PlayerID:     playerID,
+		Action:       ActionGather,
+		Results:      results,
+		Successes:    successes,
+		Tentacles:    tentacles,
+		Success:      successes >= 1,
+		DoomIncrease: doomIncrease,
+	}, doomIncrease
+}
+
+// performInvestigate executes the Investigate action: rolls 3 dice requiring 2 successes.
+// Returns the dice result, doom increase, and "success"/"fail" result string.
+func (gs *GameServer) performInvestigate(player *Player, playerID string) (*DiceResultMessage, int, string) {
+	const requiredSuccesses = 2
+	results, successes, tentacles := gs.rollDice(3)
+	actionResult := "success"
+	if successes >= requiredSuccesses {
+		player.Resources.Clues = min(player.Resources.Clues+1, 5)
+	} else {
+		actionResult = "fail"
+	}
+	doomIncrease := 0
+	if tentacles > 0 {
+		doomIncrease = tentacles
+	}
+	return &DiceResultMessage{
+		Type:         "diceResult",
+		PlayerID:     playerID,
+		Action:       ActionInvestigate,
+		Results:      results,
+		Successes:    successes,
+		Tentacles:    tentacles,
+		Success:      successes >= requiredSuccesses,
+		DoomIncrease: doomIncrease,
+	}, doomIncrease, actionResult
+}
+
+// performCastWard executes the Cast Ward action: costs 1 Sanity and rolls 3 dice requiring 3 successes.
+// On success, reduces the doom counter by 2. Returns dice result, doom increase, result string, and any error.
+// The caller (processAction) holds gs.mutex and is responsible for releasing it.
+func (gs *GameServer) performCastWard(player *Player, playerID string) (*DiceResultMessage, int, string, error) {
+	if player.Resources.Sanity <= 1 {
+		return nil, 0, "", fmt.Errorf("insufficient sanity to cast ward")
+	}
+	player.Resources.Sanity--
+	const requiredSuccesses = 3
+	results, successes, tentacles := gs.rollDice(3)
+	actionResult := "success"
+	if successes >= requiredSuccesses {
+		gs.gameState.Doom = max(gs.gameState.Doom-2, 0)
+	} else {
+		actionResult = "fail"
+	}
+	doomIncrease := 0
+	if tentacles > 0 {
+		doomIncrease = tentacles
+	}
+	return &DiceResultMessage{
+		Type:         "diceResult",
+		PlayerID:     playerID,
+		Action:       ActionCastWard,
+		Results:      results,
+		Successes:    successes,
+		Tentacles:    tentacles,
+		Success:      successes >= requiredSuccesses,
+		DoomIncrease: doomIncrease,
+	}, doomIncrease, actionResult, nil
 }
 
 // advanceTurn progresses to the next connected player's turn.

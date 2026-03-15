@@ -465,10 +465,8 @@ func TestHandlePongMessage_NoDeadlock(t *testing.T) {
 		Quality:   "good",
 	}
 
-	import_guard := struct{}{}
-	_ = import_guard
-
-	// Run handlePongMessage in a goroutine. If it deadlocks, the test will time out.
+	// Run handlePongMessage in a goroutine with a 1-second timeout.
+	// Before the fix, this would deadlock; now it must complete.
 	done := make(chan struct{})
 	go func() {
 		gs.handlePongMessage(PingMessage{
@@ -479,6 +477,20 @@ func TestHandlePongMessage_NoDeadlock(t *testing.T) {
 	}()
 
 	// Drain any quality messages the non-blocking send might have queued
+	timer := make(chan struct{})
+	go func() {
+		// Give goroutine up to 2 s to finish
+		for i := 0; i < 200; i++ {
+			select {
+			case <-done:
+				close(timer)
+				return
+			default:
+			}
+			// non-busy spin handled by select below
+		}
+	}()
+
 drainLoop:
 	for {
 		select {
