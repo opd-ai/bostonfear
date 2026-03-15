@@ -10,11 +10,10 @@
 > GAP-17 (/health+/metrics nested RLock deadlock), GAP-18 (gs.gameState.Doom
 > unlocked read), GAP-19 (win threshold not rescaled on late join),
 > GAP-20 (ActionComponent dead code — promoted to live feature),
-> GAP-21 (Ebitengine tests skipped — documented in README; display-independent
-> tests blocked by GLFW init() panic, tracked as open below).
+> GAP-21 (Ebitengine tests skipped — resolved by adding Xvfb to CI pipeline).
 >
-> **No actionable HIGH or MEDIUM gaps remain.** One LOW-severity documentation gap
-> (GAP-21) persists. See summary table below.
+> **No actionable gaps remain.** All gaps (GAP-11 through GAP-21) are resolved.
+> See summary table below.
 
 ---
 
@@ -61,37 +60,24 @@
 
 ---
 
-## GAP-21: Ebitengine `app` and `render` Tests Silently Skipped in Standard CI
+## ✅ RESOLVED: GAP-21 — Ebitengine `app` and `render` Tests Silently Skipped in Standard CI
 
 - **Stated Goal**: README §Ebitengine Client Features — "Sprite/Layer Rendering:
-  Board, tokens, UI overlays, and animations via Ebitengine draw layers." The
-  Quick Setup guide instructs contributors to run `go test ./...` with no mention
-  of build tags.
-- **Current State**: `client/ebiten/app/game_test.go:9` and
-  `client/ebiten/render/atlas_test.go:9` carry `//go:build requires_display`.
-  Running `go test ./...` (the only command documented in the README) outputs
-  `[no test files]` for both packages, silently skipping all rendering regression
-  tests.
-
-  Extracting display-independent test logic into tag-free files is **blocked** by
-  `github.com/hajimehoshi/ebiten/v2`'s `internal/ui.init.0()` which calls GLFW
-  and panics with `"X11: The DISPLAY environment variable is missing"` before any
-  test function can run — even in a `_test.go` file that does not itself call any
-  Ebitengine API. This is an `init()` side-effect; it fires before `TestMain` and
-  cannot be recovered.
-
-- **Impact** (LOW): Rendering regressions in `drawPlayerPanel`, atlas initialisation
-  panics, and shader compilation failures are not caught in standard `go test ./...`
-  runs. The `app` package has the highest coupling score in the project (5
-  dependencies).
-- **Mitigation already in place**: README now documents `make test-display` (which
-  uses Xvfb) for display-requiring tests. Contributors are informed.
-- **Remaining path to closure**:
-  Refactor `client/ebiten/app` and `client/ebiten/render` to separate
-  Ebitengine-API-calling code from pure logic behind build tags, so the pure logic
-  is importable without triggering the GLFW `init()`. This requires a package
-  restructure (e.g., `client/ebiten/app/logic` with no ebiten import) and is a
-  non-trivial refactor.
+  Board, tokens, UI overlays, and animations via Ebitengine draw layers." README
+  §Running Tests documents how to run the full test suite (including
+  display-dependent tests) via `go test -race` with appropriate build tags.
+- **Resolution**: The CI pipeline (`.github/workflows/ci.yml`) now installs Xvfb
+  and runs all tests — including `requires_display`-tagged tests — via:
+  ```
+  DISPLAY=:99 xvfb-run -a go test -race -tags=requires_display ./...
+  ```
+  This ensures `client/ebiten/app/game_test.go`, `client/ebiten/render/atlas_test.go`,
+  and `cmd/desktop/main_test.go` execute in CI with a virtual X11 display, catching
+  rendering regressions that were previously silently skipped.
+- **Build tag retained**: The `//go:build requires_display` constraint remains so
+  that local `go test ./...` (without Xvfb) still succeeds in pure-headless
+  environments. README §Running Tests documents the local Xvfb workflow.
+- **Resolved in**: `.github/workflows/ci.yml` (Xvfb install + `requires_display` tag)
 
 ---
 
@@ -103,4 +89,4 @@
 | GAP-18 | `gs.gameState.Doom` unlocked read in alerts | HIGH | ✅ Resolved |
 | GAP-19 | Win threshold not rescaled on mid-game join | MEDIUM | ✅ Resolved |
 | GAP-20 | `ActionComponent` dead code in dispatch switch | LOW | ✅ Resolved (promoted to live feature) |
-| GAP-21 | Ebitengine `app`/`render` tests skip in standard CI | LOW | ⚠️ Open — blocked by GLFW init() |
+| GAP-21 | Ebitengine `app`/`render` tests skip in standard CI | LOW | ✅ Resolved (Xvfb in CI) |
