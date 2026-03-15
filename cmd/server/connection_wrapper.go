@@ -33,8 +33,8 @@ func (c *ConnectionWrapper) Read(b []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	copy(b, data)
-	return len(data), nil
+	n = copy(b, data)
+	return n, nil
 }
 
 // Write implements net.Conn Write method for WebSocket message writing

@@ -107,7 +107,7 @@ Each player gets 2 actions per turn:
 ### Connection Behaviour
 - The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap). Example: first retry after 5 s, second after 10 s, third after 20 s, all subsequent retries after 30 s. There is no upper limit on attempts.
 - The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the doom counter is incremented and the connection is closed. This is an idle/inactivity deadline, not a reconnection window.
-- **Note**: In the current version, a disconnected player cannot reclaim their investigator. Reconnecting after a drop creates a new player slot. Full session-persistence with reconnection tokens is planned for a future release.
+- **Session Persistence**: The JS legacy client reclaims its player slot automatically using a server-issued reconnect token (stored in `localStorage`). The Ebitengine desktop/WASM client also supports token-based slot reclaim — the token received in a `connectionStatus` message is stored and re-sent as a `?token=` query parameter on the next dial attempt. All clients now support full session persistence on reconnect.
 
 ## Technical Implementation
 

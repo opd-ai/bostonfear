@@ -127,41 +127,20 @@ func (gs *GameServer) Start() error {
 // Health and Sanity may reach 0 (investigator defeat); callers must call
 // checkInvestigatorDefeat after this to handle that transition.
 func (gs *GameServer) validateResources(resources *Resources) {
-	if resources.Health < 0 {
-		resources.Health = 0
+	type resourceField struct {
+		ptr      *int
+		min, max int
 	}
-	if resources.Health > MaxHealth {
-		resources.Health = MaxHealth
+	fields := []resourceField{
+		{&resources.Health, 0, MaxHealth},
+		{&resources.Sanity, 0, MaxSanity},
+		{&resources.Clues, 0, MaxClues},
+		{&resources.Money, 0, MaxMoney},
+		{&resources.Remnants, 0, MaxRemnants},
+		{&resources.Focus, 0, MaxFocus},
 	}
-	if resources.Sanity < 0 {
-		resources.Sanity = 0
-	}
-	if resources.Sanity > MaxSanity {
-		resources.Sanity = MaxSanity
-	}
-	if resources.Clues < 0 {
-		resources.Clues = 0
-	}
-	if resources.Clues > MaxClues {
-		resources.Clues = MaxClues
-	}
-	if resources.Money < 0 {
-		resources.Money = 0
-	}
-	if resources.Money > MaxMoney {
-		resources.Money = MaxMoney
-	}
-	if resources.Remnants < 0 {
-		resources.Remnants = 0
-	}
-	if resources.Remnants > MaxRemnants {
-		resources.Remnants = MaxRemnants
-	}
-	if resources.Focus < 0 {
-		resources.Focus = 0
-	}
-	if resources.Focus > MaxFocus {
-		resources.Focus = MaxFocus
+	for _, f := range fields {
+		*f.ptr = clampInt(*f.ptr, f.min, f.max)
 	}
 }
 
@@ -291,11 +270,13 @@ func (gs *GameServer) validateActionRequest(action PlayerActionMessage) (*Player
 	return player, nil
 }
 
-// isValidActionType returns true when the given action type is one of the nine known actions.
+// isValidActionType returns true when the given action type is one of the eight known actions.
+// ActionComponent is excluded until fully implemented; the server returns a clear
+// "invalid action type" error rather than silently failing.
 func isValidActionType(a ActionType) bool {
 	for _, v := range []ActionType{
 		ActionMove, ActionGather, ActionInvestigate, ActionCastWard,
-		ActionFocus, ActionResearch, ActionTrade, ActionComponent,
+		ActionFocus, ActionResearch, ActionTrade,
 		ActionEncounter,
 	} {
 		if a == v {
@@ -668,10 +649,11 @@ func (gs *GameServer) runMythosPhase() {
 	gs.checkGameEndConditions()
 }
 
-// drawMythosToken returns a pseudo-random cup token for the Mythos Phase.
+// drawMythosToken returns a random cup token for the Mythos Phase.
+// Uses mathrand.Intn for uniform random selection, matching rollDice behaviour.
 func (gs *GameServer) drawMythosToken() string {
 	tokens := []string{MythosTokenDoom, MythosTokenBlessing, MythosTokenCurse, MythosTokenBlank}
-	return string(tokens[gs.gameState.Doom%len(tokens)])
+	return string(tokens[mathrand.Intn(len(tokens))])
 }
 
 // resolveMythosToken applies the effect of the drawn Mythos cup token.
@@ -745,6 +727,11 @@ func (gs *GameServer) checkAgendaAdvance() {
 // otherwise the default deck-driven act/agenda checks are used.
 // Increments totalGamesPlayed when the game transitions to "ended".
 func (gs *GameServer) checkGameEndConditions() {
+	// Guard: do not re-evaluate (or double-count) an already-ended game.
+	if gs.gameState.GamePhase == "ended" {
+		return
+	}
+
 	// Hard doom cap — lose immediately if doom reaches 12.
 	if gs.gameState.Doom >= 12 {
 		gs.gameState.LoseCondition = true
@@ -792,11 +779,12 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		}
 	}()
 
+	// Handshake timeout: give the client 30 seconds to complete the WebSocket
+	// upgrade. This is distinct from the per-message inactivity timeout applied
+	// in runMessageLoop, which resets after every successfully received message.
 	if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 		log.Printf("Failed to set read deadline: %v", err)
 	}
-
-	gs.mutex.RLock()
 	wsConn, ok := gs.wsConns[conn.RemoteAddr().String()]
 	gs.mutex.RUnlock()
 	if !ok {
@@ -891,8 +879,12 @@ func (gs *GameServer) sendConnectionStatus(wsConn *websocket.Conn, playerID stri
 }
 
 // runMessageLoop reads incoming WebSocket messages until the connection closes or errors.
+// The read deadline is renewed after every received message (inactivity timeout),
+// so the 30-second window applies per-message, not as a single reconnection window.
 func (gs *GameServer) runMessageLoop(conn net.Conn, wsConn *websocket.Conn, playerID string) {
 	for {
+		// Per-message inactivity timeout: if no message arrives within 30 seconds
+		// the deadline fires. The deadline is renewed after each successful read.
 		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 			log.Printf("Failed to set read deadline: %v", err)
 		}

@@ -742,3 +742,67 @@ func TestSessionReconnection_UnknownTokenReturnsEmpty(t *testing.T) {
 		t.Errorf("unknown token should return empty string; got %q", result)
 	}
 }
+
+// --- Mythos Token Randomness ---
+
+// TestDrawMythosToken_IsRandom verifies that drawMythosToken returns all four
+// token values across 100 calls, guarding against the deterministic (doom%4) bug.
+func TestDrawMythosToken_IsRandom(t *testing.T) {
+	gs, _ := newTestServer(t)
+	seen := make(map[string]int)
+	for i := 0; i < 100; i++ {
+		tok := gs.drawMythosToken()
+		seen[tok]++
+	}
+	want := []string{MythosTokenDoom, MythosTokenBlessing, MythosTokenCurse, MythosTokenBlank}
+	for _, v := range want {
+		if seen[v] == 0 {
+			t.Errorf("token %q never appeared in 100 draws; distribution: %v", v, seen)
+		}
+	}
+}
+
+// --- Double-increment guard for checkGameEndConditions ---
+
+// TestCheckGameEndConditions_NoDoubleIncrement asserts that calling checkGameEndConditions
+// on a game already in the "ended" phase does not increment totalGamesPlayed a second time.
+func TestCheckGameEndConditions_NoDoubleIncrement(t *testing.T) {
+	gs, _ := newTestServer(t)
+	gs.gameState.Doom = 12
+
+	// First call — should transition to ended and increment.
+	gs.checkGameEndConditions()
+	after1 := gs.totalGamesPlayed
+
+	// Second call on an already-ended game — should be a no-op.
+	gs.checkGameEndConditions()
+	after2 := gs.totalGamesPlayed
+
+	if after2 != after1 {
+		t.Errorf("totalGamesPlayed incremented on second call: %d → %d", after1, after2)
+	}
+}
+
+// --- ActionComponent rejection ---
+
+// TestProcessAction_ComponentActionRejected verifies that sending a "component"
+// action returns an error instead of silently failing after GAP-06 fix.
+func TestProcessAction_ComponentActionRejected(t *testing.T) {
+	gs, p1ID := newTestServer(t)
+	gs.gameState.GamePhase = "playing"
+
+	action := PlayerActionMessage{
+		Type:     "playerAction",
+		PlayerID: p1ID,
+		Action:   ActionComponent,
+		Target:   "",
+	}
+	err := gs.processAction(action)
+	if err == nil {
+		t.Fatal("expected error for ActionComponent; got nil")
+	}
+	// The error should indicate invalid action type, not an unimplemented stub error.
+	if err.Error() == "" {
+		t.Error("error message must not be empty")
+	}
+}

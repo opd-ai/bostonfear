@@ -9,22 +9,10 @@ import (
 )
 
 // serverMessage is the top-level envelope for all messages from the server.
-// The server always sends {"type": "...", ...} or wraps data under a "data" key.
+// The server sends {"type": "...", "data": {...}} where game state lives under "data".
 type serverMessage struct {
 	Type string          `json:"type"`
 	Data json.RawMessage `json:"data"`
-
-	// The server's gameState broadcast inlines all fields at the top level.
-	// We decode them here so a single Unmarshal covers the full broadcast.
-	Players       map[string]*Player `json:"players"`
-	CurrentPlayer string             `json:"currentPlayer"`
-	Doom          int                `json:"doom"`
-	GamePhase     string             `json:"gamePhase"`
-	TurnOrder     []string           `json:"turnOrder"`
-	GameStarted   bool               `json:"gameStarted"`
-	WinCondition  bool               `json:"winCondition"`
-	LoseCondition bool               `json:"loseCondition"`
-	RequiredClues int                `json:"requiredClues"`
 }
 
 // PlayerActionMessage is the outbound message the client sends to the server.
@@ -75,12 +63,19 @@ func (c *NetClient) Connect() {
 
 // reconnectLoop dials, runs the read/write pair, and retries on failure.
 // Initial delay is 5 seconds; subsequent delays double up to 30 seconds.
+// If a reconnect token is available it is appended as a query parameter so
+// the server can restore the previous player slot.
 func (c *NetClient) reconnectLoop() {
 	delay := 5 * time.Second
 	const maxDelay = 30 * time.Second
 
 	for {
-		conn, _, err := c.dialer.Dial(c.state.ServerURL, nil)
+		dialURL := c.state.ServerURL
+		if tok := c.state.GetReconnectToken(); tok != "" {
+			dialURL = dialURL + "?token=" + tok
+		}
+
+		conn, _, err := c.dialer.Dial(dialURL, nil)
 		if err != nil {
 			log.Printf("net: dial %s failed: %v — retrying in %s", c.state.ServerURL, err, delay)
 			c.state.SetConnected(false)
@@ -179,17 +174,13 @@ func (c *NetClient) routeMessage(data []byte) {
 }
 
 // decodeGameState converts a serverMessage into a GameState value.
+// The server wraps game state under the "data" key, so we unmarshal msg.Data directly.
 func decodeGameState(msg serverMessage) GameState {
-	gs := GameState{
-		Players:       msg.Players,
-		CurrentPlayer: msg.CurrentPlayer,
-		Doom:          msg.Doom,
-		GamePhase:     msg.GamePhase,
-		TurnOrder:     msg.TurnOrder,
-		GameStarted:   msg.GameStarted,
-		WinCondition:  msg.WinCondition,
-		LoseCondition: msg.LoseCondition,
-		RequiredClues: msg.RequiredClues,
+	var gs GameState
+	if len(msg.Data) > 0 {
+		if err := json.Unmarshal(msg.Data, &gs); err != nil {
+			log.Printf("net: unmarshal gameState data: %v", err)
+		}
 	}
 	if gs.Players == nil {
 		gs.Players = make(map[string]*Player)
@@ -218,7 +209,7 @@ func (c *NetClient) applyGameUpdate(data []byte) {
 }
 
 // applyConnectionStatus decodes and forwards a connectionStatus payload to LocalState.
-// It also extracts the player ID on the first connectionStatus received.
+// It also extracts the player ID and reconnect token on the first connectionStatus received.
 func (c *NetClient) applyConnectionStatus(data []byte) {
 	var cs ConnectionStatusData
 	if err := json.Unmarshal(data, &cs); err != nil {
@@ -227,6 +218,9 @@ func (c *NetClient) applyConnectionStatus(data []byte) {
 	}
 	if c.state.PlayerID == "" && cs.PlayerID != "" {
 		c.state.SetPlayerID(cs.PlayerID)
+	}
+	if cs.Token != "" {
+		c.state.SetReconnectToken(cs.Token)
 	}
 	c.state.UpdateConnectionStatus(cs)
 }

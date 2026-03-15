@@ -73,6 +73,7 @@ type ConnectionQuality struct {
 // ConnectionStatusData mirrors the server's ConnectionStatusMessage.Data.
 type ConnectionStatusData struct {
 	PlayerID           string                       `json:"playerId"`
+	Token              string                       `json:"token"`
 	Quality            ConnectionQuality            `json:"quality"`
 	AllPlayerQualities map[string]ConnectionQuality `json:"allPlayerQualities"`
 }
@@ -90,6 +91,10 @@ type LocalState struct {
 
 	// PlayerID is this client's own player identifier, assigned on connection.
 	PlayerID string
+
+	// ReconnectToken is the server-issued token used to restore a player slot
+	// on reconnection. It is updated on every connectionStatus message.
+	ReconnectToken string
 
 	// Game is the latest full game state received from the server.
 	Game GameState
@@ -177,6 +182,20 @@ func (s *LocalState) SetPlayerID(id string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.PlayerID = id
+}
+
+// SetReconnectToken stores the server-issued reconnect token.
+func (s *LocalState) SetReconnectToken(token string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ReconnectToken = token
+}
+
+// GetReconnectToken returns the current reconnect token, safe for concurrent use.
+func (s *LocalState) GetReconnectToken() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.ReconnectToken
 }
 
 // Snapshot returns a copy of the current game state for rendering.
