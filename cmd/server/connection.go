@@ -32,6 +32,7 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 	if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 		log.Printf("Failed to set read deadline: %v", err)
 	}
+	gs.mutex.RLock()
 	wsConn, ok := gs.wsConns[conn.RemoteAddr().String()]
 	gs.mutex.RUnlock()
 	if !ok {
