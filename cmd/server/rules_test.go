@@ -232,16 +232,16 @@ func TestRulesFullActionSet(t *testing.T) {
 		}
 	})
 
-	t.Run("Component_stub", func(t *testing.T) {
+	t.Run("Component_implemented", func(t *testing.T) {
 		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].InvestigatorType = InvestigatorSurvivor
 		msg := PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: p1ID,
 			Action:   ActionComponent,
 		}
-		err := gs.processAction(msg)
-		if err == nil {
-			t.Fatal("component action should return not-implemented error")
+		if err := gs.processAction(msg); err != nil {
+			t.Fatalf("component action should succeed for Survivor; got %v", err)
 		}
 	})
 }

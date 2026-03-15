@@ -133,7 +133,7 @@ func (gs *GameServer) sendConnectionStatus(wsConn *websocket.Conn, playerID stri
 		"status":   "connected",
 	}
 	data, _ := json.Marshal(msg)
-	wsConn.WriteMessage(websocket.TextMessage, data)
+	gs.writeToConn(wsConn, wsConn.RemoteAddr().String(), data) //nolint:errcheck
 }
 
 // runMessageLoop reads incoming WebSocket messages until the connection closes or errors.
@@ -220,6 +220,7 @@ func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
 	delete(gs.playerConns, playerID)
 	atomic.AddInt64(&gs.activeConnections, -1)
 	gs.mutex.Unlock()
+	gs.removeConnWriteLock(addrStr)
 
 	gs.broadcastGameState()
 }
@@ -330,8 +331,8 @@ func (gs *GameServer) broadcastHandler() {
 		case message := <-gs.broadcastCh:
 			writeStart := time.Now()
 			gs.mutex.RLock()
-			for _, wsConn := range gs.wsConns {
-				if err := wsConn.WriteMessage(websocket.TextMessage, message); err != nil {
+			for addr, wsConn := range gs.wsConns {
+				if err := gs.writeToConn(wsConn, addr, message); err != nil {
 					log.Printf("Broadcast error: %v", err)
 					atomic.AddInt64(&gs.errorCount, 1)
 				} else {

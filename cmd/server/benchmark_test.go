@@ -203,7 +203,7 @@ done:
 	if doom < 0 || doom > 12 {
 		t.Errorf("doom out of bounds after stability run: %d (want 0–12)", doom)
 	}
-	if phase != "playing" && phase != "gameover" {
-		t.Errorf("unexpected game phase %q (want 'playing' or 'gameover')", phase)
+	if phase != "playing" && phase != "gameover" && phase != "ended" {
+		t.Errorf("unexpected game phase %q (want 'playing', 'gameover', or 'ended')", phase)
 	}
 }

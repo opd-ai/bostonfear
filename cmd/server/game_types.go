@@ -59,15 +59,16 @@ type DiceResultMessage struct {
 // Player represents an investigator with location, resources, and turn state.
 // Each player has a unique ID and tracks their connection status.
 type Player struct {
-	ID                 string    `json:"id"`
-	Location           Location  `json:"location"`
-	Resources          Resources `json:"resources"`
-	ActionsRemaining   int       `json:"actionsRemaining"`
-	Connected          bool      `json:"connected"`
-	Defeated           bool      `json:"defeated"`           // true when Health or Sanity reaches 0
-	LostInTimeAndSpace bool      `json:"lostInTimeAndSpace"` // true when investigator is defeated and awaiting recovery
-	ReconnectToken     string    `json:"reconnectToken"`     // opaque token for session restoration
-	DisconnectedAt     time.Time `json:"disconnectedAt"`     // zero value means currently connected
+	ID                 string           `json:"id"`
+	Location           Location         `json:"location"`
+	Resources          Resources        `json:"resources"`
+	ActionsRemaining   int              `json:"actionsRemaining"`
+	Connected          bool             `json:"connected"`
+	Defeated           bool             `json:"defeated"`           // true when Health or Sanity reaches 0
+	LostInTimeAndSpace bool             `json:"lostInTimeAndSpace"` // true when investigator is defeated and awaiting recovery
+	ReconnectToken     string           `json:"reconnectToken"`     // opaque token for session restoration
+	DisconnectedAt     time.Time        `json:"disconnectedAt"`     // zero value means currently connected
+	InvestigatorType   InvestigatorType `json:"investigatorType"`   // determines component ability
 }
 
 // Scenario defines the setup and win/lose conditions for a game session.

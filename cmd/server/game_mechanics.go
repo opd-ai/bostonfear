@@ -168,6 +168,8 @@ func (gs *GameServer) dispatchAction(action PlayerActionMessage, player *Player)
 		actionErr = gs.performTrade(action.PlayerID, action.Target)
 	case ActionEncounter:
 		actionErr = gs.performEncounter(player, action.PlayerID)
+	case ActionComponent:
+		actionResult, actionErr = gs.performComponent(player, action.PlayerID)
 	}
 
 	return diceResult, doomIncrease, actionResult, actionErr
@@ -369,6 +371,57 @@ func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 	}
 	log.Printf("Encounter at %s for %s: %s (%s %+d)", loc, playerID, card.FlavorText, card.EffectType, card.Magnitude)
 	return nil
+}
+
+// performComponent executes the investigator's unique component ability.
+// The ability is determined by the player's InvestigatorType; an unrecognised type
+// falls back to the Survivor ability. Resource costs are validated before any effect
+// is applied — if the player cannot pay, an error is returned and no state changes.
+func (gs *GameServer) performComponent(player *Player, playerID string) (string, error) {
+	invType := player.InvestigatorType
+	ability, ok := DefaultInvestigatorAbilities[invType]
+	if !ok {
+		// Safe default: Survivor ability requires no cost and is always usable.
+		invType = InvestigatorSurvivor
+		ability = DefaultInvestigatorAbilities[invType]
+	}
+
+	// Validate resource costs before applying any effect.
+	if player.Resources.Sanity < ability.SanityCost {
+		return "fail", fmt.Errorf("component ability %q requires %d sanity (have %d)",
+			ability.Name, ability.SanityCost, player.Resources.Sanity)
+	}
+	if player.Resources.Health < ability.HealthCost {
+		return "fail", fmt.Errorf("component ability %q requires %d health (have %d)",
+			ability.Name, ability.HealthCost, player.Resources.Health)
+	}
+
+	// Deduct costs.
+	player.Resources.Sanity -= ability.SanityCost
+	player.Resources.Health -= ability.HealthCost
+
+	// Apply gains.
+	player.Resources.Clues = min(player.Resources.Clues+ability.ClueGain, MaxClues)
+	player.Resources.Health = min(player.Resources.Health+ability.HealthGain, MaxHealth)
+	player.Resources.Sanity = min(player.Resources.Sanity+ability.SanityGain, MaxSanity)
+	player.Resources.Focus = min(player.Resources.Focus+ability.FocusGain, MaxFocus)
+
+	// Doom reduction (Occultist dark bargain).
+	if ability.DoomReduct > 0 {
+		gs.gameState.Doom = max(gs.gameState.Doom-ability.DoomReduct, 0)
+	}
+
+	// Free encounter draw (Detective street contacts).
+	if ability.DrawEncounter {
+		if err := gs.performEncounter(player, playerID); err != nil {
+			log.Printf("Component encounter draw failed for %s: %v", playerID, err)
+		}
+	}
+
+	gs.validateResources(&player.Resources)
+	gs.checkInvestigatorDefeat(playerID)
+	log.Printf("Component action by %s (%s): %s", playerID, invType, ability.Name)
+	return "success", nil
 }
 
 // Disconnected and defeated players are skipped so the game never stalls.

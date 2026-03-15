@@ -30,9 +30,76 @@ const (
 	ActionFocus       ActionType = "focus"
 	ActionResearch    ActionType = "research"
 	ActionTrade       ActionType = "trade"
-	ActionComponent   ActionType = "component" // Reserved: per-investigator abilities (Phase 6, ROADMAP.md)
+	ActionComponent   ActionType = "component" // Per-investigator special ability (ROADMAP Priority 1)
 	ActionEncounter   ActionType = "encounter"
 )
+
+// InvestigatorType identifies which investigator archetype a player is using.
+// Each type maps to a unique component ability in DefaultInvestigatorAbilities.
+type InvestigatorType string
+
+const (
+	InvestigatorResearcher InvestigatorType = "researcher" // Gain 1 Clue without a dice roll
+	InvestigatorDetective  InvestigatorType = "detective"  // Draw a free encounter card
+	InvestigatorOccultist  InvestigatorType = "occultist"  // Reduce Doom by 1 (costs 2 Sanity)
+	InvestigatorSoldier    InvestigatorType = "soldier"    // Gain +2 Health (costs 1 Sanity)
+	InvestigatorMystic     InvestigatorType = "mystic"     // Gain +1 Focus (no cost)
+	InvestigatorSurvivor   InvestigatorType = "survivor"   // Gain +1 Health and +1 Sanity
+)
+
+// InvestigatorAbility describes the mechanical effect of a component action.
+type InvestigatorAbility struct {
+	Name        string // human-readable name shown in game updates
+	Description string // flavour text for the client
+	// Resource costs subtracted before applying the effect (zero means free).
+	SanityCost int
+	HealthCost int
+	// Effect fields — only the relevant ones are non-zero for each archetype.
+	ClueGain      int
+	HealthGain    int
+	SanityGain    int
+	FocusGain     int
+	DoomReduct    int  // positive value means doom decreases by this amount
+	DrawEncounter bool // true → execute a free encounter card draw
+}
+
+// DefaultInvestigatorAbilities maps each InvestigatorType to its component ability.
+// An unrecognised type falls back to InvestigatorSurvivor (safe default).
+var DefaultInvestigatorAbilities = map[InvestigatorType]InvestigatorAbility{
+	InvestigatorResearcher: {
+		Name:        "Academic Insight",
+		Description: "Your research uncovers a hidden clue without risking the dice.",
+		ClueGain:    1,
+	},
+	InvestigatorDetective: {
+		Name:          "Street Contacts",
+		Description:   "You call in a favour and draw an encounter card at your location.",
+		DrawEncounter: true,
+	},
+	InvestigatorOccultist: {
+		Name:        "Dark Bargain",
+		Description: "You sacrifice your sanity to push back the Ancient One's influence.",
+		SanityCost:  2,
+		DoomReduct:  1,
+	},
+	InvestigatorSoldier: {
+		Name:        "Field Medic",
+		Description: "Military training lets you patch yourself up on the fly.",
+		SanityCost:  1,
+		HealthGain:  2,
+	},
+	InvestigatorMystic: {
+		Name:        "Arcane Focus",
+		Description: "You channel the ley-lines and sharpen your concentration.",
+		FocusGain:   1,
+	},
+	InvestigatorSurvivor: {
+		Name:        "Grit",
+		Description: "Sheer stubbornness restores a fragment of both body and mind.",
+		HealthGain:  1,
+		SanityGain:  1,
+	},
+}
 
 // Resource bound constants for the extended AH3e resource vocabulary.
 const (

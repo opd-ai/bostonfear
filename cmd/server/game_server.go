@@ -54,6 +54,13 @@ type GameServer struct {
 	connectionQualities map[string]*ConnectionQuality
 	pingTimers          map[string]*time.Timer
 	qualityMutex        sync.RWMutex
+
+	// wsWriteMu serialises concurrent WebSocket writes per connection.
+	// gorilla/websocket is not safe for concurrent writes; both broadcastHandler
+	// and sendPingToPlayer write to the same *websocket.Conn, so each connection
+	// needs its own write mutex.
+	wsWriteMu map[string]*sync.Mutex
+	wsMuMutex sync.Mutex // guards wsWriteMu map itself
 }
 
 // NewGameServer creates a new game server instance using the provided Scenario
@@ -99,6 +106,7 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		// Initialize connection quality monitoring
 		connectionQualities: make(map[string]*ConnectionQuality),
 		pingTimers:          make(map[string]*time.Timer),
+		wsWriteMu:           make(map[string]*sync.Mutex),
 		scenario:            scenario,
 	}
 	// Apply scenario setup (populates decks, sets doom, etc.).
@@ -106,6 +114,37 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		scenario.SetupFn(gs.gameState)
 	}
 	return gs
+}
+
+// connWriteLock returns the per-connection write mutex for addr, creating it if needed.
+// This ensures gorilla/websocket's non-concurrent-write constraint is honoured when
+// broadcastHandler and sendPingToPlayer both write to the same *websocket.Conn.
+func (gs *GameServer) connWriteLock(addr string) *sync.Mutex {
+	gs.wsMuMutex.Lock()
+	defer gs.wsMuMutex.Unlock()
+	if mu, ok := gs.wsWriteMu[addr]; ok {
+		return mu
+	}
+	mu := &sync.Mutex{}
+	gs.wsWriteMu[addr] = mu
+	return mu
+}
+
+// removeConnWriteLock removes the per-connection write mutex when a connection closes.
+func (gs *GameServer) removeConnWriteLock(addr string) {
+	gs.wsMuMutex.Lock()
+	delete(gs.wsWriteMu, addr)
+	gs.wsMuMutex.Unlock()
+}
+
+// writeToConn serialises a single WebSocket write for addr through its per-connection
+// mutex so that concurrent callers (broadcastHandler, sendPingToPlayer) cannot race.
+func (gs *GameServer) writeToConn(wsConn *websocket.Conn, addr string, data []byte) error {
+	mu := gs.connWriteLock(addr)
+	mu.Lock()
+	err := wsConn.WriteMessage(websocket.TextMessage, data)
+	mu.Unlock()
+	return err
 }
 
 // Start initializes the game server with goroutines for concurrent handling
@@ -203,14 +242,12 @@ func (gs *GameServer) validateActionRequest(action PlayerActionMessage) (*Player
 	return player, nil
 }
 
-// isValidActionType returns true when the given action type is one of the eight known actions.
-// ActionComponent is excluded until fully implemented; the server returns a clear
-// "invalid action type" error rather than silently failing.
+// isValidActionType returns true when the given action type is one of the nine known actions.
 func isValidActionType(a ActionType) bool {
 	for _, v := range []ActionType{
 		ActionMove, ActionGather, ActionInvestigate, ActionCastWard,
 		ActionFocus, ActionResearch, ActionTrade,
-		ActionEncounter,
+		ActionEncounter, ActionComponent,
 	} {
 		if a == v {
 			return true

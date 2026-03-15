@@ -164,9 +164,11 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 	gs.mutex.RLock()
 	conn, connExists := gs.playerConns[playerID]
 	var wsConn *websocket.Conn
+	var wsAddr string
 	var wsExists bool
 	if connExists && conn != nil {
-		wsConn, wsExists = gs.wsConns[conn.RemoteAddr().String()]
+		wsAddr = conn.RemoteAddr().String()
+		wsConn, wsExists = gs.wsConns[wsAddr]
 	}
 	gs.mutex.RUnlock()
 
@@ -187,7 +189,9 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 		return
 	}
 
-	if err := wsConn.WriteMessage(websocket.TextMessage, pingData); err != nil {
+	// Use writeToConn so this write is serialised with broadcastHandler writes
+	// on the same connection (gorilla/websocket is not concurrent-write safe).
+	if err := gs.writeToConn(wsConn, wsAddr, pingData); err != nil {
 		log.Printf("Error sending ping to player %s: %v", playerID, err)
 		// Mark connection quality as poor on send failure
 		gs.qualityMutex.Lock()

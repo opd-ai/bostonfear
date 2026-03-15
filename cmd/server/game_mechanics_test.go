@@ -783,13 +783,14 @@ func TestCheckGameEndConditions_NoDoubleIncrement(t *testing.T) {
 	}
 }
 
-// --- ActionComponent rejection ---
+// --- ActionComponent acceptance ---
 
-// TestProcessAction_ComponentActionRejected verifies that sending a "component"
-// action returns an error instead of silently failing after GAP-06 fix.
-func TestProcessAction_ComponentActionRejected(t *testing.T) {
+// TestProcessAction_ComponentActionAccepted verifies that ActionComponent is now a
+// valid action type and executes the player's investigator ability without error.
+func TestProcessAction_ComponentActionAccepted(t *testing.T) {
 	gs, p1ID := newTestServer(t)
 	gs.gameState.GamePhase = "playing"
+	gs.gameState.Players[p1ID].InvestigatorType = InvestigatorSurvivor
 
 	action := PlayerActionMessage{
 		Type:     "playerAction",
@@ -797,13 +798,8 @@ func TestProcessAction_ComponentActionRejected(t *testing.T) {
 		Action:   ActionComponent,
 		Target:   "",
 	}
-	err := gs.processAction(action)
-	if err == nil {
-		t.Fatal("expected error for ActionComponent; got nil")
-	}
-	// The error should indicate invalid action type, not an unimplemented stub error.
-	if err.Error() == "" {
-		t.Error("error message must not be empty")
+	if err := gs.processAction(action); err != nil {
+		t.Fatalf("unexpected error for ActionComponent: %v", err)
 	}
 }
 
