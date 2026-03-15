@@ -13,11 +13,11 @@ func TestRecoverGameState_InvalidCurrentPlayer(t *testing.T) {
 		Players: map[string]*Player{
 			"p1": {ID: "p1", Location: Downtown, Resources: Resources{Health: 5, Sanity: 5}},
 		},
-		TurnOrder:   []string{"p1"},
+		TurnOrder:     []string{"p1"},
 		CurrentPlayer: "nonexistent", // triggers INVALID_CURRENT_PLAYER
-		Doom:        0,
-		GamePhase:   "playing",
-		GameStarted: true,
+		Doom:          0,
+		GamePhase:     "playing",
+		GameStarted:   true,
 	}
 
 	errors := v.ValidateGameState(gs)
@@ -37,8 +37,8 @@ func TestRecoverGameState_InvalidLocation(t *testing.T) {
 	gs := &GameState{
 		Players: map[string]*Player{
 			"p1": {
-				ID:       "p1",
-				Location: Location("Dunwich"), // invalid location
+				ID:        "p1",
+				Location:  Location("Dunwich"), // invalid location
 				Resources: Resources{Health: 5, Sanity: 5},
 			},
 		},
@@ -83,8 +83,8 @@ func TestAssessConnectionQuality_FairToPooreWithPacketLoss(t *testing.T) {
 	gs.initializeConnectionQuality(pid)
 
 	gs.qualityMutex.Lock()
-	gs.connectionQualities[pid].LatencyMs = 150    // fair latency
-	gs.connectionQualities[pid].PacketLoss = 0.10  // high packet loss
+	gs.connectionQualities[pid].LatencyMs = 150   // fair latency
+	gs.connectionQualities[pid].PacketLoss = 0.10 // high packet loss
 	gs.assessConnectionQuality(pid)
 	got := gs.connectionQualities[pid].Quality
 	gs.qualityMutex.Unlock()
@@ -99,7 +99,7 @@ func TestAssessConnectionQuality_GoodToFairWithPacketLoss(t *testing.T) {
 	gs.initializeConnectionQuality(pid)
 
 	gs.qualityMutex.Lock()
-	gs.connectionQualities[pid].LatencyMs = 75   // good latency
+	gs.connectionQualities[pid].LatencyMs = 75 // good latency
 	gs.connectionQualities[pid].PacketLoss = 0.10
 	gs.assessConnectionQuality(pid)
 	got := gs.connectionQualities[pid].Quality

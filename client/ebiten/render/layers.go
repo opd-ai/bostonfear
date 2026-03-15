@@ -36,23 +36,23 @@ type DrawCmd struct {
 	ScaleX, ScaleY float64
 }
 
-// Renderer manages the five-layer compositing pipeline.
+// Compositor manages the five-layer compositing pipeline.
 // Each frame, callers enqueue DrawCmds on the appropriate layer via Enqueue,
 // then call Flush to composite all layers onto the screen in z-order.
-type Renderer struct {
+type Compositor struct {
 	atlas  *Atlas
 	layers [layerCount][]DrawCmd
 }
 
-// NewRenderer allocates a Renderer with a shared texture atlas.
-func NewRenderer() *Renderer {
-	return &Renderer{
+// NewCompositor allocates a Compositor with a shared texture atlas.
+func NewCompositor() *Compositor {
+	return &Compositor{
 		atlas: NewAtlas(),
 	}
 }
 
 // Enqueue adds a draw command to the given layer's queue for this frame.
-func (r *Renderer) Enqueue(layer LayerID, cmd DrawCmd) {
+func (r *Compositor) Enqueue(layer LayerID, cmd DrawCmd) {
 	if layer < 0 || layer >= layerCount {
 		return
 	}
@@ -68,7 +68,7 @@ func (r *Renderer) Enqueue(layer LayerID, cmd DrawCmd) {
 
 // Flush composites all queued layers onto screen in ascending LayerID order,
 // then resets the per-frame queues. Call once per Draw frame.
-func (r *Renderer) Flush(screen *ebiten.Image) {
+func (r *Compositor) Flush(screen *ebiten.Image) {
 	for id := LayerID(0); id < layerCount; id++ {
 		for _, cmd := range r.layers[id] {
 			r.atlas.DrawSprite(screen, cmd.Sprite, cmd.X, cmd.Y, cmd.Tint)
@@ -79,7 +79,7 @@ func (r *Renderer) Flush(screen *ebiten.Image) {
 }
 
 // Atlas returns the shared texture atlas for callers that need direct access.
-func (r *Renderer) Atlas() *Atlas {
+func (r *Compositor) Atlas() *Atlas {
 	return r.atlas
 }
 

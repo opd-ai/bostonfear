@@ -59,7 +59,60 @@ func TestRulesTurnStructure(t *testing.T) {
 // Status: NOT IMPLEMENTED — engine does not yet model Mythos Phase events.
 
 func TestRulesMythosPhaseEventPlacement(t *testing.T) {
-	t.Skip("Mythos Phase event placement not yet implemented in engine (RULES.md §Mythos Phase, GAPS.md)")
+	t.Parallel()
+
+	t.Run("EventsDrawnAndPlaced", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.gameState.MythosEventDeck = defaultMythosEventDeck()
+		gs.gameState.LocationDoomTokens = make(map[string]int)
+		initialDoom := gs.gameState.Doom
+
+		gs.runMythosPhase()
+
+		if gs.gameState.Doom <= initialDoom {
+			t.Errorf("doom should increase during Mythos Phase; before=%d after=%d", initialDoom, gs.gameState.Doom)
+		}
+		if len(gs.gameState.MythosEvents) == 0 {
+			t.Error("MythosEvents should be populated after Mythos Phase")
+		}
+		if gs.gameState.GamePhase != "playing" {
+			t.Errorf("GamePhase should return to 'playing' after Mythos Phase; got %s", gs.gameState.GamePhase)
+		}
+	})
+
+	t.Run("SpreadRule", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.gameState.MythosEventDeck = []MythosEvent{
+			{LocationID: string(Downtown), Effect: "test event"},
+		}
+		gs.gameState.LocationDoomTokens = map[string]int{string(Downtown): 1}
+
+		gs.runMythosPhase()
+
+		// Downtown already had a token, so spread to an adjacent location.
+		found := false
+		for _, loc := range []string{string(University), string(Rivertown)} {
+			if gs.gameState.LocationDoomTokens[loc] > 0 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("spread rule should place doom token in a Downtown-adjacent location")
+		}
+	})
+
+	t.Run("DeckRebuild", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.gameState.MythosEventDeck = []MythosEvent{} // empty deck
+		gs.gameState.LocationDoomTokens = make(map[string]int)
+
+		gs.runMythosPhase() // should rebuild deck and draw without panic
+
+		if len(gs.gameState.MythosEvents) == 0 {
+			t.Error("after deck rebuild, events should still be drawn")
+		}
+	})
 }
 
 // --- TestRulesFullActionSet ---
@@ -129,13 +182,67 @@ func TestRulesFullActionSet(t *testing.T) {
 		_ = gs.processAction(msg)
 	})
 
-	// Unimplemented actions.
-	for _, name := range []string{"focus", "research", "trade", "component"} {
-		name := name
-		t.Run(name+"_not_implemented", func(t *testing.T) {
-			t.Skipf("action %q not yet implemented in engine (RULES.md §Action System)", name)
-		})
-	}
+	t.Run("Focus", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Resources.Focus = 0
+		msg := PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionFocus,
+		}
+		if err := gs.processAction(msg); err != nil {
+			t.Fatalf("focus: %v", err)
+		}
+		if got := gs.gameState.Players[p1ID].Resources.Focus; got != 1 {
+			t.Errorf("focus should award 1 Focus token; got %d", got)
+		}
+	})
+
+	t.Run("Research", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		msg := PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionResearch,
+		}
+		if err := gs.processAction(msg); err != nil {
+			t.Fatalf("research: %v", err)
+		}
+	})
+
+	t.Run("Trade", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		p2ID := "player2"
+		addPlayer(gs, p2ID, true)
+		gs.gameState.Players[p1ID].Location = Downtown
+		gs.gameState.Players[p2ID].Location = Downtown
+		gs.gameState.Players[p1ID].Resources.Clues = 2
+		msg := PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionTrade,
+			Target:   p2ID,
+		}
+		if err := gs.processAction(msg); err != nil {
+			t.Fatalf("trade: %v", err)
+		}
+		if got := gs.gameState.Players[p2ID].Resources.Clues; got != 1 {
+			t.Errorf("target should receive 1 Clue; got %d", got)
+		}
+	})
+
+	t.Run("Component_stub", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		msg := PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionComponent,
+		}
+		err := gs.processAction(msg)
+		if err == nil {
+			t.Fatal("component action should return not-implemented error")
+		}
+	})
 }
 
 // --- TestRulesDicePoolFocusModifier ---
@@ -162,7 +269,44 @@ func TestRulesAnomalyGateMechanics(t *testing.T) {
 // Status: NOT IMPLEMENTED.
 
 func TestRulesEncounterResolution(t *testing.T) {
-	t.Skip("Encounter resolution not yet implemented (RULES.md §Encounter System, GAPS.md)")
+	t.Parallel()
+
+	t.Run("EncounterAtLocation", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Location = Downtown
+		// Plant a known card to make the outcome deterministic.
+		gs.gameState.EncounterDecks[string(Downtown)] = []EncounterCard{
+			{FlavorText: "test", EffectType: "clue_gain", Magnitude: 1},
+		}
+		before := gs.gameState.Players[p1ID].Resources.Clues
+		msg := PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionEncounter,
+		}
+		if err := gs.processAction(msg); err != nil {
+			t.Fatalf("encounter: %v", err)
+		}
+		if got := gs.gameState.Players[p1ID].Resources.Clues; got != before+1 {
+			t.Errorf("clue_gain encounter should add 1 clue; before=%d after=%d", before, got)
+		}
+	})
+
+	t.Run("EncounterDeckRebuild", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Location = University
+		gs.gameState.EncounterDecks[string(University)] = []EncounterCard{} // empty
+
+		// Should rebuild from defaults and succeed.
+		msg := PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionEncounter,
+		}
+		if err := gs.processAction(msg); err != nil {
+			t.Fatalf("encounter deck rebuild: %v", err)
+		}
+	})
 }
 
 // --- TestRulesActAgendaProgression ---
@@ -192,7 +336,8 @@ func TestRulesActAgendaProgression(t *testing.T) {
 
 	t.Run("ActAdvancesOnClues", func(t *testing.T) {
 		gs, _ := newTestServer(t)
-		// Engine requires 4 clues per player. With 1 player: 4 clues to win.
+		// Use single-card act deck so the first advance triggers WinCondition.
+		gs.gameState.ActDeck = []ActCard{{Title: "Final Act", ClueThreshold: 4, Effect: "victory"}}
 		gs.gameState.Players["p1"].Resources.Clues = 4
 		gs.checkGameEndConditions()
 
@@ -201,8 +346,16 @@ func TestRulesActAgendaProgression(t *testing.T) {
 		}
 	})
 
-	t.Run("ActAgendaNotImplementedFully", func(t *testing.T) {
-		t.Skip("Full act/agenda deck progression (card draws, narrative events) not yet implemented (RULES.md §Act/Agenda, GAPS.md)")
+	t.Run("AgendaAdvancesOnDoom", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		// Single-card agenda with threshold 4; doom=4 should advance and exhaust it.
+		gs.gameState.AgendaDeck = []AgendaCard{{Title: "Final Agenda", DoomThreshold: 4, Effect: "lose"}}
+		gs.gameState.Doom = 4
+		gs.checkGameEndConditions()
+
+		if !gs.gameState.LoseCondition {
+			t.Error("doom threshold reached should trigger lose condition (agenda exhausted)")
+		}
 	})
 }
 
@@ -242,7 +395,8 @@ func TestRulesVictoryDefeatConditions(t *testing.T) {
 
 	t.Run("WinOnRequiredClues", func(t *testing.T) {
 		gs, _ := newTestServer(t)
-		gs.gameState.RequiredClues = 4
+		// Use a single-card act deck so exhausting it sets WinCondition.
+		gs.gameState.ActDeck = []ActCard{{Title: "Final Act", ClueThreshold: 4, Effect: "victory"}}
 		gs.gameState.Players["p1"].Resources.Clues = 4
 		gs.checkGameEndConditions()
 		if !gs.gameState.WinCondition {
@@ -282,11 +436,11 @@ func TestRulesResourceTypes(t *testing.T) {
 		gs, p1ID := newTestServer(t)
 		r := &gs.gameState.Players[p1ID].Resources
 
-		// Health bounds: 1–10.
-		r.Health = 0
+		// Health bounds: 0–10 (0 = investigator defeated).
+		r.Health = -1
 		gs.validateResources(r)
-		if r.Health < 1 {
-			t.Errorf("health below 1 after validation: %d", r.Health)
+		if r.Health < 0 {
+			t.Errorf("health below 0 after validation: %d", r.Health)
 		}
 		r.Health = 11
 		gs.validateResources(r)
@@ -294,11 +448,11 @@ func TestRulesResourceTypes(t *testing.T) {
 			t.Errorf("health above 10 after validation: %d", r.Health)
 		}
 
-		// Sanity bounds: 1–10.
-		r.Sanity = 0
+		// Sanity bounds: 0–10 (0 = investigator defeated).
+		r.Sanity = -1
 		gs.validateResources(r)
-		if r.Sanity < 1 {
-			t.Errorf("sanity below 1 after validation: %d", r.Sanity)
+		if r.Sanity < 0 {
+			t.Errorf("sanity below 0 after validation: %d", r.Sanity)
 		}
 
 		// Clue bounds: 0–5.
@@ -314,15 +468,120 @@ func TestRulesResourceTypes(t *testing.T) {
 		}
 	})
 
-	t.Run("MoneyNotImplemented", func(t *testing.T) {
-		t.Skip("Money resource not yet implemented (RULES.md §Resources, GAPS.md)")
+	t.Run("MoneyBounds", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		r := &gs.gameState.Players[p1ID].Resources
+
+		r.Money = -1
+		gs.validateResources(r)
+		if r.Money < 0 {
+			t.Errorf("money below 0 after validation: %d", r.Money)
+		}
+		r.Money = MaxMoney + 1
+		gs.validateResources(r)
+		if r.Money > MaxMoney {
+			t.Errorf("money above %d after validation: %d", MaxMoney, r.Money)
+		}
 	})
 
-	t.Run("RemnantsNotImplemented", func(t *testing.T) {
-		t.Skip("Remnants resource not yet implemented (RULES.md §Resources, GAPS.md)")
+	t.Run("RemnantsBounds", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		r := &gs.gameState.Players[p1ID].Resources
+
+		r.Remnants = -1
+		gs.validateResources(r)
+		if r.Remnants < 0 {
+			t.Errorf("remnants below 0 after validation: %d", r.Remnants)
+		}
+		r.Remnants = MaxRemnants + 1
+		gs.validateResources(r)
+		if r.Remnants > MaxRemnants {
+			t.Errorf("remnants above %d after validation: %d", MaxRemnants, r.Remnants)
+		}
 	})
 
-	t.Run("FocusTokensNotImplemented", func(t *testing.T) {
-		t.Skip("Focus token resource not yet implemented (RULES.md §Resources, GAPS.md)")
+	t.Run("FocusBounds", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		r := &gs.gameState.Players[p1ID].Resources
+
+		r.Focus = -1
+		gs.validateResources(r)
+		if r.Focus < 0 {
+			t.Errorf("focus below 0 after validation: %d", r.Focus)
+		}
+		r.Focus = MaxFocus + 1
+		gs.validateResources(r)
+		if r.Focus > MaxFocus {
+			t.Errorf("focus above %d after validation: %d", MaxFocus, r.Focus)
+		}
+	})
+}
+
+// --- TestRulesScenarioSystem ---
+// AH3e: Scenario system provides modular setup and difficulty via Scenario struct.
+
+func TestRulesScenarioSystem(t *testing.T) {
+	t.Parallel()
+
+	t.Run("DefaultScenarioInitialisesDecks", func(t *testing.T) {
+		gs := newGameServerWithScenario(DefaultScenario)
+		if len(gs.gameState.ActDeck) == 0 {
+			t.Error("DefaultScenario should populate ActDeck")
+		}
+		if len(gs.gameState.AgendaDeck) == 0 {
+			t.Error("DefaultScenario should populate AgendaDeck")
+		}
+		if len(gs.gameState.MythosEventDeck) == 0 {
+			t.Error("DefaultScenario should populate MythosEventDeck")
+		}
+		if len(gs.gameState.EncounterDecks) == 0 {
+			t.Error("DefaultScenario should populate EncounterDecks")
+		}
+	})
+
+	t.Run("CustomScenarioStartingDoom", func(t *testing.T) {
+		custom := Scenario{
+			Name:         "Hard Mode",
+			StartingDoom: 6,
+			SetupFn: func(gs *GameState) {
+				gs.Doom = 6
+				gs.ActDeck = defaultActDeck()
+				gs.AgendaDeck = defaultAgendaDeck()
+				gs.MythosEventDeck = defaultMythosEventDeck()
+				gs.EncounterDecks = defaultEncounterDecks()
+				gs.LocationDoomTokens = make(map[string]int)
+			},
+		}
+		gs := newGameServerWithScenario(custom)
+		if gs.gameState.Doom != 6 {
+			t.Errorf("custom scenario StartingDoom=6; got %d", gs.gameState.Doom)
+		}
+	})
+
+	t.Run("CustomScenarioWinFn", func(t *testing.T) {
+		custom := Scenario{
+			Name:         "Instant Win",
+			StartingDoom: 0,
+			SetupFn: func(gs *GameState) {
+				gs.LocationDoomTokens = make(map[string]int)
+				gs.ActDeck = defaultActDeck()
+				gs.AgendaDeck = defaultAgendaDeck()
+				gs.MythosEventDeck = defaultMythosEventDeck()
+				gs.EncounterDecks = defaultEncounterDecks()
+			},
+			WinFn: func(gs *GameState) bool { return true }, // always win
+		}
+		gs := newGameServerWithScenario(custom)
+		gs.gameState.Players = map[string]*Player{
+			"p1": {ID: "p1", Connected: true, Resources: Resources{Health: 10, Sanity: 10}},
+		}
+		gs.gameState.GameStarted = true
+		gs.gameState.GamePhase = "playing"
+
+		gs.checkGameEndConditions()
+
+		if !gs.gameState.WinCondition {
+			t.Error("custom WinFn returning true should set WinCondition")
+		}
 	})
 }

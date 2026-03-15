@@ -185,8 +185,9 @@ func TestGetGameStatistics_MultiPlayer(t *testing.T) {
 func TestHandleHealthCheck_UnhealthyOnHighCorruption(t *testing.T) {
 	gs, _ := newTestServer(t)
 	// Force many corruptions in the last 5 minutes
+	concreteValidator := gs.validator.(*GameStateValidator)
 	for i := 0; i < 15; i++ {
-		gs.validator.logCorruption(CorruptionEvent{
+		concreteValidator.logCorruption(CorruptionEvent{
 			ErrorType:   "TEST",
 			Description: "forced test corruption",
 			Timestamp:   time.Now(),

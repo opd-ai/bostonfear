@@ -15,8 +15,8 @@ import (
 	"log"
 	"syscall/js"
 
-	ebitenclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/hajimehoshi/ebiten/v2"
+	ebitenclient "github.com/opd-ai/bostonfear/client/ebiten"
 )
 
 func main() {

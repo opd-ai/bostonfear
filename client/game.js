@@ -6,9 +6,10 @@ class ArkhamHorrorClient {
         // WebSocket connection with automatic reconnection
         this.ws = null;
         this.playerId = null;
+        this.reconnectToken = null; // stored for session restoration on reconnect
         this.gameState = null;
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 10;
+        this.maxReconnectAttempts = Infinity;
         this.reconnectDelay = 5000; // 5 seconds
         
         // Canvas and rendering
@@ -66,7 +67,9 @@ class ArkhamHorrorClient {
     connect() {
         try {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            // Include reconnection token in URL if we have one from a prior session.
+            const tokenParam = this.reconnectToken ? `?token=${encodeURIComponent(this.reconnectToken)}` : '';
+            const wsUrl = `${protocol}//${window.location.host}/ws${tokenParam}`;
             
             this.ws = new WebSocket(wsUrl);
             this.updateConnectionStatus('connecting');
@@ -98,22 +101,18 @@ class ArkhamHorrorClient {
         }
     }
     
-    // Automatic reconnection with exponential backoff (doubles each attempt, capped at 30s)
+    // Automatic reconnection with exponential backoff (doubles each attempt, capped at 30s).
+    // Retries indefinitely — no hard attempt limit.
     attemptReconnect() {
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            this.updateConnectionStatus('reconnecting');
-            
-            setTimeout(() => {
-                console.log(`Reconnection attempt ${this.reconnectAttempts} (delay ${this.reconnectDelay}ms)`);
-                this.connect();
-            }, this.reconnectDelay);
-            // Double the delay for the next attempt, capped at 30 seconds
-            this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
-        } else {
-            this.updateConnectionStatus('failed');
-            console.error('Max reconnection attempts reached');
-        }
+        this.reconnectAttempts++;
+        this.updateConnectionStatus('reconnecting');
+
+        setTimeout(() => {
+            console.log(`Reconnection attempt ${this.reconnectAttempts} (delay ${this.reconnectDelay}ms)`);
+            this.connect();
+        }, this.reconnectDelay);
+        // Double the delay for the next attempt, capped at 30 seconds
+        this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
     }
     
     // Update connection status display
@@ -132,7 +131,7 @@ class ArkhamHorrorClient {
                 statusElement.textContent = 'Disconnected';
                 break;
             case 'reconnecting':
-                statusElement.textContent = `Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`;
+                statusElement.textContent = `Reconnecting... (attempt ${this.reconnectAttempts})`;
                 break;
             case 'error':
                 statusElement.textContent = 'Connection Error';
@@ -148,6 +147,9 @@ class ArkhamHorrorClient {
         switch (message.type) {
             case 'connectionStatus':
                 this.playerId = message.playerId;
+                if (message.token) {
+                    this.reconnectToken = message.token; // persist for reconnection
+                }
                 console.log('Player ID assigned:', this.playerId);
                 break;
                 

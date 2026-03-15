@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"net"
 	"testing"
+	"time"
 )
 
 // newTestServer returns a GameServer in "playing" state with one connected player.
@@ -20,6 +21,7 @@ func newTestServer(t *testing.T) (*GameServer, string) {
 		Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 		ActionsRemaining: 2,
 		Connected:        true,
+		ReconnectToken:   generateReconnectToken(),
 	}
 	gs.gameState.Players["p1"] = p
 	gs.gameState.TurnOrder = []string{"p1"}
@@ -49,9 +51,9 @@ func TestValidateResources_ClampsBounds(t *testing.T) {
 		in   Resources
 		want Resources
 	}{
-		{"health below min", Resources{Health: 0, Sanity: 5, Clues: 0}, Resources{Health: 1, Sanity: 5, Clues: 0}},
+		{"health below min", Resources{Health: -1, Sanity: 5, Clues: 0}, Resources{Health: 0, Sanity: 5, Clues: 0}},
 		{"health above max", Resources{Health: 11, Sanity: 5, Clues: 0}, Resources{Health: 10, Sanity: 5, Clues: 0}},
-		{"sanity below min", Resources{Health: 5, Sanity: 0, Clues: 0}, Resources{Health: 5, Sanity: 1, Clues: 0}},
+		{"sanity below min", Resources{Health: 5, Sanity: -1, Clues: 0}, Resources{Health: 5, Sanity: 0, Clues: 0}},
 		{"sanity above max", Resources{Health: 5, Sanity: 11, Clues: 0}, Resources{Health: 5, Sanity: 10, Clues: 0}},
 		{"clues below min", Resources{Health: 5, Sanity: 5, Clues: -1}, Resources{Health: 5, Sanity: 5, Clues: 0}},
 		{"clues above max", Resources{Health: 5, Sanity: 5, Clues: 6}, Resources{Health: 5, Sanity: 5, Clues: 5}},
@@ -227,7 +229,7 @@ func TestProcessAction_NoActionsRemaining(t *testing.T) {
 
 func TestProcessAction_CastWard_InsufficientSanity(t *testing.T) {
 	gs, pid := newTestServer(t)
-	gs.gameState.Players[pid].Resources.Sanity = 1 // minimum — cannot afford ward
+	gs.gameState.Players[pid].Resources.Sanity = 0 // defeated threshold — cannot cast ward
 
 	err := gs.processAction(PlayerActionMessage{
 		Type:     "playerAction",
@@ -359,13 +361,14 @@ func TestCheckGameEndConditions_DoomPartial(t *testing.T) {
 
 func TestCheckGameEndConditions_ClueWin(t *testing.T) {
 	gs, _ := newTestServer(t)
-	// 1 player × 4 clues = win threshold; clues are capped at 5 but let's hit exactly 4
+	// Drain acts to the final card so the next advance sets WinCondition.
+	gs.gameState.ActDeck = []ActCard{{Title: "Final Act", ClueThreshold: 4, Effect: "victory"}}
 	gs.gameState.Players["p1"].Resources.Clues = 4
 
 	gs.checkGameEndConditions()
 
 	if !gs.gameState.WinCondition {
-		t.Error("expected WinCondition when clues >= required")
+		t.Error("expected WinCondition when clues >= required and final act is advanced")
 	}
 	if gs.gameState.GamePhase != "ended" {
 		t.Errorf("expected GamePhase=ended, got %s", gs.gameState.GamePhase)
@@ -398,6 +401,8 @@ func TestCheckGameEndConditions_IncrementsTotalGamesPlayed(t *testing.T) {
 
 func TestCheckGameEndConditions_WinIncrementsTotalGamesPlayed(t *testing.T) {
 	gs, _ := newTestServer(t)
+	// Use a single-card act deck so the first advance ends the game.
+	gs.gameState.ActDeck = []ActCard{{Title: "Final Act", ClueThreshold: 4, Effect: "victory"}}
 	gs.gameState.Players["p1"].Resources.Clues = 4
 
 	before := gs.totalGamesPlayed
@@ -506,58 +511,58 @@ drainLoop:
 // disconnects, the turn automatically advances to the next connected player
 // so the game never stalls.
 func TestAdvanceTurnOnDisconnect(t *testing.T) {
-t.Parallel()
-gs, p1ID := newTestServer(t)
-addPlayer(gs, "p2", true)
+	t.Parallel()
+	gs, p1ID := newTestServer(t)
+	addPlayer(gs, "p2", true)
 
-// Confirm p1 holds the current turn.
-if gs.gameState.CurrentPlayer != p1ID {
-t.Fatalf("expected p1 to hold the turn; got %s", gs.gameState.CurrentPlayer)
-}
+	// Confirm p1 holds the current turn.
+	if gs.gameState.CurrentPlayer != p1ID {
+		t.Fatalf("expected p1 to hold the turn; got %s", gs.gameState.CurrentPlayer)
+	}
 
-// Simulate the disconnect path: mark p1 disconnected and advance if needed.
-gs.mutex.Lock()
-if player, exists := gs.gameState.Players[p1ID]; exists {
-player.Connected = false
-}
-if gs.gameState.CurrentPlayer == p1ID && gs.gameState.GamePhase == "playing" {
-gs.advanceTurn()
-}
-gs.mutex.Unlock()
+	// Simulate the disconnect path: mark p1 disconnected and advance if needed.
+	gs.mutex.Lock()
+	if player, exists := gs.gameState.Players[p1ID]; exists {
+		player.Connected = false
+	}
+	if gs.gameState.CurrentPlayer == p1ID && gs.gameState.GamePhase == "playing" {
+		gs.advanceTurn()
+	}
+	gs.mutex.Unlock()
 
-// Turn must now belong to p2.
-if gs.gameState.CurrentPlayer == p1ID {
-t.Error("turn did not advance after current player disconnected")
-}
-if gs.gameState.CurrentPlayer != "p2" {
-t.Errorf("expected p2 to hold the turn; got %s", gs.gameState.CurrentPlayer)
-}
-if gs.gameState.Players["p2"].ActionsRemaining != 2 {
-t.Errorf("p2 should start with 2 actions; got %d",
-gs.gameState.Players["p2"].ActionsRemaining)
-}
+	// Turn must now belong to p2.
+	if gs.gameState.CurrentPlayer == p1ID {
+		t.Error("turn did not advance after current player disconnected")
+	}
+	if gs.gameState.CurrentPlayer != "p2" {
+		t.Errorf("expected p2 to hold the turn; got %s", gs.gameState.CurrentPlayer)
+	}
+	if gs.gameState.Players["p2"].ActionsRemaining != 2 {
+		t.Errorf("p2 should start with 2 actions; got %d",
+			gs.gameState.Players["p2"].ActionsRemaining)
+	}
 }
 
 // TestAdvanceTurnOnDisconnect_OnlyPlayer verifies that when the sole player
 // disconnects the game does not panic and CurrentPlayer retains its old value
 // (no connected candidate exists to advance to).
 func TestAdvanceTurnOnDisconnect_OnlyPlayer(t *testing.T) {
-t.Parallel()
-gs, p1ID := newTestServer(t)
+	t.Parallel()
+	gs, p1ID := newTestServer(t)
 
-gs.mutex.Lock()
-if player, exists := gs.gameState.Players[p1ID]; exists {
-player.Connected = false
-}
-if gs.gameState.CurrentPlayer == p1ID && gs.gameState.GamePhase == "playing" {
-gs.advanceTurn()
-}
-gs.mutex.Unlock()
+	gs.mutex.Lock()
+	if player, exists := gs.gameState.Players[p1ID]; exists {
+		player.Connected = false
+	}
+	if gs.gameState.CurrentPlayer == p1ID && gs.gameState.GamePhase == "playing" {
+		gs.advanceTurn()
+	}
+	gs.mutex.Unlock()
 
-// With no connected players advanceTurn keeps CurrentPlayer as-is.
-if gs.gameState.CurrentPlayer != p1ID {
-t.Errorf("expected CurrentPlayer to stay %s; got %s", p1ID, gs.gameState.CurrentPlayer)
-}
+	// With no connected players advanceTurn keeps CurrentPlayer as-is.
+	if gs.gameState.CurrentPlayer != p1ID {
+		t.Errorf("expected CurrentPlayer to stay %s; got %s", p1ID, gs.gameState.CurrentPlayer)
+	}
 }
 
 // TestHandlePlayerDisconnect exercises the handlePlayerDisconnect helper to
@@ -586,5 +591,154 @@ func TestHandlePlayerDisconnect_MapsCleanedUp(t *testing.T) {
 	// Turn must have advanced to p2.
 	if gs.gameState.CurrentPlayer == p1ID {
 		t.Error("turn not advanced after current player disconnected via handlePlayerDisconnect")
+	}
+}
+
+// TestInvestigatorDefeat verifies that a player with Health or Sanity reaching 0
+// is marked Defeated, cannot take further actions, and is skipped in turn rotation.
+func TestInvestigatorDefeat(t *testing.T) {
+	gs := NewGameServer()
+
+	// Set up a two-player game where p1 is the current player.
+	p1ID, p2ID := "investigator1", "investigator2"
+	gs.gameState.GamePhase = "playing"
+	gs.gameState.GameStarted = true
+	gs.gameState.Players[p1ID] = &Player{
+		ID:               p1ID,
+		Location:         Downtown,
+		Resources:        Resources{Health: 1, Sanity: 1, Clues: 0},
+		ActionsRemaining: 2,
+		Connected:        true,
+	}
+	gs.gameState.Players[p2ID] = &Player{
+		ID:               p2ID,
+		Location:         Downtown,
+		Resources:        Resources{Health: 5, Sanity: 5, Clues: 0},
+		ActionsRemaining: 0,
+		Connected:        true,
+	}
+	gs.gameState.TurnOrder = []string{p1ID, p2ID}
+	gs.gameState.CurrentPlayer = p1ID
+
+	// Directly set Health to 0, then call checkInvestigatorDefeat.
+	gs.mutex.Lock()
+	gs.gameState.Players[p1ID].Resources.Health = 0
+	gs.checkInvestigatorDefeat(p1ID)
+	gs.mutex.Unlock()
+
+	gs.mutex.RLock()
+	p1 := gs.gameState.Players[p1ID]
+	if !p1.Defeated {
+		t.Error("expected player to be Defeated when Health == 0")
+	}
+	if p1.ActionsRemaining != 0 {
+		t.Errorf("expected ActionsRemaining = 0 for defeated player, got %d", p1.ActionsRemaining)
+	}
+	gs.mutex.RUnlock()
+
+	// advanceTurn should skip p1 (defeated) and give turn to p2.
+	gs.mutex.Lock()
+	gs.advanceTurn()
+	currentPlayer := gs.gameState.CurrentPlayer
+	gs.mutex.Unlock()
+
+	if currentPlayer == p1ID {
+		t.Errorf("advanceTurn should have skipped defeated player %s; still got %s as current", p1ID, currentPlayer)
+	}
+	if currentPlayer != p2ID {
+		t.Errorf("advanceTurn should advance to %s; got %s", p2ID, currentPlayer)
+	}
+}
+
+// TestInvestigatorDefeat_SanityZero verifies defeat triggers on Sanity reaching 0.
+func TestInvestigatorDefeat_SanityZero(t *testing.T) {
+	gs := NewGameServer()
+	playerID := "p1"
+	gs.gameState.Players[playerID] = &Player{
+		ID:        playerID,
+		Resources: Resources{Health: 5, Sanity: 0, Clues: 0},
+		Connected: true,
+	}
+
+	gs.mutex.Lock()
+	gs.checkInvestigatorDefeat(playerID)
+	gs.mutex.Unlock()
+
+	gs.mutex.RLock()
+	defer gs.mutex.RUnlock()
+	if !gs.gameState.Players[playerID].Defeated {
+		t.Error("expected Defeated=true when Sanity==0")
+	}
+}
+
+// TestValidateActionRequest_DefeatedPlayer verifies that a defeated player
+// cannot submit actions.
+func TestValidateActionRequest_DefeatedPlayer(t *testing.T) {
+	gs := NewGameServer()
+	playerID := "p1"
+	gs.gameState.GamePhase = "playing"
+	gs.gameState.CurrentPlayer = playerID
+	gs.gameState.Players[playerID] = &Player{
+		ID:               playerID,
+		Resources:        Resources{Health: 0, Sanity: 5},
+		ActionsRemaining: 2,
+		Connected:        true,
+		Defeated:         true,
+	}
+
+	gs.mutex.Lock()
+	defer gs.mutex.Unlock()
+	_, err := gs.validateActionRequest(PlayerActionMessage{
+		PlayerID: playerID,
+		Action:   ActionGather,
+	})
+	if err == nil {
+		t.Error("expected error for defeated player taking action; got nil")
+	}
+}
+
+// --- Session Reconnection ---
+
+func TestSessionReconnection_TokenGenerated(t *testing.T) {
+	gs, p1ID := newTestServer(t)
+	token := gs.gameState.Players[p1ID].ReconnectToken
+	if token == "" {
+		t.Error("player should have a non-empty ReconnectToken")
+	}
+}
+
+func TestSessionReconnection_RestoreByToken(t *testing.T) {
+	gs, p1ID := newTestServer(t)
+	token := gs.gameState.Players[p1ID].ReconnectToken
+
+	// Simulate disconnect.
+	gs.gameState.Players[p1ID].Connected = false
+	gs.gameState.Players[p1ID].DisconnectedAt = time.Now().Add(-10 * time.Second)
+
+	// Simulate reconnection via token.
+	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9999}
+	fakeConn := NewConnectionWrapper(nil, addr, addr)
+	restoredID := gs.restorePlayerByToken(token, fakeConn)
+
+	if restoredID != p1ID {
+		t.Errorf("expected restored player %s; got %q", p1ID, restoredID)
+	}
+	if !gs.gameState.Players[p1ID].Connected {
+		t.Error("player should be marked connected after restore")
+	}
+	// Token should rotate.
+	newToken := gs.gameState.Players[p1ID].ReconnectToken
+	if newToken == token {
+		t.Error("ReconnectToken should rotate after use")
+	}
+}
+
+func TestSessionReconnection_UnknownTokenReturnsEmpty(t *testing.T) {
+	gs, _ := newTestServer(t)
+	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9999}
+	fakeConn := NewConnectionWrapper(nil, addr, addr)
+	result := gs.restorePlayerByToken("invalid-token-xyz", fakeConn)
+	if result != "" {
+		t.Errorf("unknown token should return empty string; got %q", result)
 	}
 }

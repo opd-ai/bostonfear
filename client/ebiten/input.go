@@ -22,9 +22,9 @@ var keyBindings = []actionKey{
 	{ebiten.Key4, "move", "Northside"},
 
 	// Actions — letter keys.
-	{ebiten.KeyG, "gather", ""},    // G — Gather Resources
-	{ebiten.KeyI, "investigate", ""},// I — Investigate
-	{ebiten.KeyW, "ward", ""},       // W — Cast Ward
+	{ebiten.KeyG, "gather", ""},      // G — Gather Resources
+	{ebiten.KeyI, "investigate", ""}, // I — Investigate
+	{ebiten.KeyW, "ward", ""},        // W — Cast Ward
 }
 
 // InputHandler processes keyboard input each frame and sends actions to the server.

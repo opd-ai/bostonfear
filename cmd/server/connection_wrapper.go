@@ -11,16 +11,18 @@ import (
 // ConnectionWrapper implements net.Conn interface around a WebSocket connection,
 // enabling interface-based testing and abstraction over the underlying transport.
 type ConnectionWrapper struct {
-	ws   *websocket.Conn
-	addr net.Addr
+	ws         *websocket.Conn
+	localAddr  net.Addr
+	remoteAddr net.Addr
 }
 
-// NewConnectionWrapper creates a new connection wrapper instance
-// Moved from: main.go
-func NewConnectionWrapper(ws *websocket.Conn, addr net.Addr) *ConnectionWrapper {
+// NewConnectionWrapper creates a new connection wrapper instance.
+// localAddr is the server-side listening address; remoteAddr is the client address.
+func NewConnectionWrapper(ws *websocket.Conn, localAddr, remoteAddr net.Addr) *ConnectionWrapper {
 	return &ConnectionWrapper{
-		ws:   ws,
-		addr: addr,
+		ws:         ws,
+		localAddr:  localAddr,
+		remoteAddr: remoteAddr,
 	}
 }
 
@@ -48,16 +50,14 @@ func (c *ConnectionWrapper) Close() error {
 	return c.ws.Close()
 }
 
-// LocalAddr implements net.Conn LocalAddr method
-// Moved from: main.go
+// LocalAddr implements net.Conn LocalAddr method, returning the server's listening address.
 func (c *ConnectionWrapper) LocalAddr() net.Addr {
-	return c.addr
+	return c.localAddr
 }
 
-// RemoteAddr implements net.Conn RemoteAddr method
-// Moved from: main.go
+// RemoteAddr implements net.Conn RemoteAddr method, returning the client's address.
 func (c *ConnectionWrapper) RemoteAddr() net.Addr {
-	return c.addr
+	return c.remoteAddr
 }
 
 // SetDeadline implements net.Conn SetDeadline by delegating to the underlying

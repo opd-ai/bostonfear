@@ -143,19 +143,20 @@ func (v *GameStateValidator) validatePlayer(playerID string, player *Player) []V
 }
 
 // validatePlayerResources checks that a player's Health, Sanity, and Clues are within bounds.
+// Health and Sanity may be 0 when an investigator has been defeated.
 func validatePlayerResources(playerID string, r *Resources) []ValidationError {
 	var errors []ValidationError
-	if r.Health < 1 || r.Health > 10 {
+	if r.Health < 0 || r.Health > 10 {
 		errors = append(errors, ValidationError{
 			Type:        "INVALID_HEALTH",
-			Description: fmt.Sprintf("Player %s health %d outside valid range [1-10]", playerID, r.Health),
+			Description: fmt.Sprintf("Player %s health %d outside valid range [0-10]", playerID, r.Health),
 			Severity:    "MEDIUM",
 		})
 	}
-	if r.Sanity < 1 || r.Sanity > 10 {
+	if r.Sanity < 0 || r.Sanity > 10 {
 		errors = append(errors, ValidationError{
 			Type:        "INVALID_SANITY",
-			Description: fmt.Sprintf("Player %s sanity %d outside valid range [1-10]", playerID, r.Sanity),
+			Description: fmt.Sprintf("Player %s sanity %d outside valid range [0-10]", playerID, r.Sanity),
 			Severity:    "MEDIUM",
 		})
 	}
@@ -254,10 +255,14 @@ func recoverPlayerResources(gs *GameState) {
 }
 
 // clampResources ensures Health, Sanity, and Clues stay within their valid bounds.
+// Health and Sanity may reach 0 (investigator defeated); negative values are clamped to 0.
 func clampResources(r *Resources) {
-	r.Health = clampInt(r.Health, 1, 10)
-	r.Sanity = clampInt(r.Sanity, 1, 10)
-	r.Clues = clampInt(r.Clues, 0, 5)
+	r.Health = clampInt(r.Health, 0, MaxHealth)
+	r.Sanity = clampInt(r.Sanity, 0, MaxSanity)
+	r.Clues = clampInt(r.Clues, 0, MaxClues)
+	r.Money = clampInt(r.Money, 0, MaxMoney)
+	r.Remnants = clampInt(r.Remnants, 0, MaxRemnants)
+	r.Focus = clampInt(r.Focus, 0, MaxFocus)
 }
 
 // clampInt returns v clamped to [lo, hi].

@@ -15,11 +15,15 @@ type ActionType string
 type DiceResult string
 
 // Resources represents player resource tracking with bounds validation.
-// Health and Sanity range from 1-10, while Clues range from 0-5.
+// Health and Sanity range from 0-10 (0 means the investigator is defeated),
+// Clues range from 0-5, Money 0-99, Remnants 0-5, Focus 0-3.
 type Resources struct {
-	Health int `json:"health"` // 1-10
-	Sanity int `json:"sanity"` // 1-10
-	Clues  int `json:"clues"`  // 0-5
+	Health   int `json:"health"`   // 0-10 (0 = defeated)
+	Sanity   int `json:"sanity"`   // 0-10 (0 = defeated)
+	Clues    int `json:"clues"`    // 0-5
+	Money    int `json:"money"`    // 0-99
+	Remnants int `json:"remnants"` // 0-5
+	Focus    int `json:"focus"`    // 0-3
 }
 
 // Message represents the base JSON protocol message structure for WebSocket
@@ -59,6 +63,55 @@ type Player struct {
 	Resources        Resources `json:"resources"`
 	ActionsRemaining int       `json:"actionsRemaining"`
 	Connected        bool      `json:"connected"`
+	Defeated         bool      `json:"defeated"`       // true when Health or Sanity reaches 0
+	ReconnectToken   string    `json:"reconnectToken"` // opaque token for session restoration
+	DisconnectedAt   time.Time `json:"disconnectedAt"` // zero value means currently connected
+}
+
+// Scenario defines the setup and win/lose conditions for a game session.
+// Use DefaultScenario for standard Arkham Horror 3e play. Custom scenarios
+// override the setup function and condition checks to create different experiences.
+type Scenario struct {
+	Name         string
+	StartingDoom int
+	SetupFn      func(*GameState)
+	WinFn        func(*GameState) bool
+	LoseFn       func(*GameState) bool
+}
+
+// EncounterCard represents a single card in a location-specific encounter deck.
+// When an investigator performs the Encounter action, one card is drawn from
+// the deck for their current location and its effect applied.
+type EncounterCard struct {
+	FlavorText string `json:"flavorText"`
+	EffectType string `json:"effectType"` // "health_loss", "sanity_loss", "clue_gain", "doom_inc"
+	Magnitude  int    `json:"magnitude"`  // amount to apply (positive = gain, negative = loss)
+}
+
+// MythosEvent represents a single drawn Mythos event card.
+// During the Mythos Phase, 2 events are drawn, placed on target neighborhoods,
+// and spread to adjacent neighborhoods if a doom token is already present.
+type MythosEvent struct {
+	LocationID string `json:"locationId"` // target neighborhood
+	Effect     string `json:"effect"`     // narrative effect description
+	Spread     bool   `json:"spread"`     // true when placed via spread rule
+}
+
+// ActCard represents a single card in the Act deck (AH3e §Act/Agenda).
+// Investigators advance the act by collectively accumulating ClueThreshold clues.
+type ActCard struct {
+	Title         string `json:"title"`
+	ClueThreshold int    `json:"clueThreshold"` // total clues required to advance
+	Effect        string `json:"effect"`        // narrative outcome when advanced
+}
+
+// AgendaCard represents a single card in the Agenda deck (AH3e §Act/Agenda).
+// The agenda advances each time doom reaches its DoomThreshold; the final
+// agenda card triggers the lose condition.
+type AgendaCard struct {
+	Title         string `json:"title"`
+	DoomThreshold int    `json:"doomThreshold"` // doom level at which this card advances
+	Effect        string `json:"effect"`        // narrative outcome when advanced
 }
 
 // GameState represents the complete game state including all players,
@@ -67,12 +120,22 @@ type GameState struct {
 	Players       map[string]*Player `json:"players"`
 	CurrentPlayer string             `json:"currentPlayer"`
 	Doom          int                `json:"doom"`      // 0-12 doom counter
-	GamePhase     string             `json:"gamePhase"` // "waiting", "playing", "ended"
+	GamePhase     string             `json:"gamePhase"` // "waiting", "playing", "mythos", "ended"
 	TurnOrder     []string           `json:"turnOrder"`
 	GameStarted   bool               `json:"gameStarted"`
 	WinCondition  bool               `json:"winCondition"`
 	LoseCondition bool               `json:"loseCondition"`
-	RequiredClues int                `json:"requiredClues"` // 4 clues × number of players
+	RequiredClues int                `json:"requiredClues"` // kept for backward compatibility; derived from ActDeck
+	// Act/Agenda deck state
+	ActDeck    []ActCard    `json:"actDeck"`    // remaining act cards
+	AgendaDeck []AgendaCard `json:"agendaDeck"` // remaining agenda cards
+	// Mythos Phase state
+	MythosEventDeck    []MythosEvent  `json:"mythosEventDeck"`    // event draw pile
+	LocationDoomTokens map[string]int `json:"locationDoomTokens"` // doom tokens per neighborhood
+	MythosToken        string         `json:"mythosToken"`        // current cup token drawn
+	MythosEvents       []MythosEvent  `json:"mythosEvents"`       // events resolved this phase
+	// Encounter decks keyed by location name
+	EncounterDecks map[string][]EncounterCard `json:"encounterDecks"`
 }
 
 // PerformanceMetrics represents comprehensive server performance data for monitoring dashboard

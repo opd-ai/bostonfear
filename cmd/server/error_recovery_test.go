@@ -156,8 +156,8 @@ func TestGameStateValidator_RecoverGameState(t *testing.T) {
 	if player.Resources.Health != 10 {
 		t.Errorf("Expected health to be clamped to 10, got %d", player.Resources.Health)
 	}
-	if player.Resources.Sanity != 1 {
-		t.Errorf("Expected sanity to be clamped to 1, got %d", player.Resources.Sanity)
+	if player.Resources.Sanity != 0 {
+		t.Errorf("Expected sanity to be clamped to 0, got %d", player.Resources.Sanity)
 	}
 	if player.Resources.Clues != 5 {
 		t.Errorf("Expected clues to be clamped to 5, got %d", player.Resources.Clues)

@@ -201,11 +201,13 @@ func TestGetGameStatistics_HighDoom(t *testing.T) {
 }
 
 // newHTTPRequest creates a test HTTP request without importing net/http in this file.
-func newHTTPRequest(method, url string) interface{ /* http.Request */ } {
+func newHTTPRequest(method, url string) interface { /* http.Request */
+} {
 	return nil
 }
 
 // newHTTPRecorder creates a test response recorder.
-func newHTTPRecorder() interface{ /* http.ResponseWriter */ } {
+func newHTTPRecorder() interface { /* http.ResponseWriter */
+} {
 	return nil
 }

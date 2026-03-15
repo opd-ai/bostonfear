@@ -50,7 +50,7 @@ type Game struct {
 	state    *LocalState
 	net      *NetClient
 	input    *InputHandler
-	renderer *render.Renderer
+	renderer *render.Compositor
 }
 
 // NewGame creates a Game connected to the given server URL.
@@ -64,7 +64,7 @@ func NewGame(serverURL string) *Game {
 		state:    state,
 		net:      net,
 		input:    input,
-		renderer: render.NewRenderer(),
+		renderer: render.NewCompositor(),
 	}
 }
 
