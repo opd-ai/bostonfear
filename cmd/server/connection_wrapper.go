@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -59,20 +60,23 @@ func (c *ConnectionWrapper) RemoteAddr() net.Addr {
 	return c.addr
 }
 
-// SetDeadline implements net.Conn SetDeadline method
-// Moved from: main.go
+// SetDeadline implements net.Conn SetDeadline by delegating to the underlying
+// WebSocket connection, setting both read and write deadlines simultaneously.
 func (c *ConnectionWrapper) SetDeadline(t time.Time) error {
-	return nil
+	if err := c.ws.SetReadDeadline(t); err != nil {
+		return fmt.Errorf("set read deadline: %w", err)
+	}
+	return c.ws.SetWriteDeadline(t)
 }
 
-// SetReadDeadline implements net.Conn SetReadDeadline method
-// Moved from: main.go
+// SetReadDeadline implements net.Conn SetReadDeadline by delegating to the
+// underlying WebSocket connection, enabling the 30-second inactivity timeout.
 func (c *ConnectionWrapper) SetReadDeadline(t time.Time) error {
-	return nil
+	return c.ws.SetReadDeadline(t)
 }
 
-// SetWriteDeadline implements net.Conn SetWriteDeadline method
-// Moved from: main.go
+// SetWriteDeadline implements net.Conn SetWriteDeadline by delegating to the
+// underlying WebSocket connection.
 func (c *ConnectionWrapper) SetWriteDeadline(t time.Time) error {
-	return nil
+	return c.ws.SetWriteDeadline(t)
 }

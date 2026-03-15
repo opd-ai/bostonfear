@@ -98,16 +98,18 @@ class ArkhamHorrorClient {
         }
     }
     
-    // Automatic reconnection with exponential backoff
+    // Automatic reconnection with exponential backoff (doubles each attempt, capped at 30s)
     attemptReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
             this.updateConnectionStatus('reconnecting');
             
             setTimeout(() => {
-                console.log(`Reconnection attempt ${this.reconnectAttempts}`);
+                console.log(`Reconnection attempt ${this.reconnectAttempts} (delay ${this.reconnectDelay}ms)`);
                 this.connect();
             }, this.reconnectDelay);
+            // Double the delay for the next attempt, capped at 30 seconds
+            this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
         } else {
             this.updateConnectionStatus('failed');
             console.error('Max reconnection attempts reached');
@@ -152,6 +154,11 @@ class ArkhamHorrorClient {
             case 'gameState':
                 this.gameState = message.data;
                 this.updateGameDisplay();
+                break;
+                
+            case 'gameUpdate':
+                // Lightweight action-event notification preceding the full gameState broadcast.
+                this.displayGameUpdate(message);
                 break;
                 
             case 'diceResult':
@@ -315,6 +322,75 @@ class ArkhamHorrorClient {
     
     // Display dice roll results with visual feedback
     displayDiceResult(diceMessage) {
+        const resultDiv = this.diceResult;
+        
+        // Create dice visual representation
+        const diceHtml = diceMessage.results.map(result => {
+            let className = '';
+            let symbol = '';
+            
+            switch (result) {
+                case 'success':
+                    className = 'dice-success';
+                    symbol = '✓';
+                    break;
+                case 'blank':
+                    className = 'dice-blank';
+                    symbol = '○';
+                    break;
+                case 'tentacle':
+                    className = 'dice-tentacle';
+                    symbol = '🐙';
+                    break;
+            }
+            
+            return `<div class="dice-face ${className}">${symbol}</div>`;
+        }).join('');
+        
+        const successText = diceMessage.success ? 'Success!' : 'Failed';
+        const doomText = diceMessage.doomIncrease > 0 ? `Doom +${diceMessage.doomIncrease}` : '';
+        
+        resultDiv.innerHTML = `
+            <div><strong>${diceMessage.playerId}</strong> - ${diceMessage.action}</div>
+            <div class="dice-roll">${diceHtml}</div>
+            <div>Successes: ${diceMessage.successes} | Tentacles: ${diceMessage.tentacles}</div>
+            <div style="font-weight: bold; color: ${diceMessage.success ? '#90EE90' : '#FF6347'}">
+                ${successText}
+            </div>
+            ${doomText ? `<div style="color: #FF0000">${doomText}</div>` : ''}
+        `;
+    }
+    
+    // Display a transient gameUpdate notification showing what changed in the last action.
+    // The gameUpdate message arrives before the full gameState snapshot, allowing the UI
+    // to show an action summary immediately.
+    displayGameUpdate(update) {
+        const resultColor = update.result === 'success' ? '#90EE90' : '#FF6347';
+        const doomLine = update.doomDelta > 0
+            ? `<div style="color:#FF0000">Doom +${update.doomDelta}</div>` : '';
+        const deltaLines = [];
+        if (update.resourceDelta) {
+            if (update.resourceDelta.health !== 0)
+                deltaLines.push(`Health ${update.resourceDelta.health > 0 ? '+' : ''}${update.resourceDelta.health}`);
+            if (update.resourceDelta.sanity !== 0)
+                deltaLines.push(`Sanity ${update.resourceDelta.sanity > 0 ? '+' : ''}${update.resourceDelta.sanity}`);
+            if (update.resourceDelta.clues !== 0)
+                deltaLines.push(`Clues ${update.resourceDelta.clues > 0 ? '+' : ''}${update.resourceDelta.clues}`);
+        }
+        const deltaHtml = deltaLines.length > 0
+            ? `<div>${deltaLines.join(' | ')}</div>` : '';
+        const notification = document.createElement('div');
+        notification.style.cssText = 'position:fixed;top:10px;right:10px;background:#1a1a2e;' +
+            'border:1px solid #4a4a8a;padding:10px;border-radius:4px;z-index:1000;max-width:250px;';
+        notification.innerHTML = `
+            <div><strong>${update.playerId}</strong>: ${update.event}</div>
+            <div style="color:${resultColor};font-weight:bold">${update.result.toUpperCase()}</div>
+            ${deltaHtml}${doomLine}
+        `;
+        document.body.appendChild(notification);
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 3000);
+    }
         const resultDiv = this.diceResult;
         
         // Create dice visual representation

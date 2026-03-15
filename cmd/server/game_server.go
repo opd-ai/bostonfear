@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -35,9 +36,16 @@ type GameServer struct {
 	totalGamesPlayed  int64
 	totalMessagesSent int64
 	totalMessagesRecv int64
+	errorCount        int64 // incremented atomically at every error site
 	playerSessions    map[string]*PlayerSessionMetricsSimplified
 	connectionEvents  []ConnectionEventSimplified
 	performanceMutex  sync.RWMutex
+
+	// Broadcast latency ring buffer — stores the last 100 write durations in nanoseconds
+	latencySamples     [100]int64
+	latencyHead        int
+	latencySampleCount int
+	latencyMu          sync.Mutex
 
 	// Connection quality monitoring
 	connectionQualities map[string]*ConnectionQuality
@@ -203,6 +211,9 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 
 	var diceResult *DiceResultMessage
 	doomIncrease := 0
+	// Snapshot resources before action to compute delta for gameUpdate message
+	prevResources := player.Resources
+	actionResult := "success"
 
 	switch action.Action {
 	case ActionMove:
@@ -242,6 +253,8 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 		success := successes >= requiredSuccesses
 		if success {
 			player.Resources.Clues = min(player.Resources.Clues+1, 5)
+		} else {
+			actionResult = "fail"
 		}
 		if tentacles > 0 {
 			doomIncrease = tentacles
@@ -272,6 +285,8 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 		if success {
 			// Ward success reduces doom counter
 			gs.gameState.Doom = max(gs.gameState.Doom-2, 0)
+		} else {
+			actionResult = "fail"
 		}
 		if tentacles > 0 {
 			doomIncrease = tentacles
@@ -309,6 +324,31 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 	// Advance turn if player has no actions left
 	if player.ActionsRemaining == 0 {
 		gs.advanceTurn()
+	}
+
+	// Emit gameUpdate event message before the full state snapshot.
+	// This satisfies the fifth required JSON protocol message type and lets
+	// clients display transient action notifications without waiting for the
+	// full gameState payload.
+	gameUpdateMsg := &GameUpdateMessage{
+		Type:      "gameUpdate",
+		PlayerID:  action.PlayerID,
+		Event:     string(action.Action),
+		Result:    actionResult,
+		DoomDelta: doomIncrease,
+		ResourceDelta: ResourcesDelta{
+			Health: player.Resources.Health - prevResources.Health,
+			Sanity: player.Resources.Sanity - prevResources.Sanity,
+			Clues:  player.Resources.Clues - prevResources.Clues,
+		},
+		Timestamp: time.Now(),
+	}
+	if updateData, err := json.Marshal(gameUpdateMsg); err == nil {
+		select {
+		case gs.broadcastCh <- updateData:
+		default:
+			log.Printf("Broadcast channel full, dropping gameUpdate")
+		}
 	}
 
 	// Broadcast dice result if applicable
@@ -369,6 +409,8 @@ func (gs *GameServer) checkGameEndConditions() {
 	}
 
 	requiredClues := playerCount * 4 // 4 clues per player for victory
+	// Expose the threshold in GameState so clients can render a win-progress bar
+	gs.gameState.RequiredClues = requiredClues
 	if totalClues >= requiredClues {
 		gs.gameState.WinCondition = true
 		gs.gameState.GamePhase = "ended"
@@ -457,8 +499,9 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 
 	// Handle incoming messages with timeout
 	for {
-		// Reset read deadline for each message (30-second timeout)
-		if err := wsConn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
+		// Reset read deadline for each message via the net.Conn interface (30-second timeout).
+		// ConnectionWrapper.SetReadDeadline now delegates to the underlying WebSocket connection.
+		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 			log.Printf("Failed to set read deadline: %v", err)
 		}
 
@@ -491,12 +534,14 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 				continue
 			}
 			log.Printf("Message unmarshal error: %v", err)
+			atomic.AddInt64(&gs.errorCount, 1)
 			continue
 		}
 
 		// Validate action message
 		if actionMsg.PlayerID != playerID {
 			log.Printf("Invalid player ID in action: expected %s, got %s", playerID, actionMsg.PlayerID)
+			atomic.AddInt64(&gs.errorCount, 1)
 			continue
 		}
 
@@ -539,6 +584,7 @@ func (gs *GameServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	wsConn, err := gs.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
+		atomic.AddInt64(&gs.errorCount, 1)
 		return
 	}
 
@@ -606,6 +652,7 @@ func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 		// Enhanced performance metrics
 		"performanceMetrics":  gs.collectPerformanceMetrics(),
 		"connectionAnalytics": gs.collectConnectionAnalytics(),
+		"gameStatistics":      gs.getGameStatistics(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -623,8 +670,8 @@ func (gs *GameServer) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	// Serve the dashboard HTML file
-	http.ServeFile(w, r, "./client/dashboard.html")
+	// Serve the dashboard HTML file using the package-level clientDir constant
+	http.ServeFile(w, r, clientDir+"/dashboard.html")
 }
 
 // handleMetrics provides Prometheus-compatible metrics export
@@ -727,8 +774,11 @@ func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
 	uptime := time.Since(gs.startTime)
 	activeConnections := len(gs.connections)
 
-	// Calculate connections per second
-	connectionsPerSecond := float64(gs.totalConnections) / uptime.Seconds()
+	// Calculate connections per second — guard against division by zero on startup
+	connectionsPerSecond := 0.0
+	if uptime.Seconds() > 0 {
+		connectionsPerSecond = float64(gs.totalConnections) / uptime.Seconds()
+	}
 
 	// Calculate average session length and active sessions
 	var totalSessionTime time.Duration
@@ -744,8 +794,11 @@ func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
 		avgSessionLength = totalSessionTime / time.Duration(len(gs.playerSessions))
 	}
 
-	// Calculate messages per second
-	messagesPerSecond := float64(gs.totalMessagesSent+gs.totalMessagesRecv) / uptime.Seconds()
+	// Calculate messages per second — guard against division by zero on startup
+	messagesPerSecond := 0.0
+	if uptime.Seconds() > 0 {
+		messagesPerSecond = float64(gs.totalMessagesSent+gs.totalMessagesRecv) / uptime.Seconds()
+	}
 
 	// Collect memory statistics
 	var memStats runtime.MemStats
@@ -907,23 +960,50 @@ func (gs *GameServer) collectGCMetrics() GCMetrics {
 	}
 }
 
+// recordBroadcastLatency stores a single write-duration sample in the ring buffer.
+func (gs *GameServer) recordBroadcastLatency(d time.Duration) {
+	gs.latencyMu.Lock()
+	gs.latencySamples[gs.latencyHead] = d.Nanoseconds()
+	gs.latencyHead = (gs.latencyHead + 1) % len(gs.latencySamples)
+	if gs.latencySampleCount < len(gs.latencySamples) {
+		gs.latencySampleCount++
+	}
+	gs.latencyMu.Unlock()
+}
+
+// averageBroadcastLatencyMs returns the rolling average broadcast latency in milliseconds.
+func (gs *GameServer) averageBroadcastLatencyMs() float64 {
+	gs.latencyMu.Lock()
+	defer gs.latencyMu.Unlock()
+	if gs.latencySampleCount == 0 {
+		return 0
+	}
+	var sum int64
+	for i := 0; i < gs.latencySampleCount; i++ {
+		sum += gs.latencySamples[i]
+	}
+	return float64(sum) / float64(gs.latencySampleCount) / 1e6
+}
+
 // collectMessageThroughput calculates message performance metrics
 func (gs *GameServer) collectMessageThroughput(runtime time.Duration) MessageThroughputMetrics {
 	gs.performanceMutex.RLock()
 	defer gs.performanceMutex.RUnlock()
 
-	// Calculate messages per second
+	// Calculate messages per second — guard against zero uptime on startup
 	totalMessages := gs.totalMessagesSent + gs.totalMessagesRecv
-	messagesPerSecond := float64(totalMessages) / runtime.Seconds()
+	messagesPerSecond := 0.0
+	if runtime.Seconds() > 0 {
+		messagesPerSecond = float64(totalMessages) / runtime.Seconds()
+	}
 
-	// TODO: Implement latency tracking in future iterations
-	// For now, return placeholder values
+	broadcastLatency := gs.averageBroadcastLatencyMs()
 	return MessageThroughputMetrics{
 		MessagesPerSecond:     messagesPerSecond,
 		TotalMessagesSent:     gs.totalMessagesSent,
 		TotalMessagesReceived: gs.totalMessagesRecv,
-		AverageLatency:        0, // Placeholder - implement latency tracking
-		BroadcastLatency:      0, // Placeholder - implement broadcast latency tracking
+		AverageLatency:        broadcastLatency,
+		BroadcastLatency:      broadcastLatency,
 	}
 }
 
@@ -1009,15 +1089,19 @@ func (gs *GameServer) broadcastHandler() {
 	for {
 		select {
 		case message := <-gs.broadcastCh:
+			writeStart := time.Now()
 			gs.mutex.RLock()
 			for _, wsConn := range gs.wsConns {
 				if err := wsConn.WriteMessage(websocket.TextMessage, message); err != nil {
 					log.Printf("Broadcast error: %v", err)
+					atomic.AddInt64(&gs.errorCount, 1)
 				} else {
 					gs.trackMessage("sent")
 				}
 			}
 			gs.mutex.RUnlock()
+			// Record how long this broadcast round took for latency metrics
+			gs.recordBroadcastLatency(time.Since(writeStart))
 		case <-gs.shutdownCh:
 			log.Printf("Broadcast handler shutting down")
 			return
@@ -1033,6 +1117,7 @@ func (gs *GameServer) actionHandler() {
 			gs.trackMessage("received")
 			if err := gs.processAction(action); err != nil {
 				log.Printf("Action processing error: %v", err)
+				atomic.AddInt64(&gs.errorCount, 1)
 			}
 		case <-gs.shutdownCh:
 			log.Printf("Action handler shutting down")
@@ -1041,9 +1126,10 @@ func (gs *GameServer) actionHandler() {
 	}
 }
 
-// broadcastGameState sends current game state to all connected clients
+// broadcastGameState sends current game state to all connected clients.
+// Uses a full write lock because the recovery path may assign gs.gameState.
 func (gs *GameServer) broadcastGameState() {
-	gs.mutex.RLock()
+	gs.mutex.Lock()
 
 	// Validate game state before broadcasting with error recovery
 	if errors := gs.validator.ValidateGameState(gs.gameState); len(errors) > 0 {
@@ -1066,6 +1152,7 @@ func (gs *GameServer) broadcastGameState() {
 				log.Printf("Game state successfully recovered")
 			} else {
 				log.Printf("Game state recovery failed: %v", recoveryErr)
+				atomic.AddInt64(&gs.errorCount, 1)
 			}
 		}
 	}
@@ -1074,7 +1161,7 @@ func (gs *GameServer) broadcastGameState() {
 		"type": "gameState",
 		"data": gs.gameState,
 	}
-	gs.mutex.RUnlock()
+	gs.mutex.Unlock()
 
 	data, err := json.Marshal(gameStateMsg)
 	if err != nil {
@@ -1107,10 +1194,17 @@ func (gs *GameServer) measureHealthCheckResponseTime() float64 {
 	return float64(time.Since(start).Nanoseconds()) / 1000000
 }
 
-// calculateErrorRate calculates the current error rate based on recent operations
+// calculateErrorRate calculates the current error rate as a percentage of
+// error events relative to total messages received. The errorCount field is
+// incremented atomically at every error site (upgrade failures, unmarshal
+// errors, invalid actions, and state recovery failures).
 func (gs *GameServer) calculateErrorRate() float64 {
-	// Simple implementation - can be enhanced with actual error tracking
-	return 0.0
+	errors := atomic.LoadInt64(&gs.errorCount)
+	total := atomic.LoadInt64(&gs.totalMessagesRecv)
+	if total == 0 {
+		return 0.0
+	}
+	return float64(errors) / float64(total) * 100
 }
 
 // Connection Quality Management Methods
@@ -1263,7 +1357,16 @@ func (gs *GameServer) broadcastConnectionQuality() {
 	}
 	gs.qualityMutex.RUnlock()
 
+	// Hold a read lock on the game state while iterating players to prevent
+	// a concurrent write (e.g., from handleConnection) from modifying the map.
+	gs.mutex.RLock()
+	playerIDs := make([]string, 0, len(gs.gameState.Players))
 	for playerID := range gs.gameState.Players {
+		playerIDs = append(playerIDs, playerID)
+	}
+	gs.mutex.RUnlock()
+
+	for _, playerID := range playerIDs {
 		statusMsg := ConnectionStatusMessage{
 			Type:               "connectionQuality",
 			PlayerID:           playerID,
@@ -1301,7 +1404,7 @@ func (gs *GameServer) cleanupConnectionQuality(playerID string) {
 // getGameStatistics provides detailed game state analytics
 func (gs *GameServer) getGameStatistics() map[string]interface{} {
 	gs.mutex.RLock()
-	defer gs.mutex.RLock()
+	defer gs.mutex.RUnlock()
 
 	// Calculate game statistics
 	totalPlayers := len(gs.gameState.Players)

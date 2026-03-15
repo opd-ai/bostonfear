@@ -36,8 +36,8 @@ go mod tidy
 
 ### Step 2: Start Server
 ```bash
-cd server
-go run main.go
+cd cmd/server
+go run .
 ```
 
 ### Step 3: Access Client
@@ -67,8 +67,12 @@ Each player gets 2 actions per turn:
 - **Tentacle** (🐙): Increases Doom counter by 1
 
 ### Win/Lose Conditions
-- **Win**: Achieve sufficient collective clues (cooperative victory)
+- **Win**: Collectively gather **4 clues per investigator** before doom reaches 12 (8 clues for 2 players, 12 for 3 players, 16 for 4 players)
 - **Lose**: Doom counter reaches 12
+
+### Connection Behaviour
+- The client reconnects automatically every 5 seconds on disconnection.
+- **Note**: In the current version, a disconnected player cannot reclaim their investigator. Reconnecting after a drop creates a new player slot. Full session-persistence with reconnection tokens is planned for a future release.
 
 ## Technical Implementation
 
@@ -89,11 +93,17 @@ Each player gets 2 actions per turn:
 // Player Action
 {"type": "playerAction", "playerId": "player1", "action": "investigate", "target": "University"}
 
-// Game State Update
+// Game State Update (full snapshot)
 {"type": "gameState", "data": {"currentPlayer": "player2", "doom": 5, "players": {...}}}
+
+// Action Event (lightweight delta, emitted before gameState on every action)
+{"type": "gameUpdate", "playerId": "player1", "event": "investigate", "result": "fail", "doomDelta": 1, "resourceDelta": {"health": 0, "sanity": 0, "clues": 0}, "timestamp": "..."}
 
 // Dice Result
 {"type": "diceResult", "playerId": "player1", "results": ["success", "blank", "tentacle"]}
+
+// Connection Status
+{"type": "connectionStatus", "playerId": "player1", "status": "connected"}
 ```
 
 ## Development
@@ -101,7 +111,8 @@ Each player gets 2 actions per turn:
 ### Project Structure
 ```
 /workspaces/bostonfear/
-├── server/main.go          # Go WebSocket server
+├── cmd/server/main.go      # Go WebSocket server entry point
+├── cmd/server/             # Server package (game logic, types, utils)
 ├── client/index.html       # HTML game interface
 ├── client/game.js          # JavaScript game client
 ├── go.mod                  # Go module dependencies

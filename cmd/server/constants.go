@@ -1,5 +1,10 @@
 package main
 
+// clientDir is the path to the client assets directory, relative to cmd/server/.
+// Both the static file handler and the dashboard handler use this constant so
+// that a single change keeps them in sync.
+const clientDir = "../client"
+
 // Location constants define the 4 interconnected neighborhoods
 // Moved from: main.go
 const (

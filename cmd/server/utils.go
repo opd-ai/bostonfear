@@ -32,7 +32,7 @@ func setupServer(listener net.Listener, gameServer *GameServer) error {
 	http.HandleFunc("/health", gameServer.handleHealthCheck)
 	http.HandleFunc("/metrics", gameServer.handleMetrics)
 	http.HandleFunc("/dashboard", gameServer.handleDashboard)
-	http.Handle("/", http.FileServer(http.Dir("../client/")))
+	http.Handle("/", http.FileServer(http.Dir(clientDir+"/")))
 
 	// Start HTTP server with the provided listener
 	server := &http.Server{}

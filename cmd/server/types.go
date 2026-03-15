@@ -72,6 +72,7 @@ type GameState struct {
 	GameStarted   bool               `json:"gameStarted"`
 	WinCondition  bool               `json:"winCondition"`
 	LoseCondition bool               `json:"loseCondition"`
+	RequiredClues int                `json:"requiredClues"` // 4 clues × number of players
 }
 
 // PerformanceMetrics represents comprehensive server performance data for monitoring dashboard
@@ -238,4 +239,25 @@ type PingMessage struct {
 	PlayerID  string    `json:"playerId"`
 	Timestamp time.Time `json:"timestamp"`
 	PingID    string    `json:"pingId"`
+}
+
+// GameUpdateMessage represents a lightweight event notification emitted after each
+// player action. It is distinct from the full gameState broadcast and carries only
+// the delta: which action occurred, its outcome, and any resource/doom changes.
+// This satisfies the fifth required JSON protocol message type.
+type GameUpdateMessage struct {
+	Type          string         `json:"type"`
+	PlayerID      string         `json:"playerId"`
+	Event         string         `json:"event"`
+	Result        string         `json:"result"`        // "success" or "fail"
+	DoomDelta     int            `json:"doomDelta"`     // doom change from this action
+	ResourceDelta ResourcesDelta `json:"resourceDelta"` // resource changes for the acting player
+	Timestamp     time.Time      `json:"timestamp"`
+}
+
+// ResourcesDelta represents the net change in resources for a single action.
+type ResourcesDelta struct {
+	Health int `json:"health"`
+	Sanity int `json:"sanity"`
+	Clues  int `json:"clues"`
 }
