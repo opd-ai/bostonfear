@@ -4,17 +4,17 @@
 
 ## Project Context
 
-- **What it claims to do**: Arkham Horror-themed multiplayer web game implementing 5 core mechanics (Location System, Resource Tracking, Action System, Doom Counter, Dice Resolution) with a Go WebSocket server and HTML/JS + Ebitengine clients supporting 1-6 concurrent players.
+- **What it claims to do**: Arkham Horror-themed multiplayer web game implementing 5 core mechanics (Location System, Resource Tracking, Action System, Doom Counter, Dice Resolution) with a Go WebSocket server and HTML/JS + Ebitengine clients supporting 1-6 concurrent players. An educational project targeting intermediate developers learning client-server WebSocket architecture with cooperative gameplay mechanics.
 - **Target audience**: Intermediate developers learning client-server WebSocket architecture with cooperative gameplay mechanics.
 - **Architecture**:
   | Package | Role |
   |---------|------|
-  | `cmd/server` | WebSocket server, game state, mechanics, observability (123 functions, 43 structs) |
-  | `client/ebiten` | Ebitengine game client core (26 functions, 16 structs) |
+  | `cmd/server` | WebSocket server, game state, mechanics, observability (126 functions, 43 structs) |
+  | `client/ebiten` | Ebitengine game client core (29 functions, 17 structs) |
   | `client/ebiten/app` | Ebitengine application layer, input handling (17 functions) |
   | `client/ebiten/render` | Rendering subsystem, layers, shaders (12 functions) |
-  | `cmd/desktop`, `cmd/mobile` | Platform entrypoints (alpha) |
-- **Existing CI/quality gates**: No GitHub Actions workflows detected. Quality relies on manual `go test -race ./...` and `go vet ./...`.
+  | `cmd/desktop`, `cmd/mobile`, `cmd/web` | Platform entrypoints (alpha) |
+- **Existing CI/quality gates**: GitHub Actions workflow (`.github/workflows/ci.yml`) runs `go vet`, `go test -race` with Xvfb for Ebitengine display, and builds desktop/WASM targets.
 
 ---
 
@@ -30,16 +30,16 @@
 | 6 | **1-6 concurrent players with join-in-progress** | ✅ Achieved | `MinPlayers=1`, `MaxPlayers=6` in `constants.go`; late joiners appended to `TurnOrder` | — |
 | 7 | **Real-time state sync < 500ms** | ✅ Achieved | `broadcastGameState()` queues immediately; latency ring buffer tracks broadcast times | No automated benchmark, but architecture supports sub-500ms |
 | 8 | **Interface-based design (net.Conn, net.Listener, net.Addr)** | ✅ Achieved | `ConnectionWrapper` implements `net.Conn`; `Broadcaster`, `StateValidator` interfaces in `interfaces.go` | — |
-| 9 | **Ebitengine client: desktop + WASM builds** | ⚠️ Partial | Builds compile (`go build ./cmd/desktop`, WASM build succeeds); tests pass | Placeholder sprites only; no production art |
-| 10 | **Ebitengine client receives live server state** | ✅ Achieved | `decodeGameState()` unmarshals `data` wrapper correctly (GAP-01 resolved) | Test: `TestDecodeGameState_FromDataWrapper` |
-| 11 | **Session persistence (reconnect token)** | ⚠️ Partial | JS client fully supports token; Ebitengine client stores and sends token (GAP-04 resolved) | No file-based token persistence (`~/.bostonfear/session.json`) per CLIENT_SPEC.md §2 |
-| 12 | **Performance monitoring: /dashboard, /metrics, /health** | ✅ Achieved | `observability.go` exposes all three endpoints; Prometheus metrics exported | — |
-| 13 | **AH3e rules compliance (RULES.md)** | ⚠️ Partial | 4 of 8 action types implemented; no Act/Agenda deck progression; no encounter resolution | See RULES.md Engine Implementation Status table |
-| 14 | **Zero critical bugs in server** | ✅ Achieved | `go vet ./...` clean; `go test -race ./...` passes 100+ tests | — |
-| 15 | **Ebitengine client test coverage** | ⚠️ Partial | `client/ebiten/net_test.go` covers protocol decoding (5 tests) | `app/` and `render/` packages have **no test files** |
+| 9 | **Ebitengine client: desktop + WASM builds** | ✅ Achieved | Builds compile (`go build ./cmd/desktop`, WASM build succeeds); CI verifies builds | Placeholder sprites only; no production art |
+| 10 | **Ebitengine client receives live server state** | ✅ Achieved | `decodeGameState()` unmarshals `data` wrapper correctly | Test: `TestDecodeGameState_FromDataWrapper` |
+| 11 | **Session persistence (reconnect token)** | ✅ Achieved | JS client uses `localStorage`; Ebitengine client persists to `~/.bostonfear/session.json` | — |
+| 12 | **Performance monitoring: /dashboard, /metrics, /health** | ✅ Achieved | `metrics.go`, `health.go`, `dashboard.go` expose all three endpoints; Prometheus metrics exported | — |
+| 13 | **AH3e rules compliance (RULES.md)** | ⚠️ Partial | 7 of 8 action types implemented; Act/Agenda deck progression works; encounter resolution works | Component action stub only; no Attack/Evade; no enemy spawn |
+| 14 | **Zero critical bugs in server** | ✅ Achieved | `go vet ./...` clean; `go test -race ./...` passes 178 tests | — |
+| 15 | **Ebitengine client test coverage** | ✅ Achieved | `net_test.go` (8 tests), `state_test.go` (3 tests), `app/game_test.go` (7 tests), `render/atlas_test.go` (7 tests) | — |
 | 16 | **Mobile binding (iOS/Android)** | ⚠️ Partial | `cmd/mobile/binding.go` scaffolding exists | Not verified on device; ebitenmobile workflow untested |
 
-**Overall: 10/16 goals fully achieved; 6 partially achieved; 0 missing**
+**Overall: 14/16 goals fully achieved; 2 partially achieved; 0 missing**
 
 ---
 
@@ -47,111 +47,73 @@
 
 | Metric | Value | Interpretation |
 |--------|-------|----------------|
-| Total LoC | 2,278 | Moderate codebase |
-| Functions / Methods | 51 / 130 | Server-heavy distribution |
-| Avg function length | 14.3 lines | Within healthy range |
+| Total LoC | 2,347 | Moderate codebase |
+| Functions / Methods | 53 / 134 | Server-heavy distribution |
+| Avg function length | 14.1 lines | Within healthy range |
 | Avg cyclomatic complexity | 4.2 | Low; no function > 15 |
 | Highest complexity | `cleanupDisconnectedPlayers` (14.7) | Acceptable for concurrency logic |
-| Documentation coverage | 96.5% | Excellent |
-| Functions > 50 lines | 4 (2.2%) | Minor; largest is `collectPerformanceMetrics` (64 lines) |
+| Functions > 50 lines | 3 (1.6%) | Minor; largest is `buildGameMetrics` (59 lines) |
+| High complexity (>10) | 0 functions | Excellent |
 | Circular dependencies | 0 | Clean package graph |
-| Unreferenced functions | 28 | Mostly test helpers / future-use stubs |
+| Total test count | 178+ | Strong coverage |
 
 ---
 
 ## Roadmap
 
-### Priority 1: Complete Ebitengine Client Test Coverage
+### Priority 1: Implement `performComponent` Action (RULES.md §Component Action)
 
-**Gap**: `client/ebiten/app/` and `client/ebiten/render/` have **0 test files** (GAPS.md GAP-08). Regressions in rendering and input handling go undetected.
+**Gap**: `ActionComponent` is defined in `game_constants.go:30` and accepted by `isValidActionType()`, but `performComponent()` unconditionally returns `"not yet implemented"`.
 
-- [ ] Create `client/ebiten/app/game_test.go` with:
-  - `TestGame_Update_RoutesInput`
-  - `TestGame_Draw_RendersBoard`
-- [ ] Create `client/ebiten/render/layers_test.go` with:
-  - `TestDrawLayer_TokenPositions`
-  - `TestDrawDoomCounter_VisualStates`
-- [ ] Add `client/ebiten/state_test.go` with:
-  - `TestLocalState_UpdateGame_Concurrent` (race detector)
-- [ ] **Validation**: `go test -race ./client/ebiten/...` passes with ≥ 60% line coverage.
-
----
-
-### Priority 2: Implement File-Based Reconnect Token Persistence (CLIENT_SPEC.md §2)
-
-**Gap**: Ebitengine client stores token in memory only; closing and reopening the client loses the session.
-
-- [ ] In `client/ebiten/state.go`, add `LoadTokenFromFile()` / `SaveTokenToFile()` using `~/.bostonfear/session.json`.
-- [ ] Call `LoadTokenFromFile()` in `NewLocalState()` constructor.
-- [ ] Call `SaveTokenToFile()` in `SetReconnectToken()` after a successful token update.
-- [ ] Add test `TestTokenPersistence_RoundTrip` verifying file read/write.
-- [ ] **Validation**: Close and reopen `cmd/desktop`; client reconnects with prior player slot.
-
----
-
-### Priority 3: Add CI with GitHub Actions
-
-**Gap**: No automated quality gates; contributors must run tests manually.
-
-- [ ] Create `.github/workflows/ci.yml`:
-  ```yaml
-  name: CI
-  on: [push, pull_request]
-  jobs:
-    test:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - uses: actions/setup-go@v5
-          with:
-            go-version: '1.24'
-        - run: go vet ./...
-        - run: go test -race ./...
+- [ ] Define per-investigator ability tables in `game_types.go`:
+  ```go
+  type InvestigatorAbility struct {
+      Name        string
+      Description string
+      Effect      func(gs *GameState, player *Player) error
+  }
   ```
-- [ ] Add build job for desktop and WASM targets.
-- [ ] **Validation**: PR merges only when CI passes.
+- [ ] Implement `performComponent()` in `game_mechanics.go:345-348`:
+  1. Look up the player's investigator type.
+  2. Retrieve the associated ability from the table.
+  3. Execute the effect function.
+- [ ] Add test `TestProcessAction_Component_ValidAbility` in `game_mechanics_test.go`.
+- [ ] **Validation**: `go test -race ./cmd/server/... -run TestProcessAction_Component` passes; client can send `{"action":"component"}` without error.
 
 ---
 
-### Priority 4: Implement Act/Agenda Deck Progression (RULES.md §Scenario System)
+### Priority 2: Implement Attack/Evade Actions and Enemy Spawning (RULES.md §Attack/Evade)
 
-**Gap**: `ActDeck` and `AgendaDeck` are initialised but never advanced; no narrative progression occurs.
+**Gap**: RULES.md specifies Attack and Evade as core actions; neither is implemented. No enemy spawn mechanics exist.
 
-- [ ] In `game_mechanics.go`, add `advanceActDeck()` — triggers when collective clues reach `ActCard.ClueThreshold`.
-- [ ] Add `advanceAgendaDeck()` — triggers when doom reaches `AgendaCard.DoomThreshold`.
-- [ ] Wire into `checkGameEndConditions()` for act/agenda victory/defeat.
-- [ ] Unskip `TestRulesActAgendaProgression` (rules_test.go).
-- [ ] **Validation**: `go test -run TestRulesActAgendaProgression` passes.
-
----
-
-### Priority 5: Implement Encounter Resolution (RULES.md §Encounter Resolution)
-
-**Gap**: Encounter cards exist in `EncounterDecks`; `performEncounter()` is a stub.
-
-- [ ] Implement `performEncounter()` in `game_mechanics.go`:
-  1. Draw card from `EncounterDecks[player.Location]`.
-  2. Apply `EffectType` (sanity_loss, health_loss, clue_gain, doom_inc).
-  3. Rebuild deck when exhausted.
-- [ ] Unskip `TestRulesEncounterResolution` subtests.
-- [ ] **Validation**: `go test -run TestRulesEncounterResolution` passes.
-
----
-
-### Priority 6: Upgrade to Ebitengine v2.8+ and Address Deprecations
-
-**Gap**: Project uses Ebitengine v2.7.0; API deprecations (e.g., `Dispose` → `Deallocate`) will break future builds.
-
-- [ ] Run `go get github.com/hajimehoshi/ebiten/v2@latest` and `go mod tidy`.
-- [ ] Replace deprecated API calls:
-  - `(*Image).Dispose` → `Deallocate`
-  - `ebiten.DeviceScaleFactor` → monitor API
-- [ ] Verify desktop and WASM builds still compile.
-- [ ] **Validation**: `go build ./cmd/desktop && GOOS=js GOARCH=wasm go build ./cmd/web` succeeds with no deprecation warnings.
+- [ ] Define `Enemy` struct in `game_types.go`:
+  ```go
+  type Enemy struct {
+      ID         string
+      Name       string
+      Health     int
+      Damage     int
+      Horror     int
+      Location   Location
+      Engaged    []string // player IDs engaged with this enemy
+  }
+  ```
+- [ ] Add `Enemies map[string]*Enemy` to `GameState`.
+- [ ] Define `ActionAttack` and `ActionEvade` constants; add to `isValidActionType()`.
+- [ ] Implement `performAttack()`:
+  1. Roll combat dice pool.
+  2. Compare successes to enemy health.
+  3. Remove enemy if defeated; award remnants.
+- [ ] Implement `performEvade()`:
+  1. Roll agility dice pool.
+  2. On success, disengage from enemy.
+- [ ] Add enemy spawn logic to `runMythosPhase()` when gates are opened.
+- [ ] Add tests `TestProcessAction_Attack`, `TestProcessAction_Evade`.
+- [ ] **Validation**: Enemies appear, can be attacked and evaded; `go test -race ./cmd/server/...` passes.
 
 ---
 
-### Priority 7: Verify Mobile Build on Device
+### Priority 3: Verify Mobile Build on Device
 
 **Gap**: Mobile binding scaffolding exists; never tested on iOS/Android device.
 
@@ -159,41 +121,90 @@
 - [ ] Run `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile`.
 - [ ] Create minimal Android app, load AAR, confirm game launches.
 - [ ] Repeat for iOS (`-target ios`).
+- [ ] Document verified versions in README.md §Build Targets.
 - [ ] **Validation**: Functional game visible on both platforms (touch input responds).
 
 ---
 
-### Priority 8: Replace Placeholder Sprites with Production Art
+### Priority 4: Replace Placeholder Sprites with Production Art (CLIENT_SPEC.md §Assets)
 
-**Gap**: All Ebitengine renders use programmer-art rectangles (CLIENT_SPEC.md §Assets).
+**Gap**: All Ebitengine renders use programmer-art rectangles.
 
-- [ ] Commission or source art assets (location tiles, investigator tokens, dice faces, UI elements).
+- [ ] Commission or source art assets:
+  - Location tiles (4 neighborhoods)
+  - Investigator tokens (6 colours)
+  - Dice faces (Success, Blank, Tentacle)
+  - UI elements (health/sanity bars, doom counter)
+- [ ] Create `client/ebiten/assets/` directory with embedded sprites.
 - [ ] Update `client/ebiten/render/atlas.go` with sprite-sheet coordinates.
-- [ ] Implement Kage shaders for doom vignette, fog-of-war (CLIENT_SPEC.md §4.4, §4.5).
+- [ ] Implement Kage shaders for doom vignette (CLIENT_SPEC.md §4.4).
 - [ ] **Validation**: Desktop client displays themed visuals at 1280×720 logical resolution.
 
 ---
 
-### Priority 9: Implement Remaining AH3e Action Types (Component, Attack/Evade)
+### Priority 5: Add Automated Performance Benchmark
 
-**Gap**: `ActionComponent` is defined but returns "not yet implemented" error; Attack/Evade not defined.
+**Gap**: README claims "sub-500ms state synchronization" and "stable operation with 6 concurrent players for 15+ minutes", but no automated benchmark verifies this.
 
-- [ ] Implement `performComponent()` — activate investigator/item abilities.
-- [ ] Define `ActionAttack`, `ActionEvade`; add to `isValidActionType()`.
-- [ ] Implement `performAttack()`, `performEvade()` with enemy spawn/engagement logic.
-- [ ] **Validation**: `TestRulesFullActionSet/Component_stub` renamed and passes; Attack/Evade tests added.
+- [ ] Create `cmd/server/benchmark_test.go` with:
+  - `BenchmarkBroadcastLatency` — measure time from action to state receipt.
+  - `TestStabilityWith6Players` — simulate 6 concurrent connections for 15 minutes.
+- [ ] Add benchmark results to CI as a comment artifact.
+- [ ] Define threshold: fail CI if average broadcast latency > 200ms.
+- [ ] **Validation**: `go test -bench=. -benchtime=5m ./cmd/server/...` passes; 6-player stability test completes.
 
 ---
 
-### Priority 10: Gate/Anomaly Mechanics (RULES.md §Anomaly/Gate Mechanics)
+### Priority 6: Implement Mythos Phase Events (RULES.md §Mythos Phase Sequence)
+
+**Gap**: `runMythosPhase()` places doom but does not draw event cards or resolve mythos token effects.
+
+- [ ] Define `MythosToken` struct with effect types (doom spread, monster surge, clue drought).
+- [ ] Implement mythos cup draw in `runMythosPhase()`:
+  1. Draw 2 event cards from `MythosEventDeck`.
+  2. Place events in neighborhoods.
+  3. Resolve event spread (doom + event = escalation).
+  4. Draw and resolve mythos token.
+- [ ] Add test `TestMythosPhase_EventPlacement`.
+- [ ] **Validation**: `go test -run TestMythosPhase` passes; doom spreads visually in client.
+
+---
+
+### Priority 7: Implement Gate/Anomaly Mechanics (RULES.md §Anomaly/Gate Mechanics)
 
 **Gap**: Mythos Phase places doom but does not open gates; no anomaly tokens.
 
 - [ ] Define `Gate` struct; add `OpenGates []Gate` to `GameState`.
 - [ ] In `runMythosPhase()`, open a gate when a location accumulates 2+ doom tokens.
-- [ ] Add `ActionCloseGate` — requires clues; removes gate and reduces doom.
-- [ ] Unskip `TestRulesAnomalyGateMechanics`.
-- [ ] **Validation**: `go test -run TestRulesAnomalyGateMechanics` passes.
+- [ ] Add `ActionCloseGate` — requires spending clues; removes gate and reduces doom.
+- [ ] Add test `TestGateMechanics_OpenAndClose`.
+- [ ] **Validation**: `go test -run TestGateMechanics` passes.
+
+---
+
+### Priority 8: Split `observability.go` for Better Cohesion
+
+**Gap**: `observability.go` (714 lines, 34 functions) handles metrics, health checks, and dashboard rendering in one file. High burden score (1.18) suggests splitting.
+
+- [ ] Extract Prometheus metrics to `cmd/server/metrics.go` (already partially done).
+- [ ] Extract health check to `cmd/server/health.go` (already partially done).
+- [ ] Extract dashboard rendering to `cmd/server/dashboard.go` (already partially done).
+- [ ] Verify existing files cover all functions; delete empty `observability.go` shell if applicable.
+- [ ] **Validation**: No file > 400 lines in `cmd/server/`; `go test -race ./cmd/server/...` passes.
+
+---
+
+### Priority 9: Update GAPS.md to Reflect Current State
+
+**Gap**: GAPS.md contains outdated entries (GAP-11 RUnlock issue, GAP-14 localStorage, GAP-15 atomic counter, GAP-16 test coverage) that have already been resolved.
+
+- [ ] Remove or mark as resolved: GAP-11, GAP-14, GAP-15, GAP-16.
+- [ ] Add new gaps:
+  - GAP-17: `performComponent` action stub.
+  - GAP-18: Attack/Evade actions not implemented.
+  - GAP-19: Mobile build not device-verified.
+  - GAP-20: Placeholder sprites only.
+- [ ] **Validation**: GAPS.md reflects only actionable current gaps.
 
 ---
 
@@ -205,6 +216,7 @@ Per RULES.md §Non-Goals:
 - Card/scenario data files (JSON/YAML definitions, codex entries)
 - Art assets, card layout, or print-ready materials
 - Expansion content (Under Dark Waves, Dead of Night, etc.)
+- TLS/HTTPS transport-layer encryption (handled by infrastructure)
 
 ---
 
@@ -212,24 +224,22 @@ Per RULES.md §Non-Goals:
 
 | Dependency | Version | Status |
 |------------|---------|--------|
-| `github.com/gorilla/websocket` | v1.5.3 | ✅ No known CVEs in 2025-2026; actively maintained |
-| `github.com/hajimehoshi/ebiten/v2` | v2.7.0 | ⚠️ Deprecated APIs (`Dispose`, `DeviceScaleFactor`); recommend upgrade to v2.8+ |
+| `github.com/gorilla/websocket` | v1.5.3 | ✅ No known CVEs; actively maintained |
+| `github.com/hajimehoshi/ebiten/v2` | v2.9.9 | ✅ Current stable; vector API deprecated in favor of `FillPath`/`StrokePath` |
 | Go | 1.24.1 | ✅ Current stable |
 
 ---
 
 ## Appendix: File Complexity Hotspots
 
-| File | Lines | Functions | Types | Burden Score |
-|------|-------|-----------|-------|--------------|
-| `cmd/server/game_types.go` | 239 | 0 | 34 | 2.49 |
-| `cmd/server/observability.go` | 714 | 34 | 0 | 1.18 |
-| `client/ebiten/state.go` | 155 | 12 | 11 | 1.09 |
-| `cmd/server/game_mechanics.go` | 474 | 25 | 0 | 0.84 |
-| `cmd/server/error_recovery.go` | 294 | 22 | 3 | 0.81 |
-
-Consider splitting `observability.go` (714 lines, 34 functions) into `metrics.go`, `health.go`, and `dashboard.go` for improved cohesion.
+| File | Lines | Functions | Burden Score |
+|------|-------|-----------|--------------|
+| `cmd/server/game_types.go` | 239 | 0 | 2.49 |
+| `cmd/server/metrics.go` | ~280 | 20 | 0.84 |
+| `client/ebiten/state.go` | 298 | 17 | 1.09 |
+| `cmd/server/game_mechanics.go` | 474 | 25 | 0.84 |
+| `cmd/server/error_recovery.go` | 294 | 22 | 0.81 |
 
 ---
 
-*This roadmap prioritises gaps by impact on the project's stated goals: functional Ebitengine client first, then AH3e rules compliance, then polish and platform coverage.*
+*This roadmap prioritises gaps by impact on the project's stated goals: completing AH3e rules compliance first (Component, Attack/Evade, Mythos), then platform verification (mobile), then polish (art assets, benchmarks).*
