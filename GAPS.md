@@ -63,9 +63,9 @@
 ## ✅ RESOLVED: GAP-21 — Ebitengine `app` and `render` Tests Silently Skipped in Standard CI
 
 - **Stated Goal**: README §Ebitengine Client Features — "Sprite/Layer Rendering:
-  Board, tokens, UI overlays, and animations via Ebitengine draw layers." The
-  Quick Setup guide instructs contributors to run `go test ./...` with no mention
-  of build tags.
+  Board, tokens, UI overlays, and animations via Ebitengine draw layers." README
+  §Running Tests documents how to run the full test suite (including
+  display-dependent tests) via `go test -race` with appropriate build tags.
 - **Resolution**: The CI pipeline (`.github/workflows/ci.yml`) now installs Xvfb
   and runs all tests — including `requires_display`-tagged tests — via:
   ```
