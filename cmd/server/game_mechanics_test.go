@@ -500,3 +500,61 @@ drainLoop:
 		}
 	}
 }
+
+// TestAdvanceTurnOnDisconnect verifies GAP-03: when the current player
+// disconnects, the turn automatically advances to the next connected player
+// so the game never stalls.
+func TestAdvanceTurnOnDisconnect(t *testing.T) {
+t.Parallel()
+gs, p1ID := newTestServer(t)
+addPlayer(gs, "p2", true)
+
+// Confirm p1 holds the current turn.
+if gs.gameState.CurrentPlayer != p1ID {
+t.Fatalf("expected p1 to hold the turn; got %s", gs.gameState.CurrentPlayer)
+}
+
+// Simulate the disconnect path: mark p1 disconnected and advance if needed.
+gs.mutex.Lock()
+if player, exists := gs.gameState.Players[p1ID]; exists {
+player.Connected = false
+}
+if gs.gameState.CurrentPlayer == p1ID && gs.gameState.GamePhase == "playing" {
+gs.advanceTurn()
+}
+gs.mutex.Unlock()
+
+// Turn must now belong to p2.
+if gs.gameState.CurrentPlayer == p1ID {
+t.Error("turn did not advance after current player disconnected")
+}
+if gs.gameState.CurrentPlayer != "p2" {
+t.Errorf("expected p2 to hold the turn; got %s", gs.gameState.CurrentPlayer)
+}
+if gs.gameState.Players["p2"].ActionsRemaining != 2 {
+t.Errorf("p2 should start with 2 actions; got %d",
+gs.gameState.Players["p2"].ActionsRemaining)
+}
+}
+
+// TestAdvanceTurnOnDisconnect_OnlyPlayer verifies that when the sole player
+// disconnects the game does not panic and CurrentPlayer retains its old value
+// (no connected candidate exists to advance to).
+func TestAdvanceTurnOnDisconnect_OnlyPlayer(t *testing.T) {
+t.Parallel()
+gs, p1ID := newTestServer(t)
+
+gs.mutex.Lock()
+if player, exists := gs.gameState.Players[p1ID]; exists {
+player.Connected = false
+}
+if gs.gameState.CurrentPlayer == p1ID && gs.gameState.GamePhase == "playing" {
+gs.advanceTurn()
+}
+gs.mutex.Unlock()
+
+// With no connected players advanceTurn keeps CurrentPlayer as-is.
+if gs.gameState.CurrentPlayer != p1ID {
+t.Errorf("expected CurrentPlayer to stay %s; got %s", p1ID, gs.gameState.CurrentPlayer)
+}
+}

@@ -605,10 +605,14 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		gs.actionCh <- actionMsg
 	}
 
-	// Handle disconnection
+	// Handle disconnection: mark the player as disconnected and, if they held
+	// the current turn, advance it so the game never stalls (GAP-03).
 	gs.mutex.Lock()
 	if player, exists := gs.gameState.Players[playerID]; exists {
 		player.Connected = false
+	}
+	if gs.gameState.CurrentPlayer == playerID && gs.gameState.GamePhase == "playing" {
+		gs.advanceTurn()
 	}
 	gs.mutex.Unlock()
 
