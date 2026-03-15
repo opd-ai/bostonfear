@@ -1,0 +1,20 @@
+//kage:unit pixels
+
+// glow.kage applies a soft pulsing glow to player tokens and interactive elements.
+// The Intensity uniform scales the brightness boost; Time drives the pulse cycle.
+
+package main
+
+// Intensity controls the peak brightness of the glow (0.0–1.0).
+var Intensity float
+
+// Time is the elapsed game time in seconds, used to animate the pulse.
+var Time float
+
+// Fragment samples the source pixel and adds a time-varying glow overlay.
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	src := imageSrc0At(srcPos)
+	pulse := (sin(Time*4.0)*0.5 + 0.5) * Intensity
+	glow := vec4(pulse, pulse*0.6, pulse*0.2, 0.0)
+	return clamp(src+glow, 0.0, 1.0)
+}

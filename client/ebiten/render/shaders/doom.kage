@@ -1,0 +1,31 @@
+//kage:unit pixels
+
+// doom.kage renders a vignette that darkens and desaturates the screen as the
+// doom counter rises.  DoomFraction (0.0–1.0) maps doom/12 to visual intensity.
+
+package main
+
+// DoomFraction is doom / 12 (range 0.0 to 1.0).
+var DoomFraction float
+
+// Fragment applies a radial vignette whose strength grows with DoomFraction.
+// At DoomFraction=0 the image is unmodified.
+// At DoomFraction=1 the corners are nearly black and fully desaturated.
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	src := imageSrc0At(srcPos)
+
+	// Compute UV coordinates in [-1, 1] range from the source position.
+	bounds := imageSrc0Origin()
+	size := imageSrc0Size()
+	uv := (srcPos - bounds) / size * 2.0 - 1.0
+
+	// Radial distance from centre, scaled by DoomFraction.
+	dist := length(uv)
+	vignette := 1.0 - clamp(dist*DoomFraction*1.2, 0.0, 0.9)
+
+	// Desaturate proportionally to doom fraction.
+	luma := dot(src.rgb, vec3(0.299, 0.587, 0.114))
+	desaturated := mix(src.rgb, vec3(luma, luma, luma), DoomFraction*0.7)
+
+	return vec4(desaturated*vignette, src.a)
+}

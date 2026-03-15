@@ -1,0 +1,19 @@
+//kage:unit pixels
+
+// fog.kage implements a fog-of-war effect for the Arkham Horror board.
+// Unexplored areas are covered by a dark semi-transparent fog that fades
+// toward the edges of known locations.  The effect is driven by a uniform
+// float Opacity (0.0 = fully transparent, 1.0 = fully opaque fog).
+
+package main
+
+// Opacity controls how dense the fog appears.  0.0 = no fog, 1.0 = full fog.
+var Opacity float
+
+// Fragment is the per-pixel Kage entry point.
+// It samples the source colour and blends it with the fog colour based on Opacity.
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	src := imageSrc0At(srcPos)
+	fogColor := vec4(0.05, 0.05, 0.12, 1.0)
+	return mix(src, fogColor, Opacity)
+}
