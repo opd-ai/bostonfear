@@ -475,15 +475,16 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 	// Store player connection mapping for proper net.Conn interface usage
 	gs.playerConns[playerID] = conn
 
-	// Start game if we have enough players, or allow joining a game already in progress
+	// Start game if we have enough players and the game hasn't started yet
 	if len(gs.gameState.Players) >= MinPlayers && !gs.gameState.GameStarted {
 		gs.gameState.GameStarted = true
 		gs.gameState.GamePhase = "playing"
 		gs.gameState.CurrentPlayer = gs.gameState.TurnOrder[0]
 		gs.gameState.Players[gs.gameState.CurrentPlayer].ActionsRemaining = 2
 	} else if gs.gameState.GameStarted && gs.gameState.GamePhase == "playing" {
-		// Player is joining a game already in progress — they enter with 0
-		// actions and will receive their turn when the rotation reaches them.
+		// Player is joining a game already in progress — they were initialized
+		// with ActionsRemaining=0 (see newPlayer above) and will receive their
+		// turn when the rotation reaches them.
 		log.Printf("Player %s joined game in progress (turn order position %d)", playerID, len(gs.gameState.TurnOrder))
 	}
 
