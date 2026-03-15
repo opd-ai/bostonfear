@@ -247,7 +247,7 @@ func isValidActionType(a ActionType) bool {
 	for _, v := range []ActionType{
 		ActionMove, ActionGather, ActionInvestigate, ActionCastWard,
 		ActionFocus, ActionResearch, ActionTrade,
-		ActionEncounter, ActionComponent,
+		ActionEncounter, ActionComponent, ActionAttack, ActionEvade,
 	} {
 		if a == v {
 			return true

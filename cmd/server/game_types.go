@@ -118,6 +118,19 @@ type AgendaCard struct {
 	Effect        string `json:"effect"`        // narrative outcome when advanced
 }
 
+// Enemy represents a monster on the board that investigators can attack or evade.
+// Health tracks remaining hit points; the enemy is removed when Health reaches 0.
+// Engaged lists the player IDs currently in combat with this enemy.
+type Enemy struct {
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Health   int      `json:"health"`
+	Damage   int      `json:"damage"` // health damage dealt to the investigator per attack
+	Horror   int      `json:"horror"` // sanity damage dealt to the investigator per attack
+	Location Location `json:"location"`
+	Engaged  []string `json:"engaged"` // player IDs currently engaged with this enemy
+}
+
 // Anomaly represents a spatial tear spawned during the Mythos Phase.
 // Investigators can seal anomalies by successfully casting a Ward (3 successes).
 // Sealing an anomaly removes it and reduces global doom by 2.
@@ -149,6 +162,8 @@ type GameState struct {
 	MythosEvents       []MythosEvent  `json:"mythosEvents"`       // events resolved this phase
 	// Anomalies spawned during the Mythos Phase
 	Anomalies []Anomaly `json:"anomalies"`
+	// Enemies present on the board; keyed by enemy ID.
+	Enemies map[string]*Enemy `json:"enemies"`
 	// Encounter decks keyed by location name
 	EncounterDecks map[string][]EncounterCard `json:"encounterDecks"`
 }

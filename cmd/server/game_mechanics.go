@@ -170,6 +170,10 @@ func (gs *GameServer) dispatchAction(action PlayerActionMessage, player *Player)
 		actionErr = gs.performEncounter(player, action.PlayerID)
 	case ActionComponent:
 		actionResult, actionErr = gs.performComponent(player, action.PlayerID)
+	case ActionAttack:
+		diceResult, doomIncrease, actionResult, actionErr = gs.performAttack(player, action.PlayerID)
+	case ActionEvade:
+		diceResult, doomIncrease, actionResult, actionErr = gs.performEvade(player, action.PlayerID)
 	}
 
 	return diceResult, doomIncrease, actionResult, actionErr

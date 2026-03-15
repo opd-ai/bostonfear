@@ -241,7 +241,7 @@ remaining stated-goal impact), then **code hygiene**.
 
 ---
 
-### Step 6: Add Automated Performance Benchmark (ROADMAP Priority 5)
+### Step 6: Add Automated Performance Benchmark (ROADMAP Priority 5) ✅ COMPLETE
 
 - **Deliverable**: Create `cmd/server/benchmark_test.go` with:
   1. `BenchmarkBroadcastLatency` — measures time from action receipt to the last connected
@@ -270,7 +270,7 @@ remaining stated-goal impact), then **code hygiene**.
 
 ---
 
-### Step 7: Implement `performComponent` Action (ROADMAP Priority 1)
+### Step 7: Implement `performComponent` Action (ROADMAP Priority 1) ✅ COMPLETE
 
 - **Deliverable**: Implement the per-investigator component ability system, completing
   AH3e `ActionComponent`:

@@ -32,6 +32,8 @@ const (
 	ActionTrade       ActionType = "trade"
 	ActionComponent   ActionType = "component" // Per-investigator special ability (ROADMAP Priority 1)
 	ActionEncounter   ActionType = "encounter"
+	ActionAttack      ActionType = "attack" // Combat: roll dice against an engaged enemy
+	ActionEvade       ActionType = "evade"  // Combat: disengage from an engaged enemy
 )
 
 // InvestigatorType identifies which investigator archetype a player is using.
@@ -117,6 +119,18 @@ const (
 	DiceBlank    DiceResult = "blank"
 	DiceTentacle DiceResult = "tentacle"
 )
+
+// maxEnemiesOnBoard caps the total number of active enemies to keep combat manageable.
+const maxEnemiesOnBoard = 4
+
+// enemyTemplates is the pool of enemy archetypes used by the spawn logic.
+// On each spawn, one template is chosen at random and given a unique ID.
+var enemyTemplates = []Enemy{
+	{Name: "Ghoul", Health: 3, Damage: 1, Horror: 1},
+	{Name: "Deep One", Health: 4, Damage: 2, Horror: 1},
+	{Name: "Byakhee", Health: 2, Damage: 1, Horror: 2},
+	{Name: "Shoggoth", Health: 5, Damage: 2, Horror: 2},
+}
 
 // defaultEncounterDecks returns 2-3 encounter cards per neighborhood for MVP play.
 func defaultEncounterDecks() map[string][]EncounterCard {
