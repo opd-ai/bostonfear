@@ -140,6 +140,8 @@ func TestReconnectURL_IncludesTokenWhenSet(t *testing.T) {
 // TestReconnectURL_OmitsTokenWhenEmpty verifies that no token query param is
 // appended when no token has been received yet.
 func TestReconnectURL_OmitsTokenWhenEmpty(t *testing.T) {
+	// Redirect HOME so NewLocalState does not load a real session file.
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	tok := state.GetReconnectToken()
 

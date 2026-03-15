@@ -526,8 +526,9 @@ func (gs *GameServer) rescaleActDeck(playerCount int) {
 }
 
 // checkActAdvance evaluates whether the investigators have accumulated enough clues
-// to advance the Act deck (AH3e §Act/Agenda).  On act completion the win condition
-// is set when the final act card is advanced.
+// to advance the Act deck (AH3e §Act/Agenda).  Cascades through all act cards
+// whose thresholds are met in a single evaluation, setting the win condition
+// when the final card is advanced.
 // Caller must hold gs.mutex.
 func (gs *GameServer) checkActAdvance() {
 	if len(gs.gameState.ActDeck) == 0 {
@@ -537,10 +538,14 @@ func (gs *GameServer) checkActAdvance() {
 	for _, p := range gs.gameState.Players {
 		totalClues += p.Resources.Clues
 	}
-	act := gs.gameState.ActDeck[0]
-	// Expose threshold for client rendering.
-	gs.gameState.RequiredClues = act.ClueThreshold
-	if totalClues >= act.ClueThreshold {
+	// Expose threshold of the current (front) card for client rendering.
+	gs.gameState.RequiredClues = gs.gameState.ActDeck[0].ClueThreshold
+
+	for len(gs.gameState.ActDeck) > 0 {
+		act := gs.gameState.ActDeck[0]
+		if totalClues < act.ClueThreshold {
+			break
+		}
 		log.Printf("Act advanced: %q (clues=%d)", act.Title, totalClues)
 		gs.gameState.ActDeck = gs.gameState.ActDeck[1:]
 		if len(gs.gameState.ActDeck) == 0 {
@@ -548,20 +553,24 @@ func (gs *GameServer) checkActAdvance() {
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
 			log.Printf("Game ended: Victory! Final act completed")
+			return
 		}
+		// Update required clues display for next card.
+		gs.gameState.RequiredClues = gs.gameState.ActDeck[0].ClueThreshold
 	}
 }
 
 // checkAgendaAdvance evaluates whether doom has reached the threshold for the
-// current Agenda card (AH3e §Act/Agenda).  Advances to the next agenda, and
-// triggers the lose condition when the deck is exhausted.
+// current Agenda card (AH3e §Act/Agenda).  Advances through all agenda cards
+// whose thresholds are met (cascade) and triggers the lose condition when the
+// deck is exhausted.
 // Caller must hold gs.mutex.
 func (gs *GameServer) checkAgendaAdvance() {
-	if len(gs.gameState.AgendaDeck) == 0 {
-		return
-	}
-	agenda := gs.gameState.AgendaDeck[0]
-	if gs.gameState.Doom >= agenda.DoomThreshold {
+	for len(gs.gameState.AgendaDeck) > 0 {
+		agenda := gs.gameState.AgendaDeck[0]
+		if gs.gameState.Doom < agenda.DoomThreshold {
+			break
+		}
 		log.Printf("Agenda advanced: %q (doom=%d)", agenda.Title, gs.gameState.Doom)
 		gs.gameState.AgendaDeck = gs.gameState.AgendaDeck[1:]
 		if len(gs.gameState.AgendaDeck) == 0 {
@@ -569,6 +578,7 @@ func (gs *GameServer) checkAgendaAdvance() {
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
 			log.Printf("Game ended: Final agenda reached — Ancient One awakens")
+			return
 		}
 	}
 }

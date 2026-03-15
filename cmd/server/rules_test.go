@@ -320,7 +320,6 @@ func TestRulesAnomalyGateMechanics(t *testing.T) {
 // --- TestRulesEncounterResolution ---
 // AH3e: Investigators at locations with encounter tokens draw from
 // neighborhood-specific encounter decks and resolve skill tests.
-// Status: NOT IMPLEMENTED.
 
 func TestRulesEncounterResolution(t *testing.T) {
 	t.Parallel()
@@ -359,6 +358,83 @@ func TestRulesEncounterResolution(t *testing.T) {
 		}
 		if err := gs.processAction(msg); err != nil {
 			t.Fatalf("encounter deck rebuild: %v", err)
+		}
+	})
+
+	t.Run("HealthLossEffect", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Location = Downtown
+		gs.gameState.Players[p1ID].Resources.Health = 8
+		gs.gameState.EncounterDecks[string(Downtown)] = []EncounterCard{
+			{FlavorText: "hurt", EffectType: "health_loss", Magnitude: 2},
+		}
+		if err := gs.processAction(PlayerActionMessage{
+			Type: "playerAction", PlayerID: p1ID, Action: ActionEncounter,
+		}); err != nil {
+			t.Fatalf("health_loss encounter: %v", err)
+		}
+		if got := gs.gameState.Players[p1ID].Resources.Health; got != 6 {
+			t.Errorf("health_loss should reduce health by 2; got %d want 6", got)
+		}
+	})
+
+	t.Run("SanityLossEffect", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Location = Downtown
+		gs.gameState.Players[p1ID].Resources.Sanity = 7
+		gs.gameState.EncounterDecks[string(Downtown)] = []EncounterCard{
+			{FlavorText: "disturbing", EffectType: "sanity_loss", Magnitude: 3},
+		}
+		if err := gs.processAction(PlayerActionMessage{
+			Type: "playerAction", PlayerID: p1ID, Action: ActionEncounter,
+		}); err != nil {
+			t.Fatalf("sanity_loss encounter: %v", err)
+		}
+		if got := gs.gameState.Players[p1ID].Resources.Sanity; got != 4 {
+			t.Errorf("sanity_loss should reduce sanity by 3; got %d want 4", got)
+		}
+	})
+
+	t.Run("DoomIncEffect", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Location = Downtown
+		gs.gameState.Doom = 3
+		gs.gameState.EncounterDecks[string(Downtown)] = []EncounterCard{
+			{FlavorText: "ominous", EffectType: "doom_inc", Magnitude: 2},
+		}
+		if err := gs.processAction(PlayerActionMessage{
+			Type: "playerAction", PlayerID: p1ID, Action: ActionEncounter,
+		}); err != nil {
+			t.Fatalf("doom_inc encounter: %v", err)
+		}
+		if got := gs.gameState.Doom; got != 5 {
+			t.Errorf("doom_inc should increase doom by 2; got %d want 5", got)
+		}
+	})
+
+	t.Run("DeckExhaustionReshuffle", func(t *testing.T) {
+		// After the deck is exhausted, subsequent encounters should rebuild from
+		// defaults without error.
+		gs, p1ID := newTestServer(t)
+		gs.gameState.Players[p1ID].Location = Rivertown
+
+		// Drain the deck to one card, then process it.
+		gs.gameState.EncounterDecks[string(Rivertown)] = []EncounterCard{
+			{FlavorText: "last card", EffectType: "clue_gain", Magnitude: 1},
+		}
+		if err := gs.processAction(PlayerActionMessage{
+			Type: "playerAction", PlayerID: p1ID, Action: ActionEncounter,
+		}); err != nil {
+			t.Fatalf("first encounter (draining deck): %v", err)
+		}
+		// Deck should now be empty; advance turn so p1 gets 2 actions again.
+		gs.gameState.Players[p1ID].ActionsRemaining = 1
+
+		// A second encounter should trigger rebuild without error.
+		if err := gs.processAction(PlayerActionMessage{
+			Type: "playerAction", PlayerID: p1ID, Action: ActionEncounter,
+		}); err != nil {
+			t.Fatalf("second encounter (reshuffle): %v", err)
 		}
 	})
 }
