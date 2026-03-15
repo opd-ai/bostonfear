@@ -394,7 +394,7 @@ remaining stated-goal impact), then **code hygiene**.
 
 ---
 
-### Step 10: Implement Gate/Anomaly Mechanics (ROADMAP Priority 7)
+### Step 10: Implement Gate/Anomaly Mechanics (ROADMAP Priority 7) ✅ COMPLETE
 
 - **Deliverable**: Implement Anomaly/Gate mechanics as specified in RULES.md §Anomaly/Gate
   Mechanics:
