@@ -6,9 +6,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -17,54 +14,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// connectTestPlayer dials a WebSocket to srv, reads the initial connectionStatus
-// and gameState messages, and returns the connection plus the assigned playerID.
-func connectTestPlayer(t testing.TB, srv *httptest.Server) (*websocket.Conn, string) {
-	t.Helper()
-	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	if err != nil {
-		t.Fatalf("dial failed: %v", err)
-	}
-
-	// First message: connectionStatus carrying the player ID.
-	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	_, raw, err := conn.ReadMessage()
-	if err != nil {
-		t.Fatalf("no connectionStatus: %v", err)
-	}
-	var status map[string]interface{}
-	if err := json.Unmarshal(raw, &status); err != nil {
-		t.Fatalf("bad connectionStatus JSON: %v", err)
-	}
-	playerID, _ := status["playerId"].(string)
-	if playerID == "" {
-		t.Fatal("connectionStatus has no playerId")
-	}
-
-	// Drain the immediate gameState broadcast so the caller starts from a clean slate.
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	conn.ReadMessage() //nolint:errcheck // intentional drain
-
-	conn.SetReadDeadline(time.Time{}) // clear deadline for normal operation
-	return conn, playerID
-}
-
 // BenchmarkBroadcastLatency measures round-trip time from submitting a player action
 // to the next gameState message arriving on the same connection. Uses a real
 // httptest server so the full broadcast pipeline (actionHandler → broadcastHandler →
 // all WebSocket writes) is exercised.
 // Target: p99 < 200ms under single-player load.
 func BenchmarkBroadcastLatency(b *testing.B) {
-	gs := NewGameServer()
-	go gs.broadcastHandler()
-	go gs.actionHandler()
-	defer close(gs.shutdownCh)
+	srv, cleanup := newIntegrationTestServer(b)
+	defer cleanup()
 
-	srv := httptest.NewServer(http.HandlerFunc(gs.handleWebSocket))
-	defer srv.Close()
-
-	conn, playerID := connectTestPlayer(b, srv)
+	conn, playerID, _ := srv.connectPlayer(b)
 	defer conn.Close()
 
 	action := map[string]interface{}{
@@ -112,13 +71,9 @@ func TestStabilityWith6Players(t *testing.T) {
 		t.Skip("stability test skipped in -short mode")
 	}
 
-	gs := NewGameServer()
-	go gs.broadcastHandler()
-	go gs.actionHandler()
-	defer close(gs.shutdownCh)
-
-	srv := httptest.NewServer(http.HandlerFunc(gs.handleWebSocket))
-	defer srv.Close()
+	srv, cleanup := newIntegrationTestServer(t)
+	defer cleanup()
+	gs := srv.GameServer
 
 	const numPlayers = 6
 	const actionsPerPlayer = 20
@@ -130,7 +85,7 @@ func TestStabilityWith6Players(t *testing.T) {
 
 	players := make([]playerConn, 0, numPlayers)
 	for i := 0; i < numPlayers; i++ {
-		conn, id := connectTestPlayer(t, srv)
+		conn, id, _ := srv.connectPlayer(t)
 		players = append(players, playerConn{conn: conn, playerID: id})
 	}
 	defer func() {

@@ -31,21 +31,25 @@ go.work.sum
 # .idea/
 # .vscode/
 
-# Compiled binaries (root level)
+# Compiled binaries (root level and nested)
 /server
 /desktop
 /arkham-server
 /connection_wrapper
+cmd/server/arkham-server
 
-# Server logs
+# Server logs and runtime artifacts
 *.log
 server.log
+loop.log
+test-output.txt
 
-# Analysis artifacts
+# Analysis artifacts (go-stats-generator outputs)
 baseline.json
 post.json
 pre-cleanup.json
 post-cleanup.json
+pre-cleanup-with-tests.json
 *-baseline.json
 *-post.json
 diff-report*.json
