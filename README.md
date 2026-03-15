@@ -123,11 +123,10 @@ Each player gets 2 actions per turn:
 - **WASM Compatibility**: Same Go codebase compiled to WebAssembly for browser play
 - **WebSocket Connection**: Automatic reconnection with 5-second retry (same protocol as legacy client)
 
-### Legacy JavaScript Client (Current — to be replaced)
-- **WebSocket Connection**: Automatic reconnection with exponential backoff
-- **Canvas Rendering**: 800x600px game board with location visualization
-- **Real-time Updates**: Live game state synchronization
-- **Responsive UI**: Modern web interface with visual feedback
+### Legacy JavaScript Client (Deprecated — being replaced by Ebitengine client)
+> The HTML5 Canvas / JavaScript client (`client/index.html`, `client/game.js`) is
+> being replaced by the Ebitengine client described in `CLIENT_SPEC.md`. See that
+> document for the full UI/UX requirements of the new client.
 
 ### JSON Message Protocol
 ```json
@@ -189,6 +188,7 @@ bostonfear/
 ├── PLAN.md                 # Implementation plan for current gaps + migration
 ├── GAPS.md                 # Known implementation gaps with status
 ├── RULES.md                # AH3e rules engine specification + compliance table
+├── CLIENT_SPEC.md          # Ebitengine client UI/UX requirements
 └── README.md               # This file
 ```
 

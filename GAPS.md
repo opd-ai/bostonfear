@@ -16,7 +16,7 @@
 - **Stated Goal**: The JSON protocol must include five message types: `gameState`, `playerAction`, `gameUpdate`, `connectionStatus`, `diceResult` (README, `.github/copilot-instructions.md:61`)
 - **Current State**: Only four message types are implemented. `gameUpdate` is never emitted by the server (`cmd/server/game_server.go`) and has no handler in the client (`client/game.js`). After every player action the server sends a full `gameState` snapshot and optionally a `diceResult`, but no lightweight event/delta message exists.
 - **Impact**: Clients cannot distinguish a game-event notification from a full state sync. Downstream tooling (spectators, replays, analytics) that expects `gameUpdate` events cannot integrate. The protocol contract documented in the README is incomplete.
-- **Closing the Gap**: Add a `gameUpdate` broadcast in `processAction` (after the action is applied, before the full `gameState` broadcast) that describes the event just occurred — e.g., `{"type":"gameUpdate","event":"investigate","playerId":"...","result":"fail","doomDelta":1}`. Add a `case 'gameUpdate':` handler in `game.js` to display event notifications. Update the README example to show a real `gameUpdate` payload.
+- **Closing the Gap**: Add a `gameUpdate` broadcast in `processAction` (after the action is applied, before the full `gameState` broadcast) that describes the event just occurred — e.g., `{"type":"gameUpdate","event":"investigate","playerId":"...","result":"fail","doomDelta":1}`. Add a `case 'gameUpdate':` handler in `game.js` to display event notifications. Update the README example to show a real `gameUpdate` payload. See `CLIENT_SPEC.md` Section 4.6 (Event Log Panel) for the Ebitengine client display requirements for `gameUpdate` messages.
 
 ---
 
@@ -44,6 +44,7 @@
   2. On reconnect, the client sends the token; the server finds the matching player record and re-attaches the existing `Player` struct, setting `Connected: true` and restoring `ActionsRemaining`.
   3. Extend the orphaned-player grace period: instead of deleting the player immediately on disconnect, retain the record for 60 seconds while marking `Connected: false`, then remove it if no reconnect token arrives.
   4. The ROADMAP (Phase 1.1) lists Redis-based session storage as the production approach; a simpler in-memory token map suffices for the current single-server setup.
+  5. See `CLIENT_SPEC.md` Section 2 (Joining a Game) for the Ebitengine reconnection UX requirements, including the `~/.bostonfear/session.json` token storage and the 60-second countdown overlay.
 
 ---
 

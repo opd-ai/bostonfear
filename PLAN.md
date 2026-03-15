@@ -20,9 +20,9 @@ Migrating the game client from HTML/JS canvas to a Go/Ebitengine engine supporti
 |---|---|---|
 | 1 | Fix README setup instructions (entry-point path) | `[COMPLETED — retain for history]` README now shows `cd cmd/server && go run .` |
 | 2 | Document win condition threshold in README and game state | `[COMPLETED — retain for history]` README shows 4 clues per investigator formula |
-| 3 | Implement missing `gameUpdate` protocol message | `[SUPERSEDED by new ROADMAP]` Protocol changes deferred; Ebitengine client will implement all 5 message types from scratch |
+| 3 | Implement missing `gameUpdate` protocol message | `[SUPERSEDED by new ROADMAP]` Protocol changes deferred; Ebitengine client will implement all 5 message types from scratch. See `CLIENT_SPEC.md` Section 4.6 (Event Log Panel) for Ebitengine client display requirements for `gameUpdate`. |
 | 4 | Fix `ConnectionWrapper` deadline methods (no-op violation) | `[SUPERSEDED by new ROADMAP]` Will be addressed as part of Phase 0 baseline |
-| 5 | Implement reconnection token system | `[SUPERSEDED by new ROADMAP]` Reconnection will be re-implemented in the Ebitengine client |
+| 5 | Implement reconnection token system | `[SUPERSEDED by new ROADMAP]` Reconnection will be re-implemented in the Ebitengine client. Client-side storage and UX for the reconnection token are specified in `CLIENT_SPEC.md` Section 2 (Joining a Game). Note: the legacy `localStorage` approach is browser-only; the Ebitengine client stores the token in `~/.bostonfear/session.json`. |
 | 6 | Implement real error rate tracking | `[SUPERSEDED by new ROADMAP]` Server metrics improvements deferred to post-migration |
 | 7 | Implement real broadcast latency metrics | `[SUPERSEDED by new ROADMAP]` Server metrics improvements deferred to post-migration |
 | 8 | Fix `/dashboard` relative path (HTTP 404) | `[SUPERSEDED by new ROADMAP]` Will be addressed as part of Phase 0 baseline |
