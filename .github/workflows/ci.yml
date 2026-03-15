@@ -21,7 +21,7 @@ jobs:
       - name: Install Xvfb
         run: sudo apt-get install -y xvfb
       - name: go test -race
-        run: DISPLAY=:99 xvfb-run -a go test -race ./...
+        run: DISPLAY=:99 xvfb-run -a go test -race -tags=requires_display ./...
 
   build:
     name: Build

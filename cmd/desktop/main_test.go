@@ -1,8 +1,13 @@
 // Package main — smoke tests for the desktop entry point.
 //
 // These tests verify that the Ebitengine wiring compiles and the default
-// configuration values are correct. Require DISPLAY=:99 (or equivalent) in
-// headless CI environments because Ebitengine initialises GLFW at package init.
+// configuration values are correct. Build with -tags=requires_display and
+// DISPLAY=:99 (or equivalent) in headless CI environments; without the tag
+// these files are excluded so that `go test ./...` succeeds without triggering
+// the GLFW init() panic that Ebitengine raises at package initialisation.
+
+//go:build requires_display
+
 package main
 
 import (

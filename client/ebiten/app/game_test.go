@@ -1,7 +1,13 @@
 // Package app — unit tests for the Ebitengine game-loop wiring.
 //
 // Tests that call Ebitengine rendering APIs require a display context.
-// Run with DISPLAY=:99 (or any accessible X11 display) in headless CI environments.
+// Build with -tags=requires_display and DISPLAY=:99 (or any accessible X11
+// display) in headless CI environments; without the tag these files are
+// excluded so that `go test ./...` succeeds in pure-headless environments
+// without triggering the GLFW init() panic.
+
+//go:build requires_display
+
 package app
 
 import (
