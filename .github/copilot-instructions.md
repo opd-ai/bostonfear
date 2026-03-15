@@ -1,5 +1,5 @@
 # TASK DESCRIPTION:
-Build a functional Arkham Horror-themed multiplayer web game implementing all 5 core mechanics with Go WebSocket server and JavaScript client supporting 2-4 concurrent players following idiomatic Go conventions.
+Build a functional Arkham Horror-themed multiplayer web game implementing all 5 core mechanics with Go WebSocket server and JavaScript client supporting 1-6 concurrent players following idiomatic Go conventions.
 
 ## CONTEXT:
 Arkham Horror board game features investigators managing resources while exploring locations and facing supernatural threats. Target intermediate developers learning client-server WebSocket architecture with cooperative gameplay mechanics. Implementation prioritizes functional completeness, proper Go conventions, and interface-based design for enhanced testability.
@@ -41,7 +41,7 @@ B. **Network Interface Requirements** (Critical - Must Follow):
 
 ### 4. Technical Implementation Requirements
 A. **Go Server Implementation**:
-   1. Create WebSocket handler using `net.Conn` interface accepting 2-4 concurrent player connections with unique player IDs
+   1. Create WebSocket handler using `net.Conn` interface accepting 1-6 concurrent player connections with unique player IDs
    2. Maintain centralized game state with turn order enforcement using goroutines and channels for concurrency safety
    3. Broadcast state updates to all connected clients within 500ms using channel-based communication
    4. Handle connection drops with 30-second reconnection timeout using proper Go error handling patterns
@@ -67,11 +67,11 @@ C. **Setup Documentation**: Include 3-step README with: dependency installation,
 ## QUALITY CHECKS:
 1. **Complete Mechanic Implementation**: Are all 5 core mechanics (Location, Resources, Actions, Doom, Dice) fully functional with proper validation?
 2. **Mechanic Integration**: Do dice rolls properly affect doom counter, do actions consume appropriate resources, do location restrictions work correctly?
-3. **Multi-player Validation**: Can 3 players connect simultaneously, take sequential turns with 2 actions each, and observe real-time state updates across all clients?
+3. **Multi-player Validation**: Can 3 players connect simultaneously, take sequential turns with 2 actions each, and observe real-time state updates across all clients? Can a player join a game already in progress?
 4. **Go Convention Adherence**: Does the code follow idiomatic Go patterns with proper interface usage, error handling, and concurrency management?
 5. **Network Interface Compliance**: Are all network operations implemented using `net.Conn`, `net.Listener`, and `net.Addr` interfaces instead of concrete types?
 6. **Setup Verification**: Can the project run successfully on a clean development environment following only the README instructions?
-7. **Performance Standards**: Does the server maintain stable operation with 4 concurrent players performing actions every 10 seconds for 15 minutes?
+7. **Performance Standards**: Does the server maintain stable operation with 6 concurrent players performing actions every 10 seconds for 15 minutes?
 
 ## EXAMPLES:
 **Complete Game Flow Sequence**: Player 1 uses action 1 to move from "Downtown" to "University" (Location System validates adjacency), then uses action 2 to Investigate requiring 2 dice successes (Action System calls Dice Resolution). Dice results: Success, Blank, Tentacle. Investigation fails due to insufficient successes (Resource Tracking - no clue gained), Tentacle result increments global doom counter by 1 (Doom Counter system). Turn advances to Player 2. All connected clients receive updated game state showing new player location, unchanged resources, and increased doom level within 500ms.

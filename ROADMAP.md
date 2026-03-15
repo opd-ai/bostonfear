@@ -385,9 +385,9 @@ in `RULES.md`.
    rationale.
 3. The rules-compliance test suite passes with `go test ./...` and covers all ten
    rule systems listed above.
-4. A full 2-player game can be played through to a win or loss condition following
+4. A full 1–6 player game can be played through to a win or loss condition following
    AH3e turn structure (Investigator Phase → Mythos Phase) without manual
-   workarounds.
+   workarounds. Players may join a game already in progress.
 
 ---
 

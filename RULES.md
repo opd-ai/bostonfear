@@ -16,7 +16,7 @@
 | Investigator Defeat (health OR sanity = 0) | ✅ | ⚠️ Partial (no "lost in time and space" state, no recovery) | ❌ None | New gap — GAPS.md §4 |
 | Scenario System (codex, setup, victory/defeat) | ✅ | ❌ Not implemented (simple clue-threshold win only) | ❌ None | New gap — GAPS.md §4 |
 | Modular Difficulty Settings | ✅ | ❌ Not implemented | ❌ None | New gap — GAPS.md §4 |
-| 1–6 Player Support | ✅ | ❌ Partial (2–4 players only) | ❌ None | New gap — GAPS.md §4 |
+| 1–6 Player Support | ✅ | ✅ (1–6 players, join-in-progress) | ❌ None | — |
 
 **Legend**: ✅ = Complete, ⚠️ = Partial, ❌ = Missing/None
 

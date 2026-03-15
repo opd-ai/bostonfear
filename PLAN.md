@@ -45,7 +45,7 @@ Before any Ebitengine work begins, the following conditions must be true:
 2. **`go vet ./...` passes** with zero warnings on `cmd/server/`
 3. **`go test ./...` passes** — all existing tests green
 4. **`go.sum` is clean** — `go mod tidy` produces no diff
-5. **Legacy client functional** — `client/index.html` + `client/game.js` can complete a full 2-player game against the server (manual smoke test)
+5. **Legacy client functional** — `client/index.html` + `client/game.js` can complete a solo or multi-player game against the server (manual smoke test)
 
 ### Acceptance Criteria
 

@@ -1,6 +1,6 @@
 # Arkham Horror - Multiplayer Game
 
-A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and a Go/Ebitengine game client supporting desktop, web (WASM), and mobile platforms with 2-4 concurrent players.
+A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and a Go/Ebitengine game client supporting desktop, web (WASM), and mobile platforms with 1-6 concurrent players. Players can join a game already in progress.
 
 > **Migration in progress:** The client is being migrated from HTML/JS canvas to
 > Go/Ebitengine. See `ROADMAP.md` for the phased plan. The WebSocket server and its
@@ -16,7 +16,8 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 5. **Dice Resolution**: 3-sided dice (Success/Blank/Tentacle) with configurable difficulty thresholds
 
 ### Multiplayer Features
-- Support for 2-4 concurrent players
+- Support for 1-6 concurrent players (AH3e core rulebook range)
+- Join a game already in progress — late joiners enter the turn rotation automatically
 - Real-time game state synchronization
 - Turn-based gameplay with action validation
 - Automatic reconnection handling
@@ -99,7 +100,7 @@ Each player gets 2 actions per turn:
 - **Tentacle** (🐙): Increases Doom counter by 1
 
 ### Win/Lose Conditions
-- **Win**: Collectively gather **4 clues per investigator** before doom reaches 12 (8 clues for 2 players, 12 for 3 players, 16 for 4 players)
+- **Win**: Collectively gather **4 clues per investigator** before doom reaches 12 (4 clues for 1 player, 8 for 2, 12 for 3, 16 for 4, 20 for 5, 24 for 6)
 - **Lose**: Doom counter reaches 12
 
 ### Connection Behaviour
@@ -201,7 +202,7 @@ bostonfear/
 1. Start the server
 2. Open multiple browser tabs/windows to `http://localhost:8080`
 3. Each tab represents a different player
-4. Game starts automatically with 2+ players
+4. Game starts automatically when the first player connects; additional players may join at any time
 
 ## Game Flow Example
 
@@ -214,7 +215,7 @@ bostonfear/
 7. **All clients** receive updated game state within 500ms
 
 ## Performance Standards
-- Maintains stable operation with 4 concurrent players
+- Maintains stable operation with 6 concurrent players
 - Supports continuous gameplay for 15+ minutes
 - Sub-500ms state synchronization across all clients
 - Automatic handling of connection drops with 30-second timeout
