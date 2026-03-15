@@ -99,6 +99,7 @@ Produce native desktop binaries for Linux, macOS, and Windows from a single
   - Parse `-server` flag (default `ws://localhost:8080/ws`).
   - Instantiate the `client/ebiten` game, pass server URL.
   - Call `ebiten.RunGame(game)`.
+  - The character selection UI follows the UX specification in `CLIENT_SPEC.md` Section 3 (Character Selection).
 - Add a `Makefile` (or document `go build` invocations) for the platform targets:
   ```makefile
   build-linux:
@@ -250,6 +251,9 @@ mobile binding tool) and `gomobile`.
    platforms.
 4. The mobile client connects to the server over the network and synchronizes state
    with desktop and WASM clients in the same game.
+
+> **Note:** `CLIENT_SPEC.md` defines the baseline screen/scene contract that any
+> future mobile client must implement.
 
 ---
 
