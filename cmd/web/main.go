@@ -16,14 +16,14 @@ import (
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	ebitenclient "github.com/opd-ai/bostonfear/client/ebiten"
+	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
 )
 
 func main() {
 	serverURL := resolveServerURL()
 	log.Printf("web: connecting to %s", serverURL)
 
-	game := ebitenclient.NewGame(serverURL)
+	game := ebapp.NewGame(serverURL)
 
 	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Arkham Horror")

@@ -1,14 +1,9 @@
-//go:build ignore
-
-// This file is superseded by client/ebiten/app/input.go which lives in its own
-// package so that the parent client/ebiten package can be tested in headless
-// environments without triggering the Ebitengine GLFW initialisation.
-
-package ebiten
+package app
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 )
 
 // actionKey maps a keyboard key to the action string sent to the server.
@@ -36,12 +31,12 @@ var keyBindings = []actionKey{
 // InputHandler processes keyboard input each frame and sends actions to the server.
 // It is safe for use from the Ebitengine Update loop (single goroutine).
 type InputHandler struct {
-	net   *NetClient
-	state *LocalState
+	net   *ebclient.NetClient
+	state *ebclient.LocalState
 }
 
 // NewInputHandler creates an InputHandler wired to the given client and state.
-func NewInputHandler(net *NetClient, state *LocalState) *InputHandler {
+func NewInputHandler(net *ebclient.NetClient, state *ebclient.LocalState) *InputHandler {
 	return &InputHandler{net: net, state: state}
 }
 
@@ -56,7 +51,7 @@ func (h *InputHandler) Update() {
 
 	for _, kb := range keyBindings {
 		if inpututil.IsKeyJustPressed(kb.key) {
-			h.net.SendAction(PlayerActionMessage{
+			h.net.SendAction(ebclient.PlayerActionMessage{
 				Type:     "playerAction",
 				PlayerID: playerID,
 				Action:   kb.action,

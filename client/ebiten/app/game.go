@@ -1,10 +1,11 @@
-//go:build ignore
-
-// This file is superseded by client/ebiten/app/game.go which lives in its own
-// package so that the parent client/ebiten package can be tested in headless
-// environments without triggering the Ebitengine GLFW initialisation.
-
-package ebiten
+// Package app implements the Ebitengine game loop for the Arkham Horror client.
+// It wires together LocalState, NetClient, InputHandler, and the layered
+// Compositor into an ebiten.Game implementation. cmd/desktop, cmd/web, and
+// cmd/mobile all call NewGame to obtain a ready-to-run game object.
+//
+// This package is separated from the parent client/ebiten package so that the
+// pure network/state logic in that package can be tested without a display.
+package app
 
 import (
 	"fmt"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/client/ebiten/render"
 )
 
@@ -23,7 +25,7 @@ const (
 
 // locationRects maps each location name to its board rectangle (x, y, w, h).
 // The layout places four neighbourhoods in a 2×2 grid with gutters.
-var locationRects = map[Location]struct{ x, y, w, h int }{
+var locationRects = map[ebclient.Location]struct{ x, y, w, h int }{
 	"Downtown":   {40, 60, 160, 100},
 	"University": {220, 60, 160, 100},
 	"Rivertown":  {40, 220, 160, 100},
@@ -31,7 +33,7 @@ var locationRects = map[Location]struct{ x, y, w, h int }{
 }
 
 // locationColours assigns a distinct background colour to each neighbourhood.
-var locationColours = map[Location]color.RGBA{
+var locationColours = map[ebclient.Location]color.RGBA{
 	"Downtown":   {R: 60, G: 80, B: 140, A: 255},
 	"University": {R: 60, G: 120, B: 80, A: 255},
 	"Rivertown":  {R: 120, G: 60, B: 60, A: 255},
@@ -53,8 +55,8 @@ var playerColours = []color.RGBA{
 // The layered renderer composites board, tokens, effects, UI, and animations in
 // correct z-order every frame.
 type Game struct {
-	state    *LocalState
-	net      *NetClient
+	state    *ebclient.LocalState
+	net      *ebclient.NetClient
 	input    *InputHandler
 	renderer *render.Compositor
 }
@@ -62,8 +64,8 @@ type Game struct {
 // NewGame creates a Game connected to the given server URL.
 // Call ebiten.RunGame(game) to start the event loop.
 func NewGame(serverURL string) *Game {
-	state := NewLocalState(serverURL)
-	net := NewNetClient(state)
+	state := ebclient.NewLocalState(serverURL)
+	net := ebclient.NewNetClient(state)
 	input := NewInputHandler(net, state)
 	net.Connect()
 	return &Game{
@@ -114,7 +116,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 // enqueueBoard adds one board-layer draw command per location.
-func (g *Game) enqueueBoard(gs GameState) {
+func (g *Game) enqueueBoard(gs ebclient.GameState) {
 	for loc, rect := range locationRects {
 		g.renderer.Enqueue(render.LayerBoard, render.DrawCmd{
 			Sprite: render.LocationSpriteID(string(loc)),
@@ -126,8 +128,8 @@ func (g *Game) enqueueBoard(gs GameState) {
 }
 
 // enqueueTokens adds token-layer draw commands for each connected player.
-func (g *Game) enqueueTokens(gs GameState, myID string) {
-	occupants := make(map[Location]int) // count tokens per location for offset
+func (g *Game) enqueueTokens(gs ebclient.GameState, myID string) {
+	occupants := make(map[ebclient.Location]int) // count tokens per location for offset
 	for i, pid := range gs.TurnOrder {
 		p, ok := gs.Players[pid]
 		if !ok || !p.Connected {
@@ -152,7 +154,7 @@ func (g *Game) enqueueTokens(gs GameState, myID string) {
 }
 
 // enqueueDoomEffect adds an effect-layer doom-marker segment scaled to doom level.
-func (g *Game) enqueueDoomEffect(gs GameState) {
+func (g *Game) enqueueDoomEffect(gs ebclient.GameState) {
 	if gs.Doom <= 0 {
 		return
 	}
@@ -175,9 +177,9 @@ func (g *Game) drawConnectionBanner(screen *ebiten.Image, connected bool) {
 }
 
 // drawLocations renders the four neighbourhood rectangles with any player tokens.
-func (g *Game) drawLocations(screen *ebiten.Image, gs GameState, myID string) {
+func (g *Game) drawLocations(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	// Build a map from location → list of player IDs present there.
-	occupants := make(map[Location][]string)
+	occupants := make(map[ebclient.Location][]string)
 	for _, pid := range gs.TurnOrder {
 		if p, ok := gs.Players[pid]; ok && p.Connected {
 			occupants[p.Location] = append(occupants[p.Location], pid)
@@ -210,7 +212,7 @@ func (g *Game) drawLocations(screen *ebiten.Image, gs GameState, myID string) {
 }
 
 // drawDoomCounter renders the global doom track (0–12) on the right side.
-func (g *Game) drawDoomCounter(screen *ebiten.Image, gs GameState) {
+func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("DOOM: %d / 12", gs.Doom), 420, 60)
 
 	// Draw a simple bar.
@@ -221,7 +223,7 @@ func (g *Game) drawDoomCounter(screen *ebiten.Image, gs GameState) {
 }
 
 // drawPlayerPanel renders resource levels for all players on the right side.
-func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs GameState, myID string) {
+func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	y := 110
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Phase: %s", gs.GamePhase), 420, y)
 	y += 14
@@ -278,7 +280,7 @@ func (g *Game) drawEventLog(screen *ebiten.Image) {
 }
 
 // drawInputHints renders the keyboard shortcut legend in the lower-left corner.
-func (g *Game) drawInputHints(screen *ebiten.Image, gs GameState, myID string) {
+func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	y := screenHeight - 130
 	ebitenutil.DebugPrintAt(screen, "── Controls ──", 10, y)
 	y += 12

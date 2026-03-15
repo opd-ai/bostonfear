@@ -14,7 +14,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	ebitenclient "github.com/opd-ai/bostonfear/client/ebiten"
+	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 		"WebSocket server URL (e.g. ws://host:port/ws)")
 	flag.Parse()
 
-	game := ebitenclient.NewGame(*serverURL)
+	game := ebapp.NewGame(*serverURL)
 
 	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Arkham Horror — Ebitengine Client")

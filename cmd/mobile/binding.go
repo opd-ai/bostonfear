@@ -16,7 +16,7 @@ package mobile
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/mobile"
-	ebitenclient "github.com/opd-ai/bostonfear/client/ebiten"
+	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
 )
 
 // defaultServerURL is the WebSocket server URL used when none is set explicitly.
@@ -34,7 +34,7 @@ func SetServerURL(url string) {
 // init registers the game with Ebitengine's mobile runner.
 // ebitenmobile calls init() on the binding package after loading.
 func init() {
-	game := ebitenclient.NewGame(serverURL)
+	game := ebapp.NewGame(serverURL)
 	mobile.SetGame(game)
 }
 
