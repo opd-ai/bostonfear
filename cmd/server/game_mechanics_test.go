@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"net"
 	"testing"
 )
 
@@ -557,4 +558,33 @@ gs.mutex.Unlock()
 if gs.gameState.CurrentPlayer != p1ID {
 t.Errorf("expected CurrentPlayer to stay %s; got %s", p1ID, gs.gameState.CurrentPlayer)
 }
+}
+
+// TestHandlePlayerDisconnect exercises the handlePlayerDisconnect helper to
+// verify map cleanup and turn advancement under the extracted method.
+func TestHandlePlayerDisconnect_MapsCleanedUp(t *testing.T) {
+	t.Parallel()
+	gs, p1ID := newTestServer(t)
+	addPlayer(gs, "p2", true)
+
+	// Use a ConnectionWrapper as a net.Conn stand-in for the maps.
+	addrStr := "127.0.0.1:12345"
+	var stub net.Conn = &ConnectionWrapper{}
+	gs.connections[addrStr] = stub
+	gs.playerConns[p1ID] = stub
+
+	gs.handlePlayerDisconnect(p1ID, addrStr)
+
+	// Connection maps must be empty after disconnect.
+	if _, ok := gs.connections[addrStr]; ok {
+		t.Error("connections map entry not removed")
+	}
+	if _, ok := gs.playerConns[p1ID]; ok {
+		t.Error("playerConns map entry not removed")
+	}
+
+	// Turn must have advanced to p2.
+	if gs.gameState.CurrentPlayer == p1ID {
+		t.Error("turn not advanced after current player disconnected via handlePlayerDisconnect")
+	}
 }

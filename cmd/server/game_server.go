@@ -605,8 +605,14 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 		gs.actionCh <- actionMsg
 	}
 
-	// Handle disconnection: mark the player as disconnected and, if they held
-	// the current turn, advance it so the game never stalls (GAP-03).
+	gs.handlePlayerDisconnect(playerID, conn.RemoteAddr().String())
+	return nil
+}
+
+// handlePlayerDisconnect cleans up all state for a disconnecting player.
+// If the player held the current turn the turn is advanced so the game never
+// stalls (fixes GAP-03).
+func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
 	gs.mutex.Lock()
 	if player, exists := gs.gameState.Players[playerID]; exists {
 		player.Connected = false
@@ -616,15 +622,10 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 	}
 	gs.mutex.Unlock()
 
-	// Track disconnection for performance monitoring
 	gs.trackConnection("disconnect", playerID, 0)
 	gs.trackPlayerSession(playerID, "end")
-
-	// Cleanup connection quality monitoring
 	gs.cleanupConnectionQuality(playerID)
 
-	// Remove connections under mutex to prevent concurrent map reads/writes.
-	addrStr := conn.RemoteAddr().String()
 	gs.mutex.Lock()
 	delete(gs.connections, addrStr)
 	delete(gs.wsConns, addrStr)
@@ -632,8 +633,6 @@ func (gs *GameServer) handleConnection(conn net.Conn) error {
 	gs.mutex.Unlock()
 
 	gs.broadcastGameState()
-
-	return nil
 }
 
 // handleWebSocket handles WebSocket upgrade and connection setup
