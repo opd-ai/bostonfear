@@ -411,6 +411,52 @@ func TestRulesActAgendaProgression(t *testing.T) {
 			t.Error("doom threshold reached should trigger lose condition (agenda exhausted)")
 		}
 	})
+
+	t.Run("MidGameAct2Advancement", func(t *testing.T) {
+		// Three-card act deck; collecting enough clues for Act 2 advances the
+		// deck without triggering the win condition.
+		gs, _ := newTestServer(t)
+		gs.gameState.ActDeck = []ActCard{
+			{Title: "Act 1", ClueThreshold: 3, Effect: "advance"},
+			{Title: "Act 2", ClueThreshold: 7, Effect: "advance"},
+			{Title: "Act 3", ClueThreshold: 12, Effect: "victory"},
+		}
+		gs.gameState.Players["p1"].Resources.Clues = 5
+
+		gs.checkGameEndConditions()
+
+		// Act 1 threshold (3) was met — Act 2 should now be the front card.
+		if len(gs.gameState.ActDeck) != 2 {
+			t.Fatalf("expected 2 act cards remaining after Act 1 advance; got %d", len(gs.gameState.ActDeck))
+		}
+		if gs.gameState.ActDeck[0].Title != "Act 2" {
+			t.Errorf("expected Act 2 to be current; got %q", gs.gameState.ActDeck[0].Title)
+		}
+		// Game should still be in progress.
+		if gs.gameState.WinCondition {
+			t.Error("win condition should NOT be set while act cards remain")
+		}
+	})
+
+	t.Run("AgendaDefeatAtDoom8", func(t *testing.T) {
+		// Two-card agenda deck: card 1 threshold 5, card 2 threshold 8.
+		// Doom=8 should advance past card 1 (threshold 5) and then exhaust card 2.
+		gs, _ := newTestServer(t)
+		gs.gameState.AgendaDeck = []AgendaCard{
+			{Title: "Agenda 1", DoomThreshold: 5, Effect: "advance"},
+			{Title: "Agenda 2", DoomThreshold: 8, Effect: "lose"},
+		}
+		gs.gameState.Doom = 8
+
+		gs.checkGameEndConditions()
+
+		if !gs.gameState.LoseCondition {
+			t.Error("doom=8 with two-card agenda (thresholds 5, 8) should trigger lose condition")
+		}
+		if gs.gameState.GamePhase != "ended" {
+			t.Errorf("game phase should be ended; got %q", gs.gameState.GamePhase)
+		}
+	})
 }
 
 // --- TestRulesDefeatRecovery ---

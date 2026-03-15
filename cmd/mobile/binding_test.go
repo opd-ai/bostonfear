@@ -1,7 +1,11 @@
 // Package mobile — smoke tests for the mobile binding entry point.
 //
-// Require DISPLAY=:99 (or equivalent) in headless CI environments because
-// the package init() wires Ebitengine, which initialises GLFW.
+// These tests only build on Android and iOS because mobile.SetGame panics
+// on non-mobile platforms (enforced by ebitengine's mobile package). Run in CI
+// with an Android emulator or iOS simulator to validate the mobile binding wiring.
+//
+//go:build android || ios
+
 package mobile
 
 import (

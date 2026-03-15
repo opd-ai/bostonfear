@@ -4,9 +4,71 @@
 package ebiten
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
+
+// sessionFile is the JSON structure for the persisted session file.
+type sessionFile struct {
+	Token string `json:"token"`
+}
+
+// tokenPath returns the path to the persisted session file:
+// ~/.bostonfear/session.json
+func tokenPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".bostonfear", "session.json"), nil
+}
+
+// LoadTokenFromFile reads the reconnect token from the session file.
+// If the file does not exist, it returns nil without modifying the receiver.
+func (s *LocalState) LoadTokenFromFile() error {
+	path, err := tokenPath()
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var sf sessionFile
+	if err := json.Unmarshal(data, &sf); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.ReconnectToken = sf.Token
+	s.mu.Unlock()
+	return nil
+}
+
+// SaveTokenToFile persists the current reconnect token to the session file.
+// It creates the directory if it does not already exist.
+func (s *LocalState) SaveTokenToFile() error {
+	path, err := tokenPath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	s.mu.RLock()
+	sf := sessionFile{Token: s.ReconnectToken}
+	s.mu.RUnlock()
+	data, err := json.Marshal(sf)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o600)
+}
 
 // Location mirrors the server's Location type for JSON decoding.
 type Location string
@@ -122,8 +184,10 @@ type LocalState struct {
 }
 
 // NewLocalState creates an initialised LocalState ready for use.
+// It attempts to restore a previously persisted reconnect token from
+// ~/.bostonfear/session.json; missing or unreadable files are silently ignored.
 func NewLocalState(serverURL string) *LocalState {
-	return &LocalState{
+	ls := &LocalState{
 		ServerURL: serverURL,
 		Game: GameState{
 			Players:   make(map[string]*Player),
@@ -131,6 +195,9 @@ func NewLocalState(serverURL string) *LocalState {
 		},
 		EventLog: make([]EventLogEntry, 0, 20),
 	}
+	// Restore persisted token; ignore missing-file errors.
+	_ = ls.LoadTokenFromFile()
+	return ls
 }
 
 // UpdateGame replaces the full game state with the latest server snapshot.
@@ -187,11 +254,13 @@ func (s *LocalState) SetPlayerID(id string) {
 	s.PlayerID = id
 }
 
-// SetReconnectToken stores the server-issued reconnect token.
+// SetReconnectToken stores the server-issued reconnect token and persists it to
+// ~/.bostonfear/session.json for recovery across client restarts.
 func (s *LocalState) SetReconnectToken(token string) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.ReconnectToken = token
+	s.mu.Unlock()
+	_ = s.SaveTokenToFile()
 }
 
 // GetReconnectToken returns the current reconnect token, safe for concurrent use.
