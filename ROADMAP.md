@@ -98,12 +98,14 @@ Produce native desktop binaries for Linux, macOS, and Windows from a single
   - Parse `-server` flag (default `ws://localhost:8080/ws`).
   - Instantiate the `client/ebiten` game, pass server URL.
   - Call `ebiten.RunGame(game)`.
-- Add a `Makefile` (or document `go build` invocations) for three targets:
+- Add a `Makefile` (or document `go build` invocations) for the platform targets:
   ```makefile
   build-linux:
-      GOOS=linux GOARCH=amd64 go build -o dist/bostonfear-linux ./cmd/desktop
-  build-macos:
-      GOOS=darwin GOARCH=amd64 go build -o dist/bostonfear-macos ./cmd/desktop
+      GOOS=linux GOARCH=amd64 go build -o dist/bostonfear-linux-amd64 ./cmd/desktop
+  build-macos-amd64:
+      GOOS=darwin GOARCH=amd64 go build -o dist/bostonfear-macos-amd64 ./cmd/desktop
+  build-macos-arm64:
+      GOOS=darwin GOARCH=arm64 go build -o dist/bostonfear-macos-arm64 ./cmd/desktop
   build-windows:
       GOOS=windows GOARCH=amd64 go build -o dist/bostonfear.exe ./cmd/desktop
   ```
@@ -121,11 +123,11 @@ Produce native desktop binaries for Linux, macOS, and Windows from a single
 
 ### Success Criteria
 
-1. `go build ./cmd/desktop` produces a single binary on each of Linux, macOS, and
-   Windows.
+1. `go build ./cmd/desktop` produces a single binary on each of Linux (amd64),
+   macOS (amd64 and arm64), and Windows (amd64).
 2. The binary launches a native window (no browser required), connects to the
    existing Go server, and is fully playable.
-3. All three platform builds pass a manual smoke test: connect, take two actions,
+3. All platform builds pass a manual smoke test: connect, take two actions,
    observe state sync.
 
 ---
@@ -179,8 +181,10 @@ the existing Go server or any static file host.
 ### Success Criteria
 
 1. `GOOS=js GOARCH=wasm go build -o game.wasm ./cmd/web` succeeds.
-2. Opening `client/wasm/index.html` in Chrome, Firefox, or Safari loads the game
-   without plugins.
+2. Serving `client/wasm/` over HTTP (via the Go server at `/play` or any static
+   file server) loads the game in Chrome, Firefox, or Safari without plugins.
+   Note: WASM assets must be served over HTTP(S); `file://` origins are blocked
+   by browser security policies.
 3. The WASM client connects to the server via WebSocket, sends actions, and receives
    state updates identically to the desktop client.
 4. Two browser tabs running the WASM client can play a full game together.

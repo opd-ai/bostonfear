@@ -1,6 +1,10 @@
-# Arkham Horror - Multiplayer Web Game
+# Arkham Horror - Multiplayer Game
 
-A functional multiplayer web implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with Go WebSocket server and JavaScript client supporting 2-4 concurrent players.
+A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and a Go/Ebitengine game client supporting desktop, web (WASM), and mobile platforms with 2-4 concurrent players.
+
+> **Migration in progress:** The client is being migrated from HTML/JS canvas to
+> Go/Ebitengine. See `ROADMAP.md` for the phased plan. The WebSocket server and its
+> protocol remain unchanged throughout the migration.
 
 ## Features
 
@@ -26,7 +30,16 @@ A functional multiplayer web implementation of Arkham Horror featuring investiga
 - **Memory Monitoring**: Garbage collection and memory usage metrics
 - **Error Recovery**: Automated game state validation and corruption detection
 
-## Quick Setup (3 Steps)
+## Build Targets
+
+| Platform | Entrypoint | Build Command | Status |
+|---|---|---|---|
+| **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Planned (ROADMAP Phase 2) |
+| **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o game.wasm ./cmd/web` | Planned (ROADMAP Phase 3) |
+| **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/mobile.go` | `ebitenmobile bind -target android ./cmd/mobile` | Planned (ROADMAP Phase 4) |
+| **Legacy browser** (current) | `client/index.html` | N/A — served by Go server | Active (to be replaced) |
+
+## Quick Setup
 
 ### Step 1: Install Dependencies
 ```bash
@@ -41,12 +54,30 @@ go run .
 ```
 
 ### Step 3: Access Client
-Open your browser and navigate to:
+
+**Legacy browser client** (current — to be replaced by Ebitengine client):
 ```
 http://localhost:8080                # Game client
 http://localhost:8080/dashboard      # Performance monitoring dashboard
 http://localhost:8080/health         # Health check endpoint
 http://localhost:8080/metrics        # Prometheus metrics
+```
+
+**Desktop client** (after ROADMAP Phase 2):
+```bash
+go run ./cmd/desktop -server ws://localhost:8080/ws
+```
+
+**Web WASM client** (after ROADMAP Phase 3):
+```bash
+GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
+# Serve client/wasm/ via HTTP, then open in browser
+```
+
+**Mobile client** (after ROADMAP Phase 4):
+```bash
+ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile
+ebitenmobile bind -target ios -o dist/BostonFear.xcframework ./cmd/mobile
 ```
 
 ## Game Rules
@@ -82,7 +113,15 @@ Each player gets 2 actions per turn:
 - **State Management**: Centralized game state with mutex protection
 - **Error Handling**: Explicit Go-style error checking and propagation
 
-### JavaScript Client Features
+### Ebitengine Client Features (Planned — ROADMAP Phases 1–5)
+- **Sprite/Layer Rendering**: Board, tokens, UI overlays, and animations via Ebitengine draw layers
+- **Platform Input Handling**: Keyboard/mouse (desktop), touch (mobile), pointer events (WASM)
+- **Multi-Resolution Support**: Logical 1280×720 resolution scaled to any display; safe-area insets on mobile
+- **Shader Effects**: Kage shaders for fog-of-war, doom vignette, and interactive highlights
+- **WASM Compatibility**: Same Go codebase compiled to WebAssembly for browser play
+- **WebSocket Connection**: Automatic reconnection with 5-second retry (same protocol as legacy client)
+
+### Legacy JavaScript Client (Current — to be replaced)
 - **WebSocket Connection**: Automatic reconnection with exponential backoff
 - **Canvas Rendering**: 800x600px game board with location visualization
 - **Real-time Updates**: Live game state synchronization
@@ -110,18 +149,52 @@ Each player gets 2 actions per turn:
 
 ### Project Structure
 ```
-/workspaces/bostonfear/
-├── cmd/server/main.go      # Go WebSocket server entry point
-├── cmd/server/             # Server package (game logic, types, utils)
-├── client/index.html       # HTML game interface
-├── client/game.js          # JavaScript game client
+bostonfear/
+├── cmd/
+│   ├── server/             # Go WebSocket server entry point + game logic
+│   │   ├── main.go
+│   │   ├── game_server.go
+│   │   ├── types.go
+│   │   ├── constants.go
+│   │   ├── utils.go
+│   │   ├── connection_wrapper.go
+│   │   ├── error_recovery.go
+│   │   └── *_test.go
+│   ├── desktop/            # (Planned — Phase 2) Desktop entrypoint
+│   │   └── main.go
+│   ├── web/                # (Planned — Phase 3) WASM entrypoint
+│   │   └── main.go
+│   └── mobile/             # (Planned — Phase 4) Mobile entrypoint
+│       └── mobile.go
+├── client/
+│   ├── ebiten/             # (Planned — Phase 1) Ebitengine client package
+│   │   ├── game.go         #   ebiten.Game implementation
+│   │   ├── net.go          #   WebSocket client
+│   │   ├── state.go        #   Local state mirror
+│   │   ├── input.go        #   Input handling
+│   │   └── render/         # (Planned — Phase 5) Rendering subsystem
+│   │       ├── atlas.go
+│   │       ├── layers.go
+│   │       └── shaders/
+│   ├── wasm/               # (Planned — Phase 3) WASM host files
+│   │   └── index.html
+│   ├── index.html          # Legacy HTML game interface (to be replaced)
+│   ├── game.js             # Legacy JavaScript game client (to be replaced)
+│   └── dashboard.html      # Performance monitoring dashboard
 ├── go.mod                  # Go module dependencies
+├── go.sum
+├── ROADMAP.md              # Phased migration plan (Ebitengine + AH3e compliance)
+├── PLAN.md                 # Implementation plan for current gaps + migration
+├── GAPS.md                 # Known implementation gaps with status
+├── RULES.md                # AH3e rules engine specification + compliance table
 └── README.md               # This file
 ```
 
 ### Dependencies
-- **Server**: Go 1.24+ with gorilla/websocket
-- **Client**: Modern web browser with HTML5 Canvas and WebSocket support
+- **Server**: Go 1.24+ with `github.com/gorilla/websocket`
+- **Ebitengine Client** (planned): `github.com/hajimehoshi/ebiten/v2` (v2.7+)
+- **Mobile Build** (planned): `ebitenmobile` CLI, `gomobile`, Android SDK (API 29+), Xcode 15+
+- **Legacy Client** (current): Modern web browser with HTML5 Canvas and WebSocket support
 
 ### Testing Multi-player
 1. Start the server
@@ -191,11 +264,12 @@ Comprehensive health checks available at `http://localhost:8080/health`:
 ### Connection Issues
 - Ensure server is running on port 8080
 - Check firewall settings
-- Verify WebSocket support in browser
+- Verify WebSocket support in browser or Ebitengine client connectivity
 
 ### Game State Sync Issues
-- Refresh browser to re-establish connection
-- Check browser console for WebSocket errors
+- Refresh browser to re-establish connection (legacy client)
+- Restart desktop client to reconnect (Ebitengine client)
+- Check browser console or client logs for WebSocket errors
 - Verify all players are using same server instance
 
 ### Performance Issues
