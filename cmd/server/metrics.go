@@ -14,16 +14,18 @@ import (
 // handleMetrics provides Prometheus-compatible metrics export.
 // Game state is snapshotted under a short RLock; serialization happens outside the lock.
 func (gs *GameServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	// Snapshot required fields under a short read lock.
+	// Snapshot the only game-state fields needed here under a single short read lock.
+	// All helper calls that may themselves acquire gs.mutex happen AFTER this block.
 	gs.mutex.RLock()
 	doom := gs.gameState.Doom
+	gs.mutex.RUnlock()
+
 	uptime := time.Since(gs.startTime)
 	perfMetrics := gs.collectPerformanceMetrics()
 	connAnalytics := gs.collectConnectionAnalytics()
 	memMetrics := gs.collectMemoryMetrics()
 	gcMetrics := gs.collectGCMetrics()
 	throughput := gs.collectMessageThroughput(uptime)
-	gs.mutex.RUnlock()
 
 	// Set content type for Prometheus metrics
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")

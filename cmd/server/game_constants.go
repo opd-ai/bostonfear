@@ -30,7 +30,7 @@ const (
 	ActionFocus       ActionType = "focus"
 	ActionResearch    ActionType = "research"
 	ActionTrade       ActionType = "trade"
-	ActionComponent   ActionType = "component"
+	ActionComponent   ActionType = "component" // Reserved: per-investigator abilities (Phase 6, ROADMAP.md)
 	ActionEncounter   ActionType = "encounter"
 )
 

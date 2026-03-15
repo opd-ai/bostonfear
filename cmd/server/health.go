@@ -15,7 +15,8 @@ import (
 // handleHealthCheck provides a health monitoring endpoint.
 // Game state is snapshotted under a short RLock; serialization happens outside the lock.
 func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	// Snapshot required fields under a short read lock.
+	// Snapshot required game-state fields under a single short read lock.
+	// All helper calls that touch gs.mutex must happen AFTER this block.
 	gs.mutex.RLock()
 	isHealthy := gs.validator.IsGameStateHealthy(gs.gameState)
 	playerCount := len(gs.gameState.Players)
@@ -24,11 +25,14 @@ func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 	gamePhase := gs.gameState.GamePhase
 	doom := gs.gameState.Doom
 	gameStarted := gs.gameState.GameStarted
+	gs.mutex.RUnlock()
+
+	// Helpers below may acquire their own locks (performanceMutex or gs.mutex).
+	// Calling them outside gs.mutex prevents nested-RLock deadlock under write pressure.
 	perfMetrics := gs.collectPerformanceMetrics()
 	connAnalytics := gs.collectConnectionAnalytics()
 	gameStats := gs.getGameStatistics()
 	alerts := gs.getSystemAlerts()
-	gs.mutex.RUnlock()
 
 	// Compute derived fields outside the lock.
 	recentCorruptions := 0
@@ -100,17 +104,12 @@ func (gs *GameServer) validateAndRecoverState() {
 	}
 }
 
-// measureHealthCheckResponseTime measures the response time of health check operations
+// measureHealthCheckResponseTime measures the response time of health check operations.
+// Uses only lock-free atomic reads so it is safe to call while gs.mutex is held or not held.
 func (gs *GameServer) measureHealthCheckResponseTime() float64 {
 	start := time.Now()
-
-	// Simulate health check operations
-	gs.mutex.RLock()
-	_ = len(gs.gameState.Players)
-	_ = len(gs.connections)
-	gs.mutex.RUnlock()
-
-	// Return response time in milliseconds
+	// Read an atomic counter — no mutex required, no deadlock risk.
+	_ = atomic.LoadInt64(&gs.activeConnections)
 	return float64(time.Since(start).Nanoseconds()) / 1000000
 }
 
@@ -228,21 +227,22 @@ func (gs *GameServer) getSystemAlerts() []map[string]interface{} {
 		})
 	}
 
-	// Game state alerts
+	// Game state alerts: capture doom under a lock, then use the snapshot below.
 	gs.mutex.RLock()
-	doomPercent := float64(gs.gameState.Doom) / 12.0 * 100
+	doom := gs.gameState.Doom
+	doomPercent := float64(doom) / 12.0 * 100
 	gs.mutex.RUnlock()
 
 	if doomPercent > 80 {
 		alerts = append(alerts, map[string]interface{}{
 			"type":     "error",
-			"message":  fmt.Sprintf("Critical doom level: %d/12 (%.0f%%)", gs.gameState.Doom, doomPercent),
+			"message":  fmt.Sprintf("Critical doom level: %d/12 (%.0f%%)", doom, doomPercent),
 			"severity": "critical",
 		})
 	} else if doomPercent > 60 {
 		alerts = append(alerts, map[string]interface{}{
 			"type":     "warning",
-			"message":  fmt.Sprintf("High doom level: %d/12 (%.0f%%)", gs.gameState.Doom, doomPercent),
+			"message":  fmt.Sprintf("High doom level: %d/12 (%.0f%%)", doom, doomPercent),
 			"severity": "medium",
 		})
 	}

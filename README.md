@@ -206,6 +206,26 @@ bostonfear/
 3. Each tab represents a different player
 4. Game starts automatically when the first player connects; additional players may join at any time
 
+### Running Tests
+
+**Standard tests** (no display required — CI-safe):
+```bash
+go test -race ./...
+```
+
+**Ebitengine display tests** (require a local display / virtual framebuffer):
+```bash
+go test -race -tags=requires_display ./client/ebiten/app/... ./client/ebiten/render/...
+```
+These tests are guarded by the `requires_display` build tag and are skipped by the
+standard `go test ./...` invocation. They verify Ebitengine `App` initialisation,
+renderer atlas logic, and nil-safety paths. Run them locally with a real or virtual
+display (`Xvfb` on Linux):
+```bash
+Xvfb :99 -screen 0 1280x720x24 &
+DISPLAY=:99 go test -race -tags=requires_display ./client/ebiten/app/... ./client/ebiten/render/...
+```
+
 ## Game Flow Example
 
 1. **Player 1** moves from Downtown to University (Location System validates adjacency)

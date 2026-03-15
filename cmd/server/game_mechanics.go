@@ -166,8 +166,6 @@ func (gs *GameServer) dispatchAction(action PlayerActionMessage, player *Player)
 		diceResult, doomIncrease, actionResult = gs.performResearch(player, action.PlayerID, action.FocusSpend)
 	case ActionTrade:
 		actionErr = gs.performTrade(action.PlayerID, action.Target)
-	case ActionComponent:
-		actionErr = gs.performComponent(player, action.PlayerID)
 	case ActionEncounter:
 		actionErr = gs.performEncounter(player, action.PlayerID)
 	}
@@ -336,15 +334,6 @@ func (gs *GameServer) performTrade(fromID, toID string) error {
 	from.Resources.Clues--
 	to.Resources.Clues = min(to.Resources.Clues+1, MaxClues)
 	return nil
-}
-
-// performComponent is a stub for investigator-specific component abilities
-// (AH3e §Component Action). Full implementation requires per-investigator ability
-// tables; returns ErrNotImplemented until those are added.
-// Caller must hold gs.mutex.
-func (gs *GameServer) performComponent(_ *Player, playerID string) error {
-	// TODO: implement per-investigator component abilities (Phase 6 final polish)
-	return fmt.Errorf("component action for player %s: not yet implemented", playerID)
 }
 
 // performEncounter draws the top card from the player's current location encounter

@@ -176,41 +176,6 @@ func (g *Game) drawConnectionBanner(screen *ebiten.Image, connected bool) {
 	ebitenutil.DebugPrintAt(screen, "[ Connecting to server… ]", screenWidth/2-90, 8)
 }
 
-// drawLocations renders the four neighbourhood rectangles with any player tokens.
-func (g *Game) drawLocations(screen *ebiten.Image, gs ebclient.GameState, myID string) {
-	// Build a map from location → list of player IDs present there.
-	occupants := make(map[ebclient.Location][]string)
-	for _, pid := range gs.TurnOrder {
-		if p, ok := gs.Players[pid]; ok && p.Connected {
-			occupants[p.Location] = append(occupants[p.Location], pid)
-		}
-	}
-
-	for loc, rect := range locationRects {
-		bg := locationColours[loc]
-		// Highlight the location if we are currently in it.
-		if p, ok := gs.Players[myID]; ok && p.Location == loc {
-			bg.R = min8(bg.R+40, 255)
-			bg.G = min8(bg.G+40, 255)
-		}
-
-		ebitenutil.DrawRect(screen,
-			float64(rect.x), float64(rect.y),
-			float64(rect.w), float64(rect.h),
-			bg)
-
-		ebitenutil.DebugPrintAt(screen, string(loc), rect.x+4, rect.y+4)
-
-		// Draw a small coloured dot for each occupant.
-		for i, pid := range occupants[loc] {
-			col := playerColours[playerColourIndex(pid, gs.TurnOrder)]
-			ebitenutil.DrawRect(screen,
-				float64(rect.x+4+i*14), float64(rect.y+rect.h-16),
-				10, 10, col)
-		}
-	}
-}
-
 // drawDoomCounter renders the global doom track (0–12) on the right side.
 func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("DOOM: %d / 12", gs.Doom), 420, 60)

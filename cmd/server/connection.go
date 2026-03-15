@@ -105,6 +105,12 @@ func (gs *GameServer) registerPlayer(conn net.Conn) (string, error) {
 		}
 	} else if gs.gameState.GameStarted && gs.gameState.GamePhase == "playing" {
 		log.Printf("Player %s joined game in progress (turn order position %d)", playerID, len(gs.gameState.TurnOrder))
+		// Rescale act-deck win thresholds to include the new investigator
+		// (4 clues/investigator per README win table). Without this, a late join
+		// leaves the threshold at the original player count's value.
+		if len(gs.gameState.ActDeck) >= 3 {
+			gs.rescaleActDeck(len(gs.gameState.Players))
+		}
 	}
 
 	return playerID, nil
