@@ -1,15 +1,20 @@
-# Implementation Gaps — 2026-03-15
+# Implementation Gaps — 2026-06-01 (updated)
 
 > This file covers gaps between the project's stated goals (README, RULES.md,
 > CLIENT_SPEC.md, ROADMAP.md) and the current implementation, ordered by severity.
-> Cross-reference with `AUDIT.md` for full evidence and remediation commands.
 >
 > **Previous-cycle gaps resolved since the last report:**
 > GAP-11 (handleConnection unbalanced RUnlock), GAP-12 (performComponent always
 > errors), GAP-13 (win condition player-count scaling), GAP-14 (JS localStorage
-> token), GAP-15 (gs.connections wrong mutex), GAP-16 (app/render test files) are
-> all closed or substantially addressed. See `AUDIT.md §Previous-Cycle Findings`
-> for details.
+> token), GAP-15 (gs.connections wrong mutex), GAP-16 (app/render test files),
+> GAP-17 (/health+/metrics nested RLock deadlock), GAP-18 (gs.gameState.Doom
+> unlocked read), GAP-19 (win threshold not rescaled on late join),
+> GAP-20 (ActionComponent dead code — promoted to live feature),
+> GAP-21 (Ebitengine tests skipped — documented in README; display-independent
+> tests blocked by GLFW init() panic, tracked as open below).
+>
+> **No actionable HIGH or MEDIUM gaps remain.** One LOW-severity documentation gap
+> (GAP-21) persists. See summary table below.
 
 ---
 
