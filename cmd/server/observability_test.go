@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -295,5 +298,107 @@ func TestCollectPerformanceMetrics_TotalGamesPlayed(t *testing.T) {
 	metrics := gs.collectPerformanceMetrics()
 	if metrics.TotalGamesPlayed != 2 {
 		t.Errorf("expected TotalGamesPlayed=2, got %d", metrics.TotalGamesPlayed)
+	}
+}
+
+// --- TestHandleHealthCheck_ConcurrentActions (Step 1 acceptance test) ---
+//
+// Spin up 4 goroutines submitting actions through the action channel while
+// concurrently issuing 50 GET /health requests. Validates that the deadlock
+// pattern described in GAP-17 (nested RLock under write pressure) is absent:
+// every health request must return HTTP 200 within the test timeout (10 s).
+func TestHandleHealthCheck_ConcurrentActions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping concurrent integration test in -short mode")
+	}
+
+	gs := NewGameServer()
+	go gs.broadcastHandler()
+	go gs.actionHandler()
+	defer close(gs.shutdownCh)
+
+	// Seed four players so processAction has valid state to work with.
+	for i := 1; i <= 4; i++ {
+		id := fmt.Sprintf("p%d", i)
+		gs.mutex.Lock()
+		gs.gameState.Players[id] = &Player{
+			ID:               id,
+			Location:         Downtown,
+			Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
+			ActionsRemaining: 2,
+			Connected:        true,
+		}
+		gs.gameState.TurnOrder = append(gs.gameState.TurnOrder, id)
+		gs.mutex.Unlock()
+	}
+	gs.mutex.Lock()
+	gs.gameState.GameStarted = true
+	gs.gameState.GamePhase = "playing"
+	gs.gameState.CurrentPlayer = "p1"
+	gs.mutex.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	var wg sync.WaitGroup
+
+	// 4 writer goroutines continuously send Gather actions (cycled through players).
+	for i := 1; i <= 4; i++ {
+		id := fmt.Sprintf("p%d", i)
+		wg.Add(1)
+		go func(pid string) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					// Don't block when shutdownCh is closed.
+					select {
+					case gs.actionCh <- PlayerActionMessage{
+						Type:     "playerAction",
+						PlayerID: pid,
+						Action:   ActionGather,
+					}:
+					case <-gs.shutdownCh:
+						return
+					case <-ctx.Done():
+						return
+					}
+					time.Sleep(5 * time.Millisecond)
+				}
+			}
+		}(id)
+	}
+
+	// 50 sequential /health requests, each must return 200 within the deadline.
+	failures := 0
+	for i := 0; i < 50; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		w := httptest.NewRecorder()
+		done := make(chan struct{})
+		go func() {
+			gs.handleHealthCheck(w, req)
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+			t.Errorf("health request %d timed out (possible deadlock)", i+1)
+			failures++
+			continue
+		}
+		if w.Code != http.StatusOK && w.Code != http.StatusServiceUnavailable {
+			t.Errorf("health request %d: unexpected status %d", i+1, w.Code)
+			failures++
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+
+	cancel() // stop writers
+	wg.Wait()
+
+	if failures > 0 {
+		t.Errorf("%d out of 50 health requests failed or deadlocked", failures)
 	}
 }
