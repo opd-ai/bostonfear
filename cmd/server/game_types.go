@@ -64,10 +64,10 @@ type Player struct {
 	Resources          Resources `json:"resources"`
 	ActionsRemaining   int       `json:"actionsRemaining"`
 	Connected          bool      `json:"connected"`
-	Defeated           bool      `json:"defeated"`             // true when Health or Sanity reaches 0
-	LostInTimeAndSpace bool      `json:"lostInTimeAndSpace"`   // true when investigator is defeated and awaiting recovery
-	ReconnectToken     string    `json:"reconnectToken"`       // opaque token for session restoration
-	DisconnectedAt     time.Time `json:"disconnectedAt"`       // zero value means currently connected
+	Defeated           bool      `json:"defeated"`           // true when Health or Sanity reaches 0
+	LostInTimeAndSpace bool      `json:"lostInTimeAndSpace"` // true when investigator is defeated and awaiting recovery
+	ReconnectToken     string    `json:"reconnectToken"`     // opaque token for session restoration
+	DisconnectedAt     time.Time `json:"disconnectedAt"`     // zero value means currently connected
 }
 
 // Scenario defines the setup and win/lose conditions for a game session.
@@ -130,8 +130,8 @@ type Anomaly struct {
 type GameState struct {
 	Players       map[string]*Player `json:"players"`
 	CurrentPlayer string             `json:"currentPlayer"`
-	Doom          int                `json:"doom"`       // 0-12 doom counter
-	GamePhase     string             `json:"gamePhase"`  // "waiting", "playing", "mythos", "ended"
+	Doom          int                `json:"doom"`      // 0-12 doom counter
+	GamePhase     string             `json:"gamePhase"` // "waiting", "playing", "mythos", "ended"
 	TurnOrder     []string           `json:"turnOrder"`
 	GameStarted   bool               `json:"gameStarted"`
 	WinCondition  bool               `json:"winCondition"`

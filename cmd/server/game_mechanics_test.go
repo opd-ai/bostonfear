@@ -812,122 +812,122 @@ func TestProcessAction_ComponentActionRejected(t *testing.T) {
 // TestDicePool_ZeroFocusNoChange verifies that a focusSpend of 0 behaves like
 // the original rollDice call (no extra dice, no rerolls).
 func TestDicePool_ZeroFocusNoChange(t *testing.T) {
-gs := NewGameServer()
-player := &Player{Resources: Resources{Focus: 2}}
-_, _, _ = gs.rollDicePool(3, 0, player)
-if player.Resources.Focus != 2 {
-t.Errorf("Focus should not be deducted with focusSpend=0; got %d", player.Resources.Focus)
-}
+	gs := NewGameServer()
+	player := &Player{Resources: Resources{Focus: 2}}
+	_, _, _ = gs.rollDicePool(3, 0, player)
+	if player.Resources.Focus != 2 {
+		t.Errorf("Focus should not be deducted with focusSpend=0; got %d", player.Resources.Focus)
+	}
 }
 
 // TestDicePool_FocusSpendDeductsTokens verifies that spending N focus tokens
 // deducts N from the player's focus pool.
 func TestDicePool_FocusSpendDeductsTokens(t *testing.T) {
-gs := NewGameServer()
-player := &Player{Resources: Resources{Focus: 3}}
-gs.rollDicePool(3, 2, player)
-if player.Resources.Focus != 1 {
-t.Errorf("Focus after spending 2 = %d, want 1", player.Resources.Focus)
-}
+	gs := NewGameServer()
+	player := &Player{Resources: Resources{Focus: 3}}
+	gs.rollDicePool(3, 2, player)
+	if player.Resources.Focus != 1 {
+		t.Errorf("Focus after spending 2 = %d, want 1", player.Resources.Focus)
+	}
 }
 
 // TestDicePool_InvalidFocusSpend verifies that spending more focus than available
 // is clamped to what the player actually has (no negative focus).
 func TestDicePool_InvalidFocusSpend(t *testing.T) {
-gs := NewGameServer()
-player := &Player{Resources: Resources{Focus: 1}}
-// Attempt to spend 5 but only 1 is available.
-gs.rollDicePool(3, 5, player)
-if player.Resources.Focus < 0 {
-t.Errorf("Focus must not go negative; got %d", player.Resources.Focus)
-}
+	gs := NewGameServer()
+	player := &Player{Resources: Resources{Focus: 1}}
+	// Attempt to spend 5 but only 1 is available.
+	gs.rollDicePool(3, 5, player)
+	if player.Resources.Focus < 0 {
+		t.Errorf("Focus must not go negative; got %d", player.Resources.Focus)
+	}
 }
 
 // TestDicePool_FocusSpendAddsExtraDice verifies that spending focus adds dice
 // to the pool (the returned results slice is longer than baseDice).
 func TestDicePool_FocusSpendAddsExtraDice(t *testing.T) {
-gs := NewGameServer()
-// Run many times so statistical variance doesn't mask the effect.
-for i := 0; i < 20; i++ {
-player := &Player{Resources: Resources{Focus: 2}}
-results, _, _ := gs.rollDicePool(3, 2, player)
-if len(results) != 5 {
-t.Errorf("expected 5 dice results (3 base + 2 focus); got %d", len(results))
-}
-}
+	gs := NewGameServer()
+	// Run many times so statistical variance doesn't mask the effect.
+	for i := 0; i < 20; i++ {
+		player := &Player{Resources: Resources{Focus: 2}}
+		results, _, _ := gs.rollDicePool(3, 2, player)
+		if len(results) != 5 {
+			t.Errorf("expected 5 dice results (3 base + 2 focus); got %d", len(results))
+		}
+	}
 }
 
 // --- Mythos Phase Tests (Step 9 validation) ---
 
 // TestMythosPhase_DrawsTwoEvents verifies that runMythosPhase places exactly 2 events.
 func TestMythosPhase_DrawsTwoEvents(t *testing.T) {
-gs, _ := newTestServer(t)
-gs.gameState.MythosEventDeck = defaultMythosEventDeck()
-gs.runMythosPhase()
-if len(gs.gameState.MythosEvents) != 2 {
-t.Errorf("expected 2 mythos events; got %d", len(gs.gameState.MythosEvents))
-}
+	gs, _ := newTestServer(t)
+	gs.gameState.MythosEventDeck = defaultMythosEventDeck()
+	gs.runMythosPhase()
+	if len(gs.gameState.MythosEvents) != 2 {
+		t.Errorf("expected 2 mythos events; got %d", len(gs.gameState.MythosEvents))
+	}
 }
 
 // TestMythosPhase_EventSpreadIncrementsDooom verifies doom increments per placed event.
 func TestMythosPhase_EventSpreadIncrementsDooom(t *testing.T) {
-gs, _ := newTestServer(t)
-gs.gameState.MythosEventDeck = defaultMythosEventDeck()
-beforeDoom := gs.gameState.Doom
-gs.runMythosPhase()
-// At minimum doom should have increased (2 events placed = +2, possibly +1 from token).
-if gs.gameState.Doom <= beforeDoom {
-t.Errorf("doom should increase after mythos phase; before=%d after=%d", beforeDoom, gs.gameState.Doom)
-}
+	gs, _ := newTestServer(t)
+	gs.gameState.MythosEventDeck = defaultMythosEventDeck()
+	beforeDoom := gs.gameState.Doom
+	gs.runMythosPhase()
+	// At minimum doom should have increased (2 events placed = +2, possibly +1 from token).
+	if gs.gameState.Doom <= beforeDoom {
+		t.Errorf("doom should increase after mythos phase; before=%d after=%d", beforeDoom, gs.gameState.Doom)
+	}
 }
 
 // TestMythosPhase_TokenDrawAffectsState verifies that drawing a doom token increments doom.
 func TestMythosPhase_TokenDrawAffectsState(t *testing.T) {
-gs, _ := newTestServer(t)
-gs.gameState.MythosEventDeck = []MythosEvent{}
-beforeDoom := gs.gameState.Doom
-gs.resolveMythosToken(MythosTokenDoom)
-if gs.gameState.Doom != beforeDoom+1 {
-t.Errorf("doom token should increment doom by 1; before=%d after=%d", beforeDoom, gs.gameState.Doom)
-}
+	gs, _ := newTestServer(t)
+	gs.gameState.MythosEventDeck = []MythosEvent{}
+	beforeDoom := gs.gameState.Doom
+	gs.resolveMythosToken(MythosTokenDoom)
+	if gs.gameState.Doom != beforeDoom+1 {
+		t.Errorf("doom token should increment doom by 1; before=%d after=%d", beforeDoom, gs.gameState.Doom)
+	}
 }
 
 // TestMythosPhase_StarterCupComposition verifies the default event deck is non-empty.
 func TestMythosPhase_StarterCupComposition(t *testing.T) {
-deck := defaultMythosEventDeck()
-if len(deck) == 0 {
-t.Error("defaultMythosEventDeck should return a non-empty deck")
-}
+	deck := defaultMythosEventDeck()
+	if len(deck) == 0 {
+		t.Error("defaultMythosEventDeck should return a non-empty deck")
+	}
 }
 
 // --- Difficulty Settings Tests (Step 13) ---
 
 func TestDifficulty_EasyStartsDoomAtZero(t *testing.T) {
-gs, _ := newTestServer(t)
-if err := gs.applyDifficulty("easy"); err != nil {
-t.Fatalf("applyDifficulty(easy): %v", err)
-}
-if gs.gameState.Doom != 0 {
-t.Errorf("easy difficulty should start with doom=0; got %d", gs.gameState.Doom)
-}
+	gs, _ := newTestServer(t)
+	if err := gs.applyDifficulty("easy"); err != nil {
+		t.Fatalf("applyDifficulty(easy): %v", err)
+	}
+	if gs.gameState.Doom != 0 {
+		t.Errorf("easy difficulty should start with doom=0; got %d", gs.gameState.Doom)
+	}
 }
 
 func TestDifficulty_HardAddsExtraDoomTokens(t *testing.T) {
-gs, _ := newTestServer(t)
-if err := gs.applyDifficulty("hard"); err != nil {
-t.Fatalf("applyDifficulty(hard): %v", err)
-}
-if gs.gameState.Doom != 3 {
-t.Errorf("hard difficulty should start with doom=3; got %d", gs.gameState.Doom)
-}
-if gs.gameState.Difficulty != "hard" {
-t.Errorf("difficulty should be 'hard'; got %q", gs.gameState.Difficulty)
-}
+	gs, _ := newTestServer(t)
+	if err := gs.applyDifficulty("hard"); err != nil {
+		t.Fatalf("applyDifficulty(hard): %v", err)
+	}
+	if gs.gameState.Doom != 3 {
+		t.Errorf("hard difficulty should start with doom=3; got %d", gs.gameState.Doom)
+	}
+	if gs.gameState.Difficulty != "hard" {
+		t.Errorf("difficulty should be 'hard'; got %q", gs.gameState.Difficulty)
+	}
 }
 
 func TestDifficulty_InvalidDifficultyReturnsError(t *testing.T) {
-gs, _ := newTestServer(t)
-if err := gs.applyDifficulty("impossible"); err == nil {
-t.Error("invalid difficulty should return an error")
-}
+	gs, _ := newTestServer(t)
+	if err := gs.applyDifficulty("impossible"); err == nil {
+		t.Error("invalid difficulty should return an error")
+	}
 }
