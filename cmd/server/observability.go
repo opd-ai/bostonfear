@@ -208,57 +208,52 @@ func buildMemoryMetrics(mem MemoryMetrics, gc GCMetrics) string {
 	return result
 }
 
-// collectPerformanceMetrics gathers comprehensive server performance data
-func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
-	gs.performanceMutex.RLock()
-	defer gs.performanceMutex.RUnlock()
-
-	// Calculate runtime metrics
-	uptime := time.Since(gs.startTime)
-	activeConnections := int(atomic.LoadInt64(&gs.activeConnections))
-
-	// Calculate connections per second — guard against division by zero on startup
-	connectionsPerSecond := 0.0
-	if uptime.Seconds() > 0 {
-		connectionsPerSecond = float64(gs.totalConnections) / uptime.Seconds()
-	}
-
-	// Calculate average session length and active sessions
-	var totalSessionTime time.Duration
-	activeSessions := 0
-	for _, session := range gs.playerSessions {
-		sessionDuration := time.Since(session.SessionStart)
-		totalSessionTime += sessionDuration
-		activeSessions++
-	}
-
-	var avgSessionLength time.Duration
-	if len(gs.playerSessions) > 0 {
-		avgSessionLength = totalSessionTime / time.Duration(len(gs.playerSessions))
-	}
-
-	// Calculate messages per second — guard against division by zero on startup
-	messagesPerSecond := 0.0
-	if uptime.Seconds() > 0 {
-		messagesPerSecond = float64(gs.totalMessagesSent+gs.totalMessagesRecv) / uptime.Seconds()
-	}
-
-	// Collect memory statistics
+// collectMemorySnapshot reads current Go runtime memory statistics.
+// It is goroutine-safe and requires no lock.
+func collectMemorySnapshot() MemoryStats {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	memoryStats := MemoryStats{
+	return MemoryStats{
 		AllocMB:      float64(memStats.Alloc) / 1024 / 1024,
 		TotalAllocMB: float64(memStats.TotalAlloc) / 1024 / 1024,
 		SysMB:        float64(memStats.Sys) / 1024 / 1024,
 		NumGC:        memStats.NumGC,
 		GCPauseMs:    float64(memStats.PauseNs[(memStats.NumGC+255)%256]) / 1000000,
 	}
+}
 
-	// Calculate response time (simplified - using health check measurement)
-	responseTimeMs := gs.measureHealthCheckResponseTime()
+// aggregateSessionMetrics summarises player session data held in gs.playerSessions.
+// Caller must hold gs.performanceMutex (at least for reading).
+func (gs *GameServer) aggregateSessionMetrics() (activeSessions int, avgSessionLength time.Duration) {
+	var total time.Duration
+	for _, session := range gs.playerSessions {
+		total += time.Since(session.SessionStart)
+		activeSessions++
+	}
+	if activeSessions > 0 {
+		avgSessionLength = total / time.Duration(activeSessions)
+	}
+	return activeSessions, avgSessionLength
+}
 
-	// Calculate error rate (corruption events vs total operations)
-	errorRate := gs.calculateErrorRate()
+// collectPerformanceMetrics gathers comprehensive server performance data
+func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
+	gs.performanceMutex.RLock()
+	defer gs.performanceMutex.RUnlock()
+
+	uptime := time.Since(gs.startTime)
+	activeConnections := int(atomic.LoadInt64(&gs.activeConnections))
+
+	connectionsPerSecond := 0.0
+	if uptime.Seconds() > 0 {
+		connectionsPerSecond = float64(gs.totalConnections) / uptime.Seconds()
+	}
+	messagesPerSecond := 0.0
+	if uptime.Seconds() > 0 {
+		messagesPerSecond = float64(gs.totalMessagesSent+gs.totalMessagesRecv) / uptime.Seconds()
+	}
+
+	activeSessions, avgSessionLength := gs.aggregateSessionMetrics()
 
 	return PerformanceMetrics{
 		Uptime:               uptime,
@@ -270,9 +265,9 @@ func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
 		ActiveSessions:       activeSessions,
 		TotalGamesPlayed:     gs.totalGamesPlayed,
 		MessagesPerSecond:    messagesPerSecond,
-		MemoryUsage:          memoryStats,
-		ResponseTimeMs:       responseTimeMs,
-		ErrorRate:            errorRate,
+		MemoryUsage:          collectMemorySnapshot(),
+		ResponseTimeMs:       gs.measureHealthCheckResponseTime(),
+		ErrorRate:            gs.calculateErrorRate(),
 	}
 }
 

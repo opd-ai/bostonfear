@@ -173,7 +173,7 @@ learning WebSocket architecture. Key promises:
   ```
   **Validate:** `go test -race ./cmd/server/... -run TestProcessAction_InvalidActionType`
 
-- [ ] **`client/ebiten/app` and `client/ebiten/render` have no tests** —
+- [x] **`client/ebiten/app` and `client/ebiten/render` have no tests** —
   Active Ebitengine packages — These two packages contain the rendering pipeline (`drawPlayerPanel`,
   `drawBoard`, `drawLocationPanel`, shader loading) and the game-loop `Update`/`Draw` split. Neither
   has a `*_test.go` file. Rendering logic bugs (wrong panel coordinates, missed nil checks, etc.)
@@ -189,7 +189,7 @@ learning WebSocket architecture. Key promises:
 
 ### LOW
 
-- [ ] **`collectPerformanceMetrics` exceeds 50-line threshold (64 lines)** —
+- [x] **`collectPerformanceMetrics` exceeds 50-line threshold (64 lines)** —
   `cmd/server/observability.go:212-275` — go-stats-generator flags this as a high-risk function.
   It mixes memory-stat collection, session aggregation, and response-time measurement in one body.
 
