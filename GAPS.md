@@ -1,230 +1,281 @@
 # Implementation Gaps — 2026-03-15
 
-> This document supersedes all prior gap analyses.  Each entry records what the
-> project documentation promises, what the code actually delivers, the impact on
-> users and developers, and the concrete steps required to close the gap.
+> This file supersedes all previous versions. It covers gaps between the project's
+> stated goals (README, RULES.md, CLIENT_SPEC.md, ROADMAP.md) and the current
+> implementation. Items already tracked in RULES.md are cross-referenced.
 
 ---
 
-## GAP-01 — Deadlock in Connection-Quality Ping/Pong Path
+## GAP-01: `ConnectionWrapper.LocalAddr()` Returns Remote Address
 
-- **Stated Goal**: Real-time latency measurement for each player with connection
-  quality ratings (`excellent`/`good`/`fair`/`poor`) broadcast to all clients
-  (README — Performance Monitoring; `game_server.go` comments at lines 1215–1354).
-- **Current State**: `handlePongMessage` (game_server.go:1253) acquires
-  `qualityMutex.Lock()` and then calls `broadcastConnectionQuality()` (line 1271),
-  which immediately attempts `qualityMutex.RLock()` (line 1358).  Go's
-  `sync.RWMutex` is not reentrant; the calling goroutine deadlocks.  Every player
-  connection that successfully completes a ping round-trip will hang permanently,
-  taking its read-loop goroutine with it and making the slot unresponsive.
-- **Impact**: The ping timer fires after 5 seconds for every connected player.
-  Once the first pong arrives, the affected goroutine deadlocks.  Under a 3-player
-  game each player's connection goroutine will deadlock within the first 10 seconds,
-  making the performance-monitoring feature the primary cause of server instability.
-- **Closing the Gap**: Release `qualityMutex` before calling
-  `broadcastConnectionQuality` (see `AUDIT.md` Finding #1 for the corrected code).
-  Add a WebSocket integration test that connects, waits 10 seconds, sends a pong,
-  and asserts the connection remains active.
-
----
-
-## GAP-02 — Data Race on Shared Connection Maps
-
-- **Stated Goal**: "Concurrent Connection Handling: Goroutines with channel-based
-  communication" and "State Management: Centralized game state with mutex
-  protection" (README — Technical Implementation).
-- **Current State**: `handleConnection` reads `gs.wsConns` at line 437 with no
-  mutex held.  The disconnect-cleanup block (lines 576-578) deletes from
-  `gs.connections`, `gs.wsConns`, and `gs.playerConns` outside any mutex, while
-  `broadcastHandler` iterates `gs.wsConns` under `gs.mutex.RLock()`.  This is an
-  unsynchronised concurrent map access (data race) on two separate code paths.
-- **Impact**: Under normal multi-player use the Go runtime can detect the race and
-  panic with "concurrent map read and map write".  Even without a panic, the race
-  can produce stale reads in `broadcastHandler` causing missed broadcasts.  The
-  existing `go test -race` suite does not catch this because no WebSocket integration
-  tests exist.
-- **Closing the Gap**: (1) Wrap the line-437 read in `gs.mutex.RLock/RUnlock`.
-  (2) Wrap lines 576-578 in `gs.mutex.Lock/Unlock`.  (3) Add an integration test
-  with concurrent connect/disconnect cycles run under `-race`.
-
----
-
-## GAP-03 — Game Permanently Stuck After Player Disconnect
-
-- **Stated Goal**: "Handle connection drops with 30-second reconnection timeout" /
-  "Automatic reconnection handling" (README — Multiplayer Features, Performance
-  Standards).
-- **Current State**: On disconnect a player is marked `Connected: false` but
-  remains in `gameState.TurnOrder`.  When `advanceTurn` rotates to this player,
-  `ActionsRemaining` is set to 2 (game_server.go:388) but no goroutine processes
-  messages for this player; the 30-second I/O timeout can therefore never fire.
-  The turn will never advance again.  With a single disconnect mid-game the entire
-  cooperative session freezes.
-- **Impact**: Any network drop — even a brief one — can permanently stall a
-  multiplayer game.  This is the highest-impact functional failure for the stated
-  audience of developers learning WebSocket-based multiplayer architecture; it
-  contradicts the README example game flow that shows turns advancing correctly.
+- **Stated Goal**: Implement the `net.Conn` interface correctly so the
+  `ConnectionWrapper` type can serve as a drop-in network abstraction.
+  README §Technical Implementation: "Interface-based Design: Uses `net.Conn`,
+  `net.Listener`, and `net.Addr` interfaces."
+- **Current State**: `connection_wrapper.go:53-60` — the struct stores a single
+  `addr net.Addr` field (set from `wsConn.RemoteAddr()`). Both `LocalAddr()` and
+  `RemoteAddr()` return this same field. The `net.Conn` contract requires
+  `LocalAddr()` to return the *local* endpoint (the server's listening address) and
+  `RemoteAddr()` to return the *remote* endpoint (the client's address).
+- **Impact**: Any consumer of the `net.Conn` interface that calls `LocalAddr()` —
+  including future middleware, tests, or logging — will silently receive the remote
+  client address. This is a latent correctness bug in the transport abstraction layer.
+  The live game is unaffected today because the server never calls `LocalAddr()` on
+  its own wrappers.
 - **Closing the Gap**:
-  1. During disconnect cleanup, remove the player from `TurnOrder` under
-     `gs.mutex.Lock()`.
-  2. If the removed player was `CurrentPlayer`, call `advanceTurn()` immediately.
-  3. Alternatively, add a ticker goroutine that advances the turn after 30 s if the
-     current player is `Connected: false`.
-  See also GAP-04 (session restore) for the complementary reconnection story.
+  1. Add a `localAddr net.Addr` field alongside `remoteAddr net.Addr` in
+     `ConnectionWrapper`.
+  2. Pass the listener's `Addr()` as `localAddr` when constructing the wrapper in
+     `handleWebSocket`.
+  3. Return the correct field from each method.
+  4. Add a `TestConnectionWrapper_LocalRemoteAddrDistinct` unit test.
 
 ---
 
-## GAP-04 — Reconnecting Player Cannot Restore Session
+## GAP-02: README Mislabels Implemented Ebitengine Clients as "Planned"
 
-- **Stated Goal**: "Automatic reconnection handling" / reconnect after drops
-  (README — Multiplayer Features). README Connection Behaviour note: "In the current
-  version, a disconnected player cannot reclaim their investigator. Reconnecting
-  after a drop creates a new player slot."
-- **Current State**: The README accurately describes the limitation but presents it
-  as a known shortcoming rather than a gap.  Each reconnect generates a new
-  `player_<UnixNano>` ID (game_server.go:443).  The old disconnected player record
-  stays in `Players` and `TurnOrder` occupying a slot.  If GAP-03 is closed by
-  removing the player from `TurnOrder`, they still consume a `Players` slot toward
-  the MaxPlayers=6 cap.  A 6-player game with two brief disconnects would be full
-  but have only 4 active players.
-- **Impact**: Late joiners may be blocked from joining a game that appears full but
-  has vacant investigator slots.  Returning players lose all progress (location,
-  health, sanity, clues).
+- **Stated Goal**: README §Build Targets marks Desktop (Phase 2), WASM (Phase 3),
+  and Mobile (Phase 4) as "Planned". ROADMAP.md presents Phases 1–5 as future work.
+- **Current State**: All three build targets exist and compile:
+  - `go build ./cmd/desktop/...` → success
+  - `GOOS=js GOARCH=wasm go build ./cmd/web` → success
+  - `cmd/mobile/mobile.go` binding scaffolding compiles
+  - `client/ebiten/` package is substantively implemented (game loop, renderer,
+    WebSocket client, input handler, Kage shaders)
+- **Impact**: Contributors and evaluators underestimate the project's maturity and
+  may duplicate work already done. ROADMAP milestones appear incomplete when they
+  are substantially delivered.
 - **Closing the Gap**:
-  1. On first connect, generate a reconnection token and send it via
-     `connectionStatus`; client stores it in `localStorage`.
-  2. On reconnect, client sends token; server finds matching `Player` record, sets
-     `Connected: true`, restores `ActionsRemaining`, re-attaches the connection.
-  3. Retain disconnected player records for 60 seconds; remove after grace period
-     if no reconnect token arrives.
-  (This is Phase 0 work noted in ROADMAP.md §"Reconnection tokens".)
+  1. Update `README.md` Build Targets table: mark Desktop and WASM as
+     "Active (alpha — placeholder sprites)" and Mobile as "Active (untested on device)".
+  2. Update `ROADMAP.md` Phases 1–3 to reflect completion status.
+  3. Mark Phase 5 (real art assets) as the remaining visual-fidelity work.
 
 ---
 
-## GAP-05 — `totalGamesPlayed` Counter Always Zero
+## GAP-03: Ebitengine Sprite Atlas Uses Placeholder Solid-Colour Tiles
 
-- **Stated Goal**: `arkham_horror_games_played_total` Prometheus counter tracks
-  total completed games (README — Prometheus Integration; `handleMetrics`
-  game_server.go:760-761).
-- **Current State**: `totalGamesPlayed` is initialised to `0` at construction
-  (game_server.go:82) and is never incremented anywhere in the codebase.  The
-  metric permanently reports `0`.
-- **Impact**: Operators cannot track how many games have completed.  The monitoring
-  dashboard misleads operators into thinking no games have been played.
-- **Closing the Gap**: In `checkGameEndConditions` (game_server.go:394), add
-  `atomic.AddInt64(&gs.totalGamesPlayed, 1)` when `GamePhase` transitions to
-  `"ended"`.
-
----
-
-## GAP-06 — System Alerts Never Exposed
-
-- **Stated Goal**: "Error rates and system alerts" on the performance dashboard
-  (README — Performance Dashboard).
-- **Current State**: `getSystemAlerts()` (game_server.go:1470-1524) computes
-  alerts for high memory, slow response time, high error rate, and critical doom
-  level, but is never called from `/health`, `/metrics`, or any other endpoint.
-- **Impact**: The system-alerts feature advertised in the README is silently absent.
-  Operators have no way to receive automated alerts even when the system is in an
-  alerted state.
-- **Closing the Gap**: Add `"systemAlerts": gs.getSystemAlerts()` to the
-  `healthData` map inside `handleHealthCheck` (game_server.go:646).
+- **Stated Goal**: CLIENT_SPEC.md §Sprite/Layer Rendering and README §Ebitengine
+  Client Features describe real board artwork, token sprites, and UI overlays
+  rendered through Ebitengine draw layers.
+- **Current State**: `client/ebiten/render/atlas.go:73-99` — `generateAtlas()`
+  fills every named sprite slot (`SpriteBackground`, `SpriteLocationDowntown`, …,
+  `SpritePlayerToken`, `SpriteDoomMarker`, `SpriteActionOverlay`) with a
+  solid-colour rectangle. No bitmap artwork is embedded.
+- **Impact**: The rendered output does not match the stated UI/UX requirements.
+  Players see coloured rectangles instead of thematic board artwork. The game is
+  functional but visually incomplete.
+- **Closing the Gap**:
+  1. Create `client/ebiten/render/assets/` and add a sprite-sheet PNG covering all
+     eight named sprites.
+  2. Replace `generateAtlas()` with a function that loads the embedded PNG via
+     `//go:embed assets/sprites.png` and slices it using the declared `spriteRect`
+     coordinates.
+  3. Keep the colour-rectangle fallback behind a `//go:build !production` tag for
+     CI environments without art assets.
 
 ---
 
-## GAP-07 — Broadcast Latency Not Exported in `/metrics`
+## GAP-04: JavaScript Client Reconnection Has a Silent Hard Limit
 
-- **Stated Goal**: "Real-time performance monitoring with comprehensive metrics" /
-  sub-500 ms broadcast SLA (README — Performance Standards, Monitoring).
-- **Current State**: `collectMessageThroughput` (game_server.go:993-1013)
-  correctly reads the ring-buffer rolling average (`averageBroadcastLatencyMs`)
-  and populates `BroadcastLatency`, but its return value is never used in
-  `handleMetrics` or `handleHealthCheck`.  No `arkham_horror_broadcast_latency_ms`
-  metric exists in the Prometheus output.
-- **Impact**: The sub-500 ms broadcast SLA cannot be verified through the
-  monitoring endpoint the README documents.  Operators must instrument externally.
-- **Closing the Gap**: Inside `handleMetrics`, call
-  `gs.collectMessageThroughput(uptime)` and add two metrics lines:
-  ```
-  # HELP arkham_horror_broadcast_latency_ms Rolling avg broadcast write latency ms
-  arkham_horror_broadcast_latency_ms <value>
-  ```
-
----
-
-## GAP-08 — Client Reconnection Delay Misrepresented
-
-- **Stated Goal**: "The client reconnects automatically every 5 seconds on
-  disconnection." (README — Connection Behaviour)
-- **Current State**: `client/game.js` lines 101-113 implement exponential backoff:
-  initial delay 5 s, doubled each attempt (10 s, 20 s), capped at 30 s.  After two
-  failed reconnect attempts the delay is already 20 s — four times longer than the
-  documented 5 s.
-- **Impact**: Developers learning from this codebase will observe behaviour that
-  contradicts the documentation, undermining the pedagogical goal of the project.
-- **Closing the Gap**: Update the README Connection Behaviour section to accurately
-  describe the exponential backoff: "starting after 5 seconds, doubling each
-  attempt, maximum 30 seconds."
+- **Stated Goal**: README §Connection Behaviour: "The client attempts reconnection
+  starting after 5 seconds, with exponential backoff (doubling each attempt,
+  maximum 30 seconds)." No upper bound on the number of attempts is mentioned.
+- **Current State**: `client/game.js:11` — `this.maxReconnectAttempts = 10`.
+  After 10 attempts (approximately 5 minutes of backoff), reconnection stops
+  permanently with a console error.
+- **Impact**: A player whose browser tab is backgrounded or whose network briefly
+  drops for more than ~5 minutes is permanently locked out without any visible
+  notification beyond a console log.
+- **Closing the Gap**:
+  1. Either remove the attempt cap (`maxReconnectAttempts = Infinity`) or increase it
+     to a high value (e.g., 100) to match the documented "unlimited retry" behaviour.
+  2. Add a visible UI notification when retries are exhausted (e.g., "Connection
+     lost — please refresh the page").
+  3. Update README §Connection Behaviour to document the actual cap, or remove the
+     cap and note that retries continue indefinitely.
 
 ---
 
-## GAP-09 — Test Coverage Too Low to Validate Core Mechanics
+## GAP-05: AH3e Action System — 4 of 8 Actions Implemented
 
-- **Stated Goal**: "Are all 5 core mechanics fully functional with proper
-  validation?" (Quality Checks in project specification).
-- **Current State**: `go test -cover ./...` reports **10.4%** statement coverage.
-  Only `GameStateValidator` is tested.  All five game mechanics, `advanceTurn`,
-  `checkGameEndConditions`, `broadcastGameState`, and the WebSocket handler have
-  zero tests.  The three critical-severity bugs documented in this audit
-  (GAP-01, GAP-02, GAP-03) exist in completely untested code.
-- **Impact**: Regressions in core gameplay cannot be detected automatically.  The
-  project cannot reliably be demonstrated to meet its own Quality Check criteria
-  without manual testing.
-- **Closing the Gap**: Add the following test types:
-  1. Table-driven unit tests for `processAction` covering all four action types,
-     resource boundary conditions, invalid actions, and out-of-turn attempts.
-  2. Unit tests for `advanceTurn` including disconnected-player skipping.
-  3. Unit tests for `checkGameEndConditions` covering win, lose, and in-progress
-     states at every player-count level (1–6).
-  4. Integration tests using `net/http/httptest` + `gorilla/websocket` for
-     connection lifecycle, multi-player turn rotation, and reconnection scenarios.
-  Target ≥70% coverage; run with `go test -race -cover ./...`.
-
----
-
-## GAP-10 — Ebitengine Client, Platform Entrypoints, and WASM/Mobile Targets
-
-- **Stated Goal**: Phased replacement of the HTML/JS client with a Go/Ebitengine
-  client supporting desktop (Phase 2), WASM (Phase 3), and mobile (Phase 4)
-  (README — Build Targets, ROADMAP).
-- **Current State**: `go.mod` lists only `github.com/gorilla/websocket v1.5.3`.
-  No `github.com/hajimehoshi/ebiten/v2` dependency exists.  No `cmd/desktop/`,
-  `cmd/web/`, or `cmd/mobile/` directories exist.  No `client/ebiten/` package
-  exists.
-- **Impact**: The planned multi-platform distribution path is entirely absent.
-  All four Build Target rows in the README table are in "Planned" status with no
-  implementation started.
-- **Closing the Gap**: This is intentional phased work; ROADMAP phases 1–5 describe
-  the implementation sequence.  Prerequisite: `go get github.com/hajimehoshi/ebiten/v2@v2.7+`.
-  Begin with Phase 1 (client package skeleton) before adding platform entrypoints.
+- **Stated Goal**: RULES.md §Action System specifies 8 investigator actions per
+  the AH3e rulebook: Move, Gather (Resources), Investigate, Ward, Focus, Research,
+  Trade, and Component (special ability activation).
+- **Current State**: `game_constants.go:21-30` — Only 4 actions are defined and
+  handled: `move`, `gather`, `investigate`, `ward`. The `rules_test.go` SKIP
+  messages confirm: "action 'focus' not yet implemented", "action 'research' not yet
+  implemented", "action 'trade' not yet implemented", "action 'component' not yet
+  implemented".
+- **Impact**: The game covers the project's own 4-action spec (README §Turn Structure)
+  but is not compliant with the AH3e rulebook it claims to implement (RULES.md).
+  Cooperative mechanics requiring trading, focusing dice, or activating abilities
+  are absent.
+- **Closing the Gap** (per ROADMAP Phase 6):
+  1. Add `ActionFocus`, `ActionResearch`, `ActionTrade`, `ActionComponent` constants.
+  2. Implement `performFocus` (award a focus token), `performResearch` (extended
+     investigate with higher clue reward), `performTrade` (transfer resources
+     between co-located players), `performComponent` (investigator-specific ability).
+  3. Add focus token field to `Resources` struct.
+  4. Unskip the `TestRulesFullActionSet/focus_not_implemented` (and sibling) tests.
 
 ---
 
-## GAP-11 — `processAction` Monolith Impedes Mechanic Testing
+## GAP-06: AH3e Resource System — Money, Remnants, and Focus Tokens Missing
 
-- **Stated Goal**: "Implement proper Go-style error handling … Use goroutines and
-  channels for concurrent WebSocket connection management" / clear separation of
-  concerns (project specification — Go Coding Standards).
-- **Current State**: `processAction` (game_server.go:176-363) is 187 lines with
-  cyclomatic complexity 32.2.  It handles input validation, four action
-  implementations, doom updates, resource validation, end-condition checking, turn
-  advancement, and three broadcast calls under a single mutex lock.  No individual
-  action mechanic can be unit-tested in isolation.
-- **Impact**: Adding a new action type or fixing a dice calculation requires
-  modifying this single function, risking regressions in all other actions.  The
-  complexity is a primary reason test coverage remains at 10.4%.
-- **Closing the Gap**: Extract each action implementation into a method
-  (`gs.performMove`, `gs.performGather`, `gs.performInvestigate`,
-  `gs.performCastWard`) each returning `(doomIncrease int, diceResult *DiceResultMessage, err error)`.
-  `processAction` becomes a dispatch function of ≤40 lines.  Each extracted method
-  can be unit-tested directly without WebSocket infrastructure.
+- **Stated Goal**: RULES.md §Resources and README §Technical Implementation list
+  AH3e resources as: Health, Sanity, Money, Clues, Remnants, and Focus Tokens.
+- **Current State**: `game_types.go:17-22` — `Resources` struct contains only
+  `Health`, `Sanity`, and `Clues`. The `rules_test.go` SKIP messages confirm:
+  "Money resource not yet implemented", "Remnants resource not yet implemented",
+  "Focus token resource not yet implemented".
+- **Impact**: Economic gameplay (item purchase), supernatural currency (remnants),
+  and dice-improvement (focus tokens) are absent. The action economy cannot be
+  balanced per AH3e rules.
+- **Closing the Gap**:
+  1. Add `Money int`, `Remnants int`, `Focus int` to the `Resources` struct with
+     appropriate bounds (Money 0–99, Remnants 0–5, Focus 0–3 per AH3e defaults).
+  2. Update `validateResources()` to clamp the new fields.
+  3. Wire `Focus` into dice-roll skill bonuses and `Money` into item-purchase flows.
+  4. Unskip the three resource tests in `rules_test.go`.
+
+---
+
+## GAP-07: Mythos Phase Not Implemented
+
+- **Stated Goal**: RULES.md §Mythos Phase specifies: draw 2 event cards, place doom
+  tokens on locations, spread existing events, and resolve the mythos cup token.
+  AH3e's primary game driver is the Mythos Phase alternating with the Investigator
+  Phase.
+- **Current State**: The game has only one phase (`"playing"`) with no Mythos Phase
+  transition. Doom advances only via tentacle dice results and read-deadline
+  timeouts. There is no event card system, mythos cup, or per-location doom tokens.
+- **Impact**: The game's doom escalation is much slower and less thematic than AH3e.
+  The core tension of the Mythos Phase—forced doom growth, event placement,
+  spreading threats—is absent.
+- **Closing the Gap** (per ROADMAP Phase 6):
+  1. Add a `MythosPhase` game phase and a `mythosHandler()` goroutine.
+  2. Implement a minimal event card deck (draw 2, place on locations, spread if
+     doom token already present).
+  3. Add per-location doom token tracking to `GameState`.
+  4. Advance the Mythos Phase automatically after all players complete their turns.
+
+---
+
+## GAP-08: Encounter Resolution Not Implemented
+
+- **Stated Goal**: RULES.md §Encounter Resolution and AH3e rules describe
+  neighborhood-specific encounter decks that trigger when investigators engage
+  with encounter tokens.
+- **Current State**: No encounter tokens, no encounter decks, no encounter resolution
+  logic exists in `game_server.go` or anywhere in the codebase.
+- **Impact**: A major AH3e gameplay loop — encountering strange events and gaining
+  narrative rewards or suffering thematic penalties — is absent. Investigators
+  explore locations but never encounter anything.
+- **Closing the Gap** (ROADMAP Phase 6):
+  1. Define `EncounterCard` struct with effect type, flavor text, and resolution
+     function.
+  2. Add per-location encounter decks to `GameState`.
+  3. Add `ActionEncounter` action type; dispatch to a `performEncounter()` handler.
+
+---
+
+## GAP-09: Act/Agenda Deck Progression Not Implemented
+
+- **Stated Goal**: RULES.md §Act/Agenda Deck Progression describes AH3e's
+  narrative progression engine: act cards advance on clue thresholds; agenda cards
+  advance on doom thresholds.
+- **Current State**: The win condition is a flat clue threshold (`playerCount × 4`).
+  There are no act or agenda cards, no card draws, no narrative events. The
+  `rules_test.go` SKIP: "Full act/agenda deck progression not yet implemented".
+- **Impact**: The game has a functional win/lose condition but lacks the scenario
+  narrative, branching objectives, and escalating agenda tension that define AH3e.
+- **Closing the Gap** (ROADMAP Phase 6):
+  1. Define `ActCard` and `AgendaCard` types with thresholds and effects.
+  2. Add `ActDeck` and `AgendaDeck` slices to `GameState`.
+  3. Call `checkActAdvance()` and `checkAgendaAdvance()` after each action and
+     Mythos Phase respectively.
+
+---
+
+## GAP-10: Investigator Defeat / "Lost in Time and Space" Not Implemented
+
+- **Stated Goal**: RULES.md §Investigator Defeat states that investigators are
+  defeated if Health or Sanity reaches 0, entering a "lost in time and space"
+  state with resource loss and relocation.
+- **Current State**: `validateResources()` clamps Health and Sanity to a minimum
+  of 1, preventing them from reaching 0. An investigator cannot be defeated.
+  There is no "lost in time and space" state.
+- **Impact**: Investigators are effectively immortal. The risk dimension of resource
+  management is reduced — players cannot lose their investigator, removing a core
+  source of AH3e tension.
+- **Closing the Gap**:
+  1. Change the lower bound in `validateResources()` for Health and Sanity from 1
+     to 0.
+  2. After calling `validateResources()` in `processAction()`, check if Health or
+     Sanity reached 0 and transition the player to a `"defeated"` state.
+  3. Implement relocation to the starting location, resource loss, and an optional
+     "lost in time and space" penalty.
+  4. Skip defeated players in `advanceTurn()`.
+
+---
+
+## GAP-11: Scenario System and Modular Difficulty Not Implemented
+
+- **Stated Goal**: RULES.md §Scenario System and §Modular Difficulty describe
+  scenario-based setup (board layout, starting doom, codex), victory conditions
+  that vary per scenario, and adjustable difficulty via mythos cup composition.
+- **Current State**: The game has a single hardcoded scenario: 4 fixed neighborhoods,
+  doom starts at 0, win is 4 × player-count clues. There is no scenario selection,
+  no modular board, no codex, no difficulty dial.
+- **Impact**: Replay value is limited to a single fixed scenario. The AH3e "modular
+  neighborhood" selling point and scenario variety are absent.
+- **Closing the Gap** (ROADMAP Phase 6):
+  1. Define a `Scenario` struct with setup parameters, victory condition function,
+     and starting state.
+  2. Add scenario selection to the connection flow or server startup flags.
+  3. Parameterize `NewGameServer()` to accept a `Scenario`.
+
+---
+
+## GAP-12: Session Persistence / Reconnection Token Not Implemented
+
+- **Stated Goal**: README §Connection Behaviour notes this as a known limitation:
+  "Full session-persistence with reconnection tokens is planned for a future
+  release." The Ebitengine client's `reconnectLoop()` re-dials but cannot reclaim
+  the original player slot.
+- **Current State**: Reconnecting creates a new `player_<UnixNano>` ID, a new
+  empty player state, and appends to the turn order. The original disconnected
+  player's slot remains in `gs.gameState.Players` with `Connected: false` and is
+  never cleaned up.
+- **Impact**: After a reconnect, a player controls a new investigator and their
+  previous investigator becomes a permanent zombie in game state, skipped by
+  `advanceTurn()` but never removed. Over multiple disconnects, the `Players` map
+  grows unboundedly.
+- **Closing the Gap**:
+  1. Issue a unique token at connection time and send it in the `connectionStatus`
+     message.
+  2. Accept an optional `reconnect_token` query parameter on `/ws`.
+  3. If the token matches a disconnected player, restore their slot instead of
+     creating a new one.
+  4. Add a reaper goroutine that removes zombie (disconnected, token-expired) player
+     entries after a configurable TTL.
+
+---
+
+## Summary Table
+
+| Gap ID | Area | AH3e Compliance | README Promise | Severity |
+|--------|------|-----------------|----------------|----------|
+| GAP-01 | `net.Conn` correctness | n/a | Interface-based design | CRITICAL |
+| GAP-02 | Ebitengine client status | n/a | Build Targets table | HIGH |
+| GAP-03 | Sprite atlas artwork | n/a | Sprite/Layer Rendering | HIGH |
+| GAP-04 | JS reconnect cap | n/a | Unlimited backoff | HIGH |
+| GAP-05 | Action system (4/8) | Partial | 4-action spec met | HIGH |
+| GAP-06 | Resource system (3/6) | Partial | 3-resource spec met | HIGH |
+| GAP-07 | Mythos Phase | Missing | Not promised by README | MEDIUM |
+| GAP-08 | Encounter Resolution | Missing | Not promised by README | MEDIUM |
+| GAP-09 | Act/Agenda Deck | Missing | Not promised by README | MEDIUM |
+| GAP-10 | Investigator Defeat | Partial | Not promised by README | MEDIUM |
+| GAP-11 | Scenario / Difficulty | Missing | Not promised by README | LOW |
+| GAP-12 | Session Persistence | n/a | Future release planned | MEDIUM |

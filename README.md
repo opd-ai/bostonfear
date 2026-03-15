@@ -1,10 +1,11 @@
 # Arkham Horror - Multiplayer Game
 
-A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and an HTML/JS canvas client with 1-6 concurrent players. Players can join a game already in progress. A Go/Ebitengine client supporting desktop, web (WASM), and mobile platforms is planned — see `ROADMAP.md`.
+A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and an HTML/JS canvas client with 1-6 concurrent players. Players can join a game already in progress. A Go/Ebitengine client supporting desktop, web (WASM), and mobile platforms is implemented and compilable — see `ROADMAP.md` for ongoing improvements.
 
-> **Migration in progress:** The client is being migrated from HTML/JS canvas to
-> Go/Ebitengine. See `ROADMAP.md` for the phased plan. The WebSocket server and its
-> protocol remain stable after the Phase 0 baseline fixes described in `PLAN.md`.
+> **Active migration:** The client is being migrated from HTML/JS canvas to
+> Go/Ebitengine. Desktop and WASM builds compile successfully (alpha — placeholder
+> sprites). See `ROADMAP.md` for the phased plan. The WebSocket server and its
+> protocol remain stable.
 
 ## Features
 
@@ -12,7 +13,7 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 1. **Location System**: 4 interconnected neighborhoods (Downtown, University, Rivertown, Northside) with movement restrictions
 2. **Resource Tracking**: Health (1-10), Sanity (1-10), and Clues (0-5) with gain/loss mechanics
 3. **Action System**: 2 actions per turn from Move, Gather Resources, Investigate, Cast Ward
-4. **Doom Counter**: Global doom tracker (0-12) that increments on failed dice rolls
+4. **Doom Counter**: Global doom tracker (0-12) that increments for each Tentacle result rolled (unconditional — not limited to failed rolls)
 5. **Dice Resolution**: 3-sided dice (Success/Blank/Tentacle) with configurable difficulty thresholds
 
 ### Multiplayer Features
@@ -35,9 +36,9 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 
 | Platform | Entrypoint | Build Command | Status |
 |---|---|---|---|
-| **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Planned (ROADMAP Phase 2) |
-| **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Planned (ROADMAP Phase 3) |
-| **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/mobile.go` | `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile` | Planned (ROADMAP Phase 4) |
+| **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Active (alpha — placeholder sprites) |
+| **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Active (alpha — placeholder sprites) |
+| **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/binding.go` | `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile` | Alpha (binding scaffolding; not verified on device) |
 | **Legacy browser** (current) | `client/index.html` | N/A — served by Go server | Active (to be replaced) |
 
 ## Quick Setup
@@ -64,19 +65,19 @@ http://localhost:8080/health         # Health check endpoint
 http://localhost:8080/metrics        # Prometheus metrics
 ```
 
-**Desktop client** (after ROADMAP Phase 2):
+**Desktop client** (alpha — builds and runs; placeholder sprites):
 ```bash
 go run ./cmd/desktop -server ws://localhost:8080/ws
 ```
 
-**Web WASM client** (after ROADMAP Phase 3):
+**Web WASM client** (alpha — builds successfully; placeholder sprites):
 ```bash
 GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
 # Serve via the Go server at /play, or use any static HTTP server:
 # python3 -m http.server 8080 --directory client/wasm/
 ```
 
-**Mobile client** (after ROADMAP Phase 4):
+**Mobile client** (alpha — binding scaffolding; not verified on device):
 ```bash
 ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile
 ebitenmobile bind -target ios -o dist/BostonFear.xcframework ./cmd/mobile
@@ -104,7 +105,8 @@ Each player gets 2 actions per turn:
 - **Lose**: Doom counter reaches 12
 
 ### Connection Behaviour
-- The client attempts reconnection starting after 5 seconds, with exponential backoff (doubling each attempt, maximum 30 seconds). For example: first retry after 5 s, second after 10 s, third after 20 s, all subsequent retries after 30 s.
+- The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap). Example: first retry after 5 s, second after 10 s, third after 20 s, all subsequent retries after 30 s. There is no upper limit on attempts.
+- The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the doom counter is incremented and the connection is closed. This is an idle/inactivity deadline, not a reconnection window.
 - **Note**: In the current version, a disconnected player cannot reclaim their investigator. Reconnecting after a drop creates a new player slot. Full session-persistence with reconnection tokens is planned for a future release.
 
 ## Technical Implementation
@@ -115,7 +117,7 @@ Each player gets 2 actions per turn:
 - **State Management**: Centralized game state with mutex protection
 - **Error Handling**: Explicit Go-style error checking and propagation
 
-### Ebitengine Client Features (Planned — ROADMAP Phases 1–5)
+### Ebitengine Client Features (Active — alpha; placeholder sprites)
 - **Sprite/Layer Rendering**: Board, tokens, UI overlays, and animations via Ebitengine draw layers
 - **Platform Input Handling**: Keyboard/mouse (desktop), touch (mobile), pointer events (WASM)
 - **Multi-Resolution Support**: Logical 1280×720 resolution scaled to any display; safe-area insets on mobile
@@ -161,23 +163,23 @@ bostonfear/
 │   │   ├── connection_wrapper.go
 │   │   ├── error_recovery.go
 │   │   └── *_test.go
-│   ├── desktop/            # (Planned — Phase 2) Desktop entrypoint
+│   ├── desktop/            # Desktop entrypoint (Ebitengine, alpha)
 │   │   └── main.go
-│   ├── web/                # (Planned — Phase 3) WASM entrypoint
+│   ├── web/                # WASM entrypoint (Ebitengine, alpha)
 │   │   └── main.go
-│   └── mobile/             # (Planned — Phase 4) Mobile entrypoint
-│       └── mobile.go
+│   └── mobile/             # Mobile entrypoint (Ebitengine, alpha binding scaffolding)
+│       └── binding.go
 ├── client/
-│   ├── ebiten/             # (Planned — Phase 1) Ebitengine client package
+│   ├── ebiten/             # Ebitengine client package (alpha)
 │   │   ├── game.go         #   ebiten.Game implementation
 │   │   ├── net.go          #   WebSocket client
 │   │   ├── state.go        #   Local state mirror
 │   │   ├── input.go        #   Input handling
-│   │   └── render/         # (Planned — Phase 5) Rendering subsystem
+│   │   └── render/         # Rendering subsystem (alpha — placeholder sprites)
 │   │       ├── atlas.go
 │   │       ├── layers.go
 │   │       └── shaders/
-│   ├── wasm/               # (Planned — Phase 3) WASM host files
+│   ├── wasm/               # WASM host files
 │   │   └── index.html
 │   ├── index.html          # Legacy HTML game interface (to be replaced)
 │   ├── game.js             # Legacy JavaScript game client (to be replaced)
@@ -194,8 +196,8 @@ bostonfear/
 
 ### Dependencies
 - **Server**: Go 1.24+ with `github.com/gorilla/websocket`
-- **Ebitengine Client** (planned): `github.com/hajimehoshi/ebiten/v2` (v2.7+)
-- **Mobile Build** (planned): `ebitenmobile` CLI, `gomobile`, Android SDK (API 29+), Xcode 15+
+- **Ebitengine Client** (alpha): `github.com/hajimehoshi/ebiten/v2` (v2.7+)
+- **Mobile Build** (alpha): `ebitenmobile` CLI, `gomobile`, Android SDK (API 29+), Xcode 15+
 - **Legacy Client** (current): Modern web browser with HTML5 Canvas and WebSocket support
 
 ### Testing Multi-player
@@ -218,7 +220,7 @@ bostonfear/
 - Maintains stable operation with 6 concurrent players
 - Supports continuous gameplay for 15+ minutes
 - Sub-500ms state synchronization across all clients
-- Automatic handling of connection drops with 30-second timeout
+  - 30-second idle inactivity timeout per connection (see §Connection Behaviour)
 - Sub-100ms response times for health checks
 - Real-time performance monitoring with comprehensive metrics
 

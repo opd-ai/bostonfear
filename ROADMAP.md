@@ -20,7 +20,7 @@ This roadmap covers **engine, client, and rules-engine infrastructure only**.
 
 ---
 
-## Phase 1 — Ebitengine Client Foundation
+## Phase 1 — Ebitengine Client Foundation ✅ Complete (alpha — placeholder sprites)
 
 ### Objective
 
@@ -77,7 +77,7 @@ no further server changes are required during this phase.
 
 ---
 
-## Phase 2 — Desktop Build Target
+## Phase 2 — Desktop Build Target ✅ Complete (alpha — placeholder sprites)
 
 ### Objective
 
@@ -134,7 +134,7 @@ Produce native desktop binaries for Linux, macOS, and Windows from a single
 
 ---
 
-## Phase 3 — Web (WASM) Build Target
+## Phase 3 — Web (WASM) Build Target ✅ Complete (alpha — placeholder sprites)
 
 ### Objective
 
@@ -193,7 +193,7 @@ the existing Go server or any static file host.
 
 ---
 
-## Phase 4 — Mobile Build Target
+## Phase 4 — Mobile Build Target ⚠️ Alpha (binding scaffolding; not verified on device)
 
 ### Objective
 
@@ -211,7 +211,7 @@ mobile binding tool) and `gomobile`.
 
 ### Technical Implementation
 
-- Create `cmd/mobile/mobile.go`:
+- Create `cmd/mobile/binding.go`:
   - Export a `Game` struct via `ebitenmobile` binding conventions.
   - Implement `ebitenmobile`-compatible `Update` / `Draw` / `Layout`.
 - Touch input mapping:
@@ -407,7 +407,7 @@ bostonfear/
 │   ├── web/             # Phase 3 — WASM entrypoint
 │   │   └── main.go
 │   └── mobile/          # Phase 4 — ebitenmobile binding
-│       └── mobile.go
+│       └── binding.go
 ├── client/
 │   ├── ebiten/          # Phase 1 — Ebitengine client package
 │   │   ├── game.go
