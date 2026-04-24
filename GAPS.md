@@ -74,30 +74,42 @@
 ## GAP-24 — `InvestigatorType` Never Set in Production; Character Selection Missing
 
 - **Intended Behavior**: `CLIENT_SPEC.md §3` specifies a `SceneCharacterSelect`
-  where players send `{"type":"playerAction","action":"selectInvestigator","target":"<name>"}`.
+  where players send `{"type":"playerAction","action":"selectinvestigator","target":"<name>"}`.
   Six distinct investigator archetypes are defined in `game_constants.go`
   (`DefaultInvestigatorAbilities`), each with unique resource costs and gameplay effects.
   RULES.md §"variable player powers through unique investigator abilities" describes
-  this as a core AH3e mechanic.
+  this as a core AH3e mechanic. The wire-format action string should be canonicalized
+  to lowercase for consistency with the rest of the server `ActionType` values
+  (`"move"`, `"ward"`, `"closegate"`, etc.); note that CLIENT_SPEC.md §3 currently
+  spells this action in camelCase (`"selectInvestigator"`) and will need to be updated
+  or the server must normalize both spellings.
 - **Current State**: `registerPlayer` (`cmd/server/connection.go:70`) constructs
   every `Player` with `InvestigatorType: ""` (zero value). `performComponent`
   (`cmd/server/actions.go:215`) looks up `player.InvestigatorType`; when not found in
   `DefaultInvestigatorAbilities` it silently falls back to `InvestigatorSurvivor`.
   There is no `ActionSelectInvestigator` constant, `isValidActionType` does not
-  accept `"selectInvestigator"`, and no handler exists for it. All six investigator
-  archetypes are dead from a gameplay perspective — tests set `InvestigatorType`
-  directly, but no player action can.
+  accept the canonical lowercase wire value `"selectinvestigator"`, and no handler
+  exists for it. If any client still sends the legacy camelCase form per older docs,
+  that will also be rejected unless the server normalizes or accepts both forms.
+  All six investigator archetypes are dead from a gameplay perspective — tests set
+  `InvestigatorType` directly, but no player action can.
 - **Blocked Goal**: CLIENT_SPEC.md §3 "Character Selection"; RULES.md §"variable
   player powers"; `performComponent` gameplay differentiation.
 - **Implementation Path**:
-  1. Add `ActionSelectInvestigator ActionType = "selectinvestigator"` to `game_constants.go`.
-  2. Add it to `isValidActionType` in `game_server.go`.
+  1. Add `ActionSelectInvestigator ActionType = "selectinvestigator"` to `game_constants.go`,
+     following the server's established lowercase `ActionType` convention.
+  2. Add it to `isValidActionType` in `game_server.go`. For compatibility, also add
+     server-side normalization (e.g., `strings.ToLower(string(action.Action))` before
+     the switch in `dispatchAction`) so that clients sending the older camelCase form
+     `"selectInvestigator"` per CLIENT_SPEC.md §3 continue to work until the spec and
+     all callers are updated to emit the canonical lowercase value.
   3. Implement `performSelectInvestigator(player *Player, target string) error` in
      `actions.go`: validate `target` is a known `InvestigatorType` key, reject if game
      phase is not `"waiting"`, set `player.InvestigatorType = InvestigatorType(target)`.
   4. Route through `dispatchAction` switch.
   5. In the Ebitengine client (`client/ebiten/app/game.go`), add a keyboard binding
-     (e.g., `R`/`D`/`O`/`S`/`M`/`V` for each archetype) or a pre-game selection screen.
+     (e.g., `R`/`D`/`O`/`S`/`M`/`V` for each archetype) or a pre-game selection screen,
+     and emit the canonical lowercase action string `"selectinvestigator"` on the wire.
   6. Add `TestProcessAction_SelectInvestigator_Valid` and
      `TestProcessAction_SelectInvestigator_InvalidPhase` tests.
 - **Dependencies**: GAP-27 (scene state machine) desirable but not required — the

@@ -46,7 +46,7 @@ and an in-progress Ebitengine native/WASM client.
 `go vet ./cmd/server/...` → **clean**  
 `go test -race ./cmd/server/...` → **pass (7.6 s)**  
 `go test -race ./client/ebiten/...` → **pass (1.0 s)**  
-`go build ./...` → GLFW header error on this headless box (expected; CI uses Xvfb)
+`go build ./...` → GLFW/X11 header error on this box when system GL/X11 development packages are not installed (expected in such environments; CI installs the required native deps, and uses Xvfb only for display-tagged tests)
 
 ---
 
@@ -117,15 +117,22 @@ and an in-progress Ebitengine native/WASM client.
   archetypes (Researcher, Detective, Occultist, Soldier, Mystic, Survivor) are fully
   implemented with costs and effects but are unreachable from gameplay.
   The `selectInvestigator` action described in CLIENT_SPEC.md §3 is not handled by the
-  server at all (`isValidActionType` does not include it). —
+  server at all (`isValidActionType` does not include it). This is also a protocol-
+  consistency issue: all existing server `ActionType` wire values are lowercase
+  (`"move"`, `"ward"`, `"closegate"`, etc.), while CLIENT_SPEC.md §3 currently spells
+  this action in camelCase (`"selectInvestigator"`). —
   **Blocked goal**: CLIENT_SPEC.md §3 "Character Selection", RULES.md "variable player
   powers through unique investigator abilities". —
-  **Remediation**: (a) Add `ActionSelectInvestigator ActionType = "selectInvestigator"`
-  to `game_constants.go`; (b) add it to `isValidActionType`; (c) implement
+  **Remediation**: (a) Add `ActionSelectInvestigator ActionType = "selectinvestigator"`
+  to `game_constants.go`, following the server's established lowercase `ActionType`
+  convention; (b) add it to `isValidActionType`; (c) implement
   `performSelectInvestigator(player *Player, target string) error` that sets
   `player.InvestigatorType` from `target` if valid and the game is in "waiting" phase;
-  (d) route it through `dispatchAction`. Validate with new test
-  `TestProcessAction_SelectInvestigator`.
+  (d) route it through `dispatchAction`. Because CLIENT_SPEC.md §3 currently uses the
+  camelCase spelling, the implementation must either update the spec/client to emit
+  `"selectinvestigator"` or add server-side normalization (`strings.ToLower`) before
+  validation/dispatch so both spellings are accepted without breaking existing action
+  validation. Validate with new test `TestProcessAction_SelectInvestigator`.
 
 - [ ] **Scene state machine from CLIENT_SPEC.md not implemented in Ebitengine client** —
   `client/ebiten/app/game.go` —
