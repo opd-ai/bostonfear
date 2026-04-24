@@ -292,6 +292,11 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 
 	case ActionSetDifficulty:
 		gs.mutex.Lock()
+		_, exists := gs.gameState.Players[action.PlayerID]
+		if !exists {
+			gs.mutex.Unlock()
+			return fmt.Errorf("player %s not found", action.PlayerID)
+		}
 		err := gs.performSetDifficulty(action.Target)
 		gs.mutex.Unlock()
 		if err != nil {

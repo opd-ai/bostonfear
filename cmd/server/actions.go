@@ -406,7 +406,7 @@ func (gs *GameServer) performSetDifficulty(target string) error {
 	if gs.gameState.GamePhase != "waiting" {
 		return fmt.Errorf("difficulty can only be set in the waiting phase")
 	}
-	return gs.applyDifficulty(target)
+	return gs.applyDifficulty(strings.ToLower(strings.TrimSpace(target)))
 }
 
 // performChat broadcasts a quick-chat phrase from the player to all connected clients.

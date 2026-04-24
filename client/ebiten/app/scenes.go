@@ -14,7 +14,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 )
 
 // Scene is the interface implemented by each full-screen game scene.

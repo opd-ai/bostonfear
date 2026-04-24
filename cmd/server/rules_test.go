@@ -587,9 +587,11 @@ func TestInvestigatorAutoRecovery(t *testing.T) {
 	t.Parallel()
 	gs, p1ID := newTestServer(t)
 
-	// Defeat the player first.
+	// Defeat the player first (caller must hold gs.mutex per checkInvestigatorDefeat contract).
+	gs.mutex.Lock()
 	gs.gameState.Players[p1ID].Resources.Health = 0
 	gs.checkInvestigatorDefeat(p1ID)
+	gs.mutex.Unlock()
 	if !gs.gameState.Players[p1ID].LostInTimeAndSpace {
 		t.Fatal("precondition: player should be LostInTimeAndSpace after defeat")
 	}
@@ -954,6 +956,7 @@ func TestProcessAction_SetDifficulty(t *testing.T) {
 
 	t.Run("ValidInWaiting", func(t *testing.T) {
 		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
 		err := gs.processAction(PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: "p1",
@@ -978,6 +981,36 @@ func TestProcessAction_SetDifficulty(t *testing.T) {
 		})
 		if err == nil {
 			t.Error("expected error when setting difficulty during play, got nil")
+		}
+	})
+
+	t.Run("CaseNormalized", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionSetDifficulty,
+			Target:   "Hard", // mixed-case — should be normalised to "hard"
+		})
+		if err != nil {
+			t.Fatalf("setdifficulty with mixed-case target returned error: %v", err)
+		}
+		if gs.gameState.Difficulty != "hard" {
+			t.Errorf("Difficulty = %q, want %q", gs.gameState.Difficulty, "hard")
+		}
+	})
+
+	t.Run("PlayerNotFoundReturnsError", func(t *testing.T) {
+		gs := NewGameServer()
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "nobody",
+			Action:   ActionSetDifficulty,
+			Target:   "easy",
+		})
+		if err == nil {
+			t.Error("expected error for unknown player, got nil")
 		}
 	})
 }

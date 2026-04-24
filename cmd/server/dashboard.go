@@ -217,6 +217,9 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 	if q, exists := gs.connectionQualities[playerID]; exists {
 		q.pingsSent++
 		q.LastPingTime = time.Now()
+		// Recalculate immediately so packet loss reflects missed pongs even when
+		// ping writes continue to succeed and no subsequent pong arrives.
+		gs.recalcPacketLoss(q)
 	}
 	gs.qualityMutex.Unlock()
 
