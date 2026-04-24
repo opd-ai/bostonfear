@@ -177,7 +177,7 @@
 - [x] Add headless-safe unit tests for non-rendering logic in `app/input.go`
 - [x] Add atlas coordinate validation tests (ensure sprite IDs map to valid regions)
 - [x] Add shader compilation test (verify Kage shaders compile without errors)
-- [ ] **Validation**: `go test -race ./client/ebiten/...` coverage > 60%
+- [x] **Validation**: `go test -race ./client/ebiten/...` coverage > 60%
 
 ---
 
