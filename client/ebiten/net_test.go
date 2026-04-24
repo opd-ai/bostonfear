@@ -91,6 +91,7 @@ func TestDecodeGameState_EmptyData(t *testing.T) {
 // stores the server-issued reconnect token in LocalState.
 // This is a regression test for GAP-04 where the token was silently discarded.
 func TestApplyConnectionStatus_PreservesToken(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	client := NewNetClient(state)
 
@@ -120,6 +121,7 @@ func TestApplyConnectionStatus_PreservesToken(t *testing.T) {
 // (reconnectLoop itself starts a goroutine that dials a real server, so we
 // test the token retrieval and URL construction logic here instead.)
 func TestReconnectURL_IncludesTokenWhenSet(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	state.SetReconnectToken("tok-xyz")
 
@@ -192,6 +194,7 @@ func TestApplyDiceResult_UpdatesState(t *testing.T) {
 
 // TestApplyDiceResult_InvalidJSON logs and skips bad payloads without panicking.
 func TestApplyDiceResult_InvalidJSON(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	client := NewNetClient(state)
 	client.applyDiceResult([]byte("{invalid"))
@@ -234,6 +237,7 @@ func TestApplyGameUpdate_UpdatesState(t *testing.T) {
 
 // TestApplyGameUpdate_InvalidJSON logs and skips bad payloads.
 func TestApplyGameUpdate_InvalidJSON(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	client := NewNetClient(state)
 	client.applyGameUpdate([]byte("{bad"))
@@ -336,6 +340,7 @@ func TestRouteMessage_ConnectionStatus(t *testing.T) {
 
 // TestRouteMessage_UnknownType verifies routeMessage silently ignores unknown message types.
 func TestRouteMessage_UnknownType(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	client := NewNetClient(state)
 
@@ -347,6 +352,7 @@ func TestRouteMessage_UnknownType(t *testing.T) {
 
 // TestRouteMessage_InvalidJSON verifies routeMessage handles malformed bytes gracefully.
 func TestRouteMessage_InvalidJSON(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	client := NewNetClient(state)
 	client.routeMessage([]byte("{broken"))
@@ -354,6 +360,7 @@ func TestRouteMessage_InvalidJSON(t *testing.T) {
 
 // TestSendAction_DeliveredToChannel verifies SendAction enqueues the action for delivery.
 func TestSendAction_DeliveredToChannel(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	client := NewNetClient(state)
 
@@ -380,6 +387,7 @@ func TestSendAction_DeliveredToChannel(t *testing.T) {
 
 // TestSendAction_DropWhenFull verifies SendAction does not block when the channel is full.
 func TestSendAction_DropWhenFull(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	state := NewLocalState("ws://localhost:8080/ws")
 	client := NewNetClient(state)
 

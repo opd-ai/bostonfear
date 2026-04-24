@@ -3,6 +3,7 @@ package ebiten
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -66,6 +67,7 @@ func TestTokenPersistence_OverwriteExisting(t *testing.T) {
 
 // TestUpdateGame verifies that UpdateGame replaces the game state atomically.
 func TestUpdateGame(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 
 	gs := GameState{
@@ -93,6 +95,7 @@ func TestUpdateGame(t *testing.T) {
 
 // TestSetConnected verifies that SetConnected updates the Connected flag.
 func TestSetConnected(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 
 	ls.SetConnected(true)
@@ -110,6 +113,7 @@ func TestSetConnected(t *testing.T) {
 
 // TestSnapshot_ReturnsPlayerID verifies Snapshot returns the stored player ID.
 func TestSnapshot_ReturnsPlayerID(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 	ls.SetPlayerID("player3")
 
@@ -121,6 +125,7 @@ func TestSnapshot_ReturnsPlayerID(t *testing.T) {
 
 // TestUpdateDiceResult_AppendEvent verifies UpdateDiceResult appends an entry to EventLog.
 func TestUpdateDiceResult_AppendEvent(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 
 	dr := DiceResultData{
@@ -152,6 +157,7 @@ func TestUpdateDiceResult_AppendEvent(t *testing.T) {
 
 // TestUpdateDiceResult_FailureLabel verifies the event text uses "failed" for unsuccessful rolls.
 func TestUpdateDiceResult_FailureLabel(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 	dr := DiceResultData{PlayerID: "p1", Action: "ward", Success: false}
 	ls.UpdateDiceResult(dr)
@@ -160,10 +166,14 @@ func TestUpdateDiceResult_FailureLabel(t *testing.T) {
 	if len(events) == 0 {
 		t.Fatal("expected event log entry")
 	}
+	if !strings.Contains(events[0].Text, "failed") {
+		t.Errorf("event text %q does not contain expected label %q", events[0].Text, "failed")
+	}
 }
 
 // TestUpdateGameEvent_AppendEvent verifies UpdateGameEvent stores and logs the event.
 func TestUpdateGameEvent_AppendEvent(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 
 	gu := GameUpdateData{
@@ -190,6 +200,7 @@ func TestUpdateGameEvent_AppendEvent(t *testing.T) {
 
 // TestEventLogSnapshot_CopiesSlice verifies EventLogSnapshot returns a copy, not the internal slice.
 func TestEventLogSnapshot_CopiesSlice(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 	dr := DiceResultData{PlayerID: "p1", Action: "gather", Success: true}
 	ls.UpdateDiceResult(dr)
@@ -209,6 +220,7 @@ func TestEventLogSnapshot_CopiesSlice(t *testing.T) {
 
 // TestEventLogSnapshot_CapsAt20 verifies that the event log is trimmed to 20 entries.
 func TestEventLogSnapshot_CapsAt20(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
 
 	for i := 0; i < 25; i++ {
