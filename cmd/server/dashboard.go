@@ -21,6 +21,8 @@ type ConnectionQuality struct {
 	PacketLoss   float64   `json:"packetLoss"`
 	LastPingTime time.Time `json:"lastPingTime"`
 	MessageDelay float64   `json:"messageDelay"`
+	pingsSent    int       // total pings sent; used for packet-loss calculation
+	pongsReceived int      // total pongs received; used for packet-loss calculation
 }
 
 // ConnectionStatusMessage represents connection quality updates broadcast to clients.
@@ -101,6 +103,8 @@ func (gs *GameServer) handlePongMessage(pingMsg PingMessage, receiveTime time.Ti
 	latency := float64(receiveTime.Sub(pingMsg.Timestamp).Nanoseconds()) / 1e6
 	quality.LatencyMs = latency
 	quality.LastPingTime = receiveTime
+	quality.pongsReceived++
+	gs.recalcPacketLoss(quality)
 
 	// Update quality assessment while still holding the lock
 	gs.assessConnectionQuality(pingMsg.PlayerID)
@@ -136,6 +140,20 @@ func (gs *GameServer) assessConnectionQuality(playerID string) {
 			quality.Quality = "poor"
 		}
 	}
+}
+
+// recalcPacketLoss computes PacketLoss as the ratio of unanswered pings to pings sent.
+// Caller must hold qualityMutex (any variant).
+func (gs *GameServer) recalcPacketLoss(q *ConnectionQuality) {
+	if q.pingsSent == 0 {
+		q.PacketLoss = 0
+		return
+	}
+	missed := q.pingsSent - q.pongsReceived
+	if missed < 0 {
+		missed = 0
+	}
+	q.PacketLoss = float64(missed) / float64(q.pingsSent)
 }
 
 // startPingTimer starts periodic ping for connection quality monitoring
@@ -191,13 +209,20 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 
 	// Use writeToConn so this write is serialised with broadcastHandler writes
 	// on the same connection (gorilla/websocket is not concurrent-write safe).
+	gs.qualityMutex.Lock()
+	if q, exists := gs.connectionQualities[playerID]; exists {
+		q.pingsSent++
+		q.LastPingTime = time.Now()
+	}
+	gs.qualityMutex.Unlock()
+
 	if err := gs.writeToConn(wsConn, wsAddr, pingData); err != nil {
 		log.Printf("Error sending ping to player %s: %v", playerID, err)
-		// Mark connection quality as poor on send failure
+		// Treat a send failure as a dropped packet.
 		gs.qualityMutex.Lock()
 		if quality, exists := gs.connectionQualities[playerID]; exists {
 			quality.Quality = "poor"
-			quality.PacketLoss += 0.1 // Increase packet loss indicator
+			gs.recalcPacketLoss(quality)
 		}
 		gs.qualityMutex.Unlock()
 	}

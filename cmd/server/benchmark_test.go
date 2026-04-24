@@ -1,6 +1,6 @@
 // Package main — performance benchmarks and stability tests for the Arkham Horror
 // multiplayer game server. Validates sub-500ms broadcast latency and stable operation
-// under concurrent multi-player load (ROADMAP Priority 5, PLAN.md Step 6).
+// under concurrent multi-player load (ROADMAP §Priority 3: CI Benchmark Reporting).
 package main
 
 import (

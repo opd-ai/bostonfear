@@ -3,26 +3,27 @@
 ## Engine Implementation Status
 
 > This section tracks the compliance of the BostonFear game engine against the AH3e
-> rule systems specified below. Updated March 15, 2026.
+> rule systems specified below. Updated April 24, 2026.
 
 | Rule System | Specified in RULES.md | Implemented in Engine | Test Coverage | Gap Reference |
 |---|---|---|---|---|
-| Action System (2 actions/turn, 8 action types) | ✅ | ⚠️ Partial (4 of 8 actions: Move, Gather, Investigate, Ward) | ❌ None | GAPS.md §4 |
-| Dice Resolution (pool, focus spend, tentacle) | ✅ | ⚠️ Partial (no focus token spend, no skill-based pool adjustment) | ❌ None | GAPS.md §4 |
-| Mythos Phase (draw 2 events, place, spread, cup token) | ✅ | ❌ Not implemented | ❌ None | New gap — GAPS.md §4 |
-| Resource Management (money, clues, remnants, focus) | ✅ | ⚠️ Partial (health, sanity, clues only; no money/remnants/focus tokens) | ❌ None | New gap — GAPS.md §4 |
-| Encounter Resolution | ✅ | ❌ Not implemented | ❌ None | New gap — GAPS.md §4 |
-| Act/Agenda Deck Progression | ✅ | ❌ Not implemented | ❌ None | New gap — GAPS.md §4 |
-| Investigator Defeat (health OR sanity = 0) | ✅ | ⚠️ Partial (no "lost in time and space" state, no recovery) | ❌ None | New gap — GAPS.md §4 |
-| Scenario System (codex, setup, victory/defeat) | ✅ | ❌ Not implemented (simple clue-threshold win only) | ❌ None | New gap — GAPS.md §4 |
-| Modular Difficulty Settings | ✅ | ❌ Not implemented | ❌ None | New gap — GAPS.md §4 |
-| 1–6 Player Support | ✅ | ✅ (1–6 players, join-in-progress) | ❌ None | — |
+| Action System (2 actions/turn, 12 action types) | ✅ | ✅ All 12 (Move, Gather, Investigate, Ward, Focus, Research, Trade, Encounter, Component, Attack, Evade, CloseGate) | ✅ `TestRulesFullActionSet` | — |
+| Dice Resolution (pool, focus spend, tentacle) | ✅ | ✅ `rollDicePool` with focus spend and rerolls | ✅ `TestRulesDicePoolFocusModifier` | — |
+| Mythos Phase (draw 2 events, place, spread, cup token) | ✅ | ✅ `runMythosPhase` with event types and token cup | ✅ `TestRulesMythosPhaseEventPlacement` | — |
+| Resource Management (money, clues, remnants, focus) | ✅ | ✅ Health, Sanity, Clues, Money, Remnants, Focus (6 types) | ✅ `TestRulesResourceTypes` | — |
+| Encounter Resolution | ✅ | ✅ Deck-based draws with typed effects | ✅ `TestRulesEncounterResolution` | — |
+| Act/Agenda Deck Progression | ✅ | ✅ Clue thresholds scale with player count | ✅ `TestRulesActAgendaProgression` | — |
+| Investigator Defeat/Recovery | ✅ | ✅ LostInTimeAndSpace state + auto-recovery at Mythos Phase | ✅ `TestRulesDefeatRecovery`, `TestInvestigatorAutoRecovery` | — |
+| Scenario System (setup, victory/defeat) | ✅ | ✅ `DefaultScenario` with custom win/lose conditions | ✅ `TestRulesScenarioSystem` | — |
+| Modular Difficulty Settings | ✅ | ✅ Easy/Normal/Hard presets via `ActionSetDifficulty` | ✅ `TestDifficulty_*`, `TestProcessAction_SetDifficulty` | — |
+| 1–6 Player Support | ✅ | ✅ Min 1, Max 6, join-in-progress, act deck rescaling | ✅ `TestRescaleActDeck_LateJoin` | — |
+| Attack/Evade (enemies) | ✅ | ✅ `performAttack`, `performEvade`, enemy spawn | ✅ `TestProcessAction_Attack`, `TestProcessAction_Evade` | — |
+| Gate/Anomaly Mechanics | ✅ | ✅ `openGate`, `performCloseGate`, anomaly spawns | ✅ `TestGateMechanics_OpenAndClose` | — |
+| Investigator Selection | ✅ | ✅ 6 archetypes via `ActionSelectInvestigator` | ✅ `TestProcessAction_SelectInvestigator` | — |
 
 **Legend**: ✅ = Complete, ⚠️ = Partial, ❌ = Missing/None
 
-**Target**: 100% of AH3e core rulebook mechanics implemented and covered by automated
-tests (ROADMAP Phase 6). See `ROADMAP.md` for the phased plan and `GAPS.md` §4 for
-the detailed gap description.
+**Status**: 13/13 core rule systems fully implemented and covered by automated tests.
 
 The game supports 1-6 players who take on the roles of investigators exploring the city of Arkham, Massachusetts in the 1920s. The core objective involves uncovering clues and thwarting the machinations of an Ancient One before doom spreads throughout the city. Unlike previous editions, Third Edition uses a modular board consisting of neighborhood tiles that are placed during setup based on the chosen scenario, creating a more focused and narrative-driven experience.
 

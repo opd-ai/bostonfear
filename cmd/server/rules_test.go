@@ -1,6 +1,6 @@
 package main
 
-// rules_test.go — AH3e Core Mechanics Compliance Test Suite (PLAN.md Step M8).
+// rules_test.go — AH3e Core Mechanics Compliance Test Suite (ROADMAP §AH3e Engine Compliance).
 //
 // Each test function maps to one rule system in RULES.md.  Fully implemented
 // mechanics are validated with functional assertions; mechanics not yet
@@ -579,7 +579,35 @@ func TestRulesDefeatRecovery(t *testing.T) {
 	})
 }
 
-// --- TestRulesVictoryDefeatConditions ---
+// --- TestInvestigatorAutoRecovery ---
+// Verifies that runMythosPhase automatically recovers connected investigators
+// who are in the LostInTimeAndSpace state (RULES.md §Defeat/Recovery).
+
+func TestInvestigatorAutoRecovery(t *testing.T) {
+	t.Parallel()
+	gs, p1ID := newTestServer(t)
+
+	// Defeat the player first.
+	gs.gameState.Players[p1ID].Resources.Health = 0
+	gs.checkInvestigatorDefeat(p1ID)
+	if !gs.gameState.Players[p1ID].LostInTimeAndSpace {
+		t.Fatal("precondition: player should be LostInTimeAndSpace after defeat")
+	}
+
+	// runMythosPhase should auto-recover connected defeated investigators.
+	gs.mutex.Lock()
+	gs.runMythosPhase()
+	gs.mutex.Unlock()
+
+	if gs.gameState.Players[p1ID].LostInTimeAndSpace {
+		t.Error("runMythosPhase should have cleared LostInTimeAndSpace for connected player")
+	}
+	if gs.gameState.Players[p1ID].Defeated {
+		t.Error("runMythosPhase should have cleared Defeated flag for connected player")
+	}
+}
+
+
 // AH3e: Victory when all act cards are completed; defeat when final agenda card
 // is reached or all investigators are defeated.
 
@@ -860,4 +888,131 @@ func TestRulesActAgendaProgression_1PGameWinsAt4Clues(t *testing.T) {
 	if !gs.gameState.WinCondition {
 		t.Error("WinCondition should be set when 1P reaches 4 clues")
 	}
+}
+
+// --- TestProcessAction_SelectInvestigator ---
+// Verifies that a player can select an investigator type during the waiting phase.
+
+func TestProcessAction_SelectInvestigator(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ValidTypeInWaiting", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionSelectInvestigator,
+			Target:   "researcher",
+		})
+		if err != nil {
+			t.Fatalf("selectinvestigator in waiting phase returned error: %v", err)
+		}
+		if got := gs.gameState.Players["p1"].InvestigatorType; got != InvestigatorResearcher {
+			t.Errorf("InvestigatorType = %q, want %q", got, InvestigatorResearcher)
+		}
+	})
+
+	t.Run("UnknownTypeReturnsError", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionSelectInvestigator,
+			Target:   "nonexistent",
+		})
+		if err == nil {
+			t.Error("expected error for unknown investigator type, got nil")
+		}
+	})
+
+	t.Run("NormalisedCamelCase", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		// Client may send "selectInvestigator" (camelCase); server must normalise it.
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   "selectInvestigator",
+			Target:   "soldier",
+		})
+		if err != nil {
+			t.Fatalf("camelCase action not normalised: %v", err)
+		}
+		if got := gs.gameState.Players["p1"].InvestigatorType; got != InvestigatorSoldier {
+			t.Errorf("InvestigatorType = %q, want %q", got, InvestigatorSoldier)
+		}
+	})
+}
+
+// --- TestProcessAction_SetDifficulty ---
+// Verifies that difficulty can be set during the waiting phase but not during play.
+
+func TestProcessAction_SetDifficulty(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ValidInWaiting", func(t *testing.T) {
+		gs := NewGameServer()
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionSetDifficulty,
+			Target:   "hard",
+		})
+		if err != nil {
+			t.Fatalf("setdifficulty in waiting phase returned error: %v", err)
+		}
+		if gs.gameState.Difficulty != "hard" {
+			t.Errorf("Difficulty = %q, want %q", gs.gameState.Difficulty, "hard")
+		}
+	})
+
+	t.Run("RejectedDuringPlay", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionSetDifficulty,
+			Target:   "easy",
+		})
+		if err == nil {
+			t.Error("expected error when setting difficulty during play, got nil")
+		}
+	})
+}
+
+// --- TestProcessAction_Chat ---
+// Verifies that a player can send a quick-chat phrase.
+
+func TestProcessAction_Chat(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ValidPhrase", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionChat,
+			Target:   "Good luck!",
+		})
+		if err != nil {
+			t.Fatalf("chat with valid phrase returned error: %v", err)
+		}
+	})
+
+	t.Run("EmptyPhraseReturnsError", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionChat,
+			Target:   "",
+		})
+		if err == nil {
+			t.Error("expected error for empty chat phrase, got nil")
+		}
+	})
 }

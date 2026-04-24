@@ -80,7 +80,7 @@ and an in-progress Ebitengine native/WASM client.
 
 ### HIGH
 
-- [ ] **Doom bar does not scale — `DrawCmd.ScaleX`/`ScaleY` silently dropped** —
+- [x] **Doom bar does not scale — `DrawCmd.ScaleX`/`ScaleY` silently dropped** —
   `client/ebiten/render/layers.go:70-78` —
   `Compositor.Flush()` calls `r.atlas.DrawSprite(screen, cmd.Sprite, cmd.X, cmd.Y, cmd.Tint)`
   but never passes `cmd.ScaleX`/`cmd.ScaleY`. `DrawSprite` only calls `op.GeoM.Translate`.
@@ -93,7 +93,7 @@ and an in-progress Ebitengine native/WASM client.
   `op.GeoM.Scale(scaleX, scaleY)` before the `Translate`. Validate with:
   `DISPLAY=:99 go test -race -tags=requires_display ./client/ebiten/render/...`
 
-- [ ] **Kage shaders compiled but never invoked — `ShaderSet`/`NewShaderSet`/`DrawDoomVignette` are dead code** —
+- [x] **Kage shaders compiled but never invoked — `ShaderSet`/`NewShaderSet`/`DrawDoomVignette` are dead code** —
   `client/ebiten/render/shaders.go:29,63` —
   `NewShaderSet()` is never called from `NewCompositor()`, `NewGame()`, or any
   other production path. `Compositor` has no `shaders` field. `DrawDoomVignette()` is
@@ -109,7 +109,7 @@ and an in-progress Ebitengine native/WASM client.
   `Draw()`. Handle compile errors gracefully (log + skip). Validate with
   `DISPLAY=:99 go test -race -tags=requires_display ./client/ebiten/render/...`.
 
-- [ ] **`InvestigatorType` never set in production — all players default to Survivor ability** —
+- [x] **`InvestigatorType` never set in production — all players default to Survivor ability** —
   `cmd/server/connection.go:70` (registerPlayer), `cmd/server/actions.go:215` —
   `registerPlayer` constructs every `Player` without setting `InvestigatorType`; the
   zero value `""` is not in `DefaultInvestigatorAbilities`, so `performComponent`
@@ -134,7 +134,7 @@ and an in-progress Ebitengine native/WASM client.
   validation/dispatch so both spellings are accepted without breaking existing action
   validation. Validate with new test `TestProcessAction_SelectInvestigator`.
 
-- [ ] **Scene state machine from CLIENT_SPEC.md not implemented in Ebitengine client** —
+- [x] **Scene state machine from CLIENT_SPEC.md not implemented in Ebitengine client** —
   `client/ebiten/app/game.go` —
   CLIENT_SPEC.md §1 specifies four scenes: `SceneConnect → SceneCharacterSelect →
   SceneGame → SceneGameOver`. The client unconditionally renders the in-game view
@@ -155,7 +155,7 @@ and an in-progress Ebitengine native/WASM client.
 
 ### MEDIUM
 
-- [ ] **`recoverInvestigator` is dead production code** —
+- [x] **`recoverInvestigator` is dead production code** —
   `cmd/server/game_mechanics.go:59` —
   `recoverInvestigator` is defined and doc-commented but is only called from test code
   (`cmd/server/rules_test.go:572`). No production code path triggers investigator
@@ -169,7 +169,7 @@ and an in-progress Ebitengine native/WASM client.
   `player.LostInTimeAndSpace && player.Connected`. Alternatively, auto-recover at the
   start of the Mythos Phase. Add `TestInvestigatorAutoRecovery` to `rules_test.go`.
 
-- [ ] **`applyDifficulty` not wired to any WebSocket message handler** —
+- [x] **`applyDifficulty` not wired to any WebSocket message handler** —
   `cmd/server/game_mechanics.go:113` —
   `applyDifficulty("easy"|"standard"|"hard")` is implemented and tested but is never
   called from any production code path. The `DifficultyConfig` map, `DifficultySetup`
@@ -186,7 +186,7 @@ and an in-progress Ebitengine native/WASM client.
   `TestProcessAction_SetDifficulty_Waiting` and `TestProcessAction_SetDifficulty_Playing`
   (should return error when game is already in progress).
 
-- [ ] **Quick-chat panel from CLIENT_SPEC.md §5 not implemented** —
+- [x] **Quick-chat panel from CLIENT_SPEC.md §5 not implemented** —
   `cmd/server/game_server.go:334` (`isValidActionType`) —
   CLIENT_SPEC.md §5 specifies a "Quick-Chat Panel" sending
   `{"type":"playerAction","action":"chat","target":"<phrase>"}`. The server does not
@@ -202,7 +202,7 @@ and an in-progress Ebitengine native/WASM client.
   with `event: "chat"` and `result: phrase`; (d) display the chat entry in the client
   event log. Validate with `TestProcessAction_Chat`.
 
-- [ ] **`PLAN.md` referenced in source comments but does not exist** —
+- [x] **`PLAN.md` referenced in source comments but does not exist** —
   `cmd/server/benchmark_test.go:3`, `cmd/server/rules_test.go:3`,
   `cmd/server/origin_test.go:1` —
   Several test files reference "PLAN.md Step N" or "PLAN.md Step M8" in their package
@@ -218,7 +218,7 @@ and an in-progress Ebitengine native/WASM client.
 
 ### LOW
 
-- [ ] **Four unused analytics types dead in `game_types.go`** —
+- [x] **Four unused analytics types dead in `game_types.go`** —
   `cmd/server/game_types.go:187–238` —
   `ConnectionAnalytics`, `SessionDistribution`, `PlayerSessionMetrics`, and
   `AlertThreshold` are defined but never instantiated by any production code.
@@ -229,7 +229,7 @@ and an in-progress Ebitengine native/WASM client.
   **Remediation**: Remove the four unused type definitions from `game_types.go`.
   Verify with `go vet ./cmd/server/...` and `go build ./cmd/server/...`.
 
-- [ ] **`client/ebiten/input.go` is a zombie file** —
+- [x] **`client/ebiten/input.go` is a zombie file** —
   `client/ebiten/input.go:1` —
   The file opens with `//go:build ignore` and its own comment explains it is
   superseded by `client/ebiten/app/input.go`. It is never compiled, never tested,
@@ -239,7 +239,7 @@ and an in-progress Ebitengine native/WASM client.
   **Remediation**: Delete `client/ebiten/input.go`. Validate with
   `go build ./client/ebiten/...` (headless) and confirm no tests reference it.
 
-- [ ] **RULES.md compliance table severely out of date** —
+- [x] **RULES.md compliance table severely out of date** —
   `RULES.md` (compliance table header) —
   The embedded compliance table marks Action System as "⚠️ Partial (4 of 8 actions)",
   Dice Resolution as "⚠️ Partial (no focus token spend)", Mythos Phase as
@@ -254,7 +254,7 @@ and an in-progress Ebitengine native/WASM client.
   above). Verify by cross-referencing `TestRulesFullActionSet`, `TestRulesMythosPhase*`,
   etc. against the table rows.
 
-- [ ] **`PacketLoss` always reports 0 in connection quality** —
+- [x] **`PacketLoss` always reports 0 in connection quality** —
   `cmd/server/dashboard.go:61` —
   `initializeConnectionQuality` sets `PacketLoss: 0` and `updateConnectionQuality`
   increments it by `0.1` only when `messageDelay > 200ms`, but `messageDelay` is
