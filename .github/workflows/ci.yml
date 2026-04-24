@@ -37,14 +37,15 @@ jobs:
           threshold_ns=200000000
           ns_per_op=$(awk '/BenchmarkBroadcastLatency/{for(i=1;i<=NF;i++) if($(i+1)=="ns/op") {print $i; exit}}' /tmp/benchmark-results.txt)
           if [ -z "$ns_per_op" ]; then
-            echo "BenchmarkBroadcastLatency not found in output - skipping threshold check"
-            exit 0
+            echo "ERROR: BenchmarkBroadcastLatency not found in benchmark output."
+            echo "Ensure the benchmark exists and is not excluded by build tags."
+            exit 1
           fi
           echo "BenchmarkBroadcastLatency: ${ns_per_op} ns/op"
           if awk -v ns="${ns_per_op}" -v t="${threshold_ns}" 'BEGIN{exit (ns+0 >= t) ? 1 : 0}'; then
             echo "PASS: broadcast latency ${ns_per_op} ns/op is below 200ms threshold"
           else
-            echo "FAIL: broadcast latency ${ns_per_op} ns/op exceeds 200ms threshold (${threshold_ns} ns)"
+            echo "FAIL: broadcast latency ${ns_per_op} ns/op meets or exceeds 200ms threshold (${threshold_ns} ns)"
             exit 1
           fi
       - name: Upload benchmark results

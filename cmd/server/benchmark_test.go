@@ -15,9 +15,15 @@ import (
 )
 
 // broadcastLatencyThreshold is the maximum acceptable average round-trip latency
-// from a player action to the resulting gameState broadcast.
+// from a player action to the first broadcast response (gameState or gameUpdate).
 // Any average exceeding this value causes TestBroadcastLatency_Threshold to fail.
 const broadcastLatencyThreshold = 200 * time.Millisecond
+
+// broadcastSampleDeadline is the per-sample read timeout used by
+// TestBroadcastLatency_Threshold. It is intentionally generous so that a single
+// slow sample (e.g. due to GC or scheduler jitter) does not fatally abort the test
+// before the mean can be evaluated against broadcastLatencyThreshold.
+const broadcastSampleDeadline = 5 * time.Second
 
 // BenchmarkBroadcastLatency measures round-trip time from submitting a player action
 // to the next gameState message arriving on the same connection. Uses a real
@@ -63,8 +69,10 @@ func BenchmarkBroadcastLatency(b *testing.B) {
 
 // TestBroadcastLatency_Threshold enforces the 200ms average latency SLA defined in
 // ROADMAP §Priority 3. It sends 10 gather actions and measures the round-trip time
-// from submission to the first gameState or gameUpdate response. The test fails if
-// the mean exceeds broadcastLatencyThreshold (200ms).
+// from submission to the first broadcast response (gameState or gameUpdate). The test
+// fails if the mean exceeds broadcastLatencyThreshold (200ms). Each sample uses a
+// generous per-sample deadline (broadcastSampleDeadline) so GC or scheduler jitter
+// on a single sample does not abort the test before the mean can be evaluated.
 // Skipped in -short mode.
 func TestBroadcastLatency_Threshold(t *testing.T) {
 	if testing.Short() {
@@ -92,7 +100,7 @@ func TestBroadcastLatency_Threshold(t *testing.T) {
 		if err := conn.WriteMessage(websocket.TextMessage, actionBytes); err != nil {
 			t.Fatalf("sample %d: write action: %v", i, err)
 		}
-		conn.SetReadDeadline(time.Now().Add(broadcastLatencyThreshold * 2))
+		conn.SetReadDeadline(time.Now().Add(broadcastSampleDeadline))
 		for {
 			_, raw, err := conn.ReadMessage()
 			if err != nil {
