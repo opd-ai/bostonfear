@@ -25,11 +25,29 @@ jobs:
       - name: go test -race
         run: DISPLAY=:99 xvfb-run -a go test -race -tags=requires_display ./...
       # Run performance benchmarks and upload results as a CI artifact.
-      # A broadcast latency > 200ms average is treated as a regression warning.
+      # A broadcast latency >= 200ms fails TestBroadcastLatency_Threshold in the
+      # test step above. The threshold is also enforced here by parsing ns/op from
+      # the benchmark output (200ms = 200,000,000 ns/op).
       - name: Run benchmarks
         run: |
           set -o pipefail
           go test -bench=. -benchtime=10s -run='^$' ./cmd/server/... | tee /tmp/benchmark-results.txt
+      - name: Check broadcast latency threshold
+        run: |
+          threshold_ns=200000000
+          ns_per_op=$(awk '/BenchmarkBroadcastLatency/{for(i=1;i<=NF;i++) if($(i+1)=="ns/op") {print $i; exit}}' /tmp/benchmark-results.txt)
+          if [ -z "$ns_per_op" ]; then
+            echo "ERROR: BenchmarkBroadcastLatency not found in benchmark output."
+            echo "Ensure the benchmark exists and is not excluded by build tags."
+            exit 1
+          fi
+          echo "BenchmarkBroadcastLatency: ${ns_per_op} ns/op"
+          if awk -v ns="${ns_per_op}" -v t="${threshold_ns}" 'BEGIN{exit (ns+0 >= t) ? 1 : 0}'; then
+            echo "PASS: broadcast latency ${ns_per_op} ns/op is below 200ms threshold"
+          else
+            echo "FAIL: broadcast latency ${ns_per_op} ns/op meets or exceeds 200ms threshold (${threshold_ns} ns)"
+            exit 1
+          fi
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:

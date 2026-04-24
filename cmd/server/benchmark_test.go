@@ -14,6 +14,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// broadcastLatencyThreshold is the maximum acceptable average round-trip latency
+// from a player action to the first broadcast response (gameState or gameUpdate).
+// Any average exceeding this value causes TestBroadcastLatency_Threshold to fail.
+const broadcastLatencyThreshold = 200 * time.Millisecond
+
+// broadcastSampleDeadline is the per-sample read timeout used by
+// TestBroadcastLatency_Threshold. It is intentionally generous so that a single
+// slow sample (e.g. due to GC or scheduler jitter) does not fatally abort the test
+// before the mean can be evaluated against broadcastLatencyThreshold.
+const broadcastSampleDeadline = 5 * time.Second
+
 // BenchmarkBroadcastLatency measures round-trip time from submitting a player action
 // to the next gameState message arriving on the same connection. Uses a real
 // httptest server so the full broadcast pipeline (actionHandler → broadcastHandler →
@@ -53,6 +64,62 @@ func BenchmarkBroadcastLatency(b *testing.B) {
 				}
 			}
 		}
+	}
+}
+
+// TestBroadcastLatency_Threshold enforces the 200ms average latency SLA defined in
+// ROADMAP §Priority 3. It sends 10 gather actions and measures the round-trip time
+// from submission to the first broadcast response (gameState or gameUpdate). The test
+// fails if the mean exceeds broadcastLatencyThreshold (200ms). Each sample uses a
+// generous per-sample deadline (broadcastSampleDeadline) so GC or scheduler jitter
+// on a single sample does not abort the test before the mean can be evaluated.
+// Skipped in -short mode.
+func TestBroadcastLatency_Threshold(t *testing.T) {
+	if testing.Short() {
+		t.Skip("latency threshold test skipped in -short mode")
+	}
+
+	srv, cleanup := newIntegrationTestServer(t)
+	defer cleanup()
+
+	conn, playerID, _ := srv.connectPlayer(t)
+	defer conn.Close()
+
+	action := map[string]interface{}{
+		"type":     "playerAction",
+		"playerId": playerID,
+		"action":   "gather",
+	}
+	actionBytes, _ := json.Marshal(action)
+
+	const samples = 10
+	var total time.Duration
+	for i := 0; i < samples; i++ {
+		start := time.Now()
+		conn.SetWriteDeadline(time.Now().Add(500 * time.Millisecond))
+		if err := conn.WriteMessage(websocket.TextMessage, actionBytes); err != nil {
+			t.Fatalf("sample %d: write action: %v", i, err)
+		}
+		conn.SetReadDeadline(time.Now().Add(broadcastSampleDeadline))
+		for {
+			_, raw, err := conn.ReadMessage()
+			if err != nil {
+				t.Fatalf("sample %d: read response: %v", i, err)
+			}
+			var msg map[string]interface{}
+			if err := json.Unmarshal(raw, &msg); err == nil {
+				if mt, _ := msg["type"].(string); mt == "gameState" || mt == "gameUpdate" {
+					total += time.Since(start)
+					break
+				}
+			}
+		}
+	}
+
+	avg := total / time.Duration(samples)
+	t.Logf("BroadcastLatency average over %d samples: %v (threshold: %v)", samples, avg, broadcastLatencyThreshold)
+	if avg > broadcastLatencyThreshold {
+		t.Errorf("average broadcast latency %v exceeds %v threshold", avg, broadcastLatencyThreshold)
 	}
 }
 
