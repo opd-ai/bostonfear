@@ -133,9 +133,9 @@
     run: go test -bench=. -benchtime=10s ./cmd/server/... | tee benchmark-results.txt
   ```
 - [x] Upload `benchmark-results.txt` as CI artifact
-- [ ] Define pass/fail threshold: average broadcast latency must be < 200ms
+- [x] Define pass/fail threshold: average broadcast latency must be < 200ms
 - [ ] Optionally integrate with a benchmark tracking service (e.g., Bencher, codspeed)
-- [ ] **Validation**: CI run shows benchmark artifact with latency metrics
+- [x] **Validation**: CI run shows benchmark artifact with latency metrics
 
 ---
 
@@ -176,7 +176,7 @@
 
 - [x] Add headless-safe unit tests for non-rendering logic in `app/input.go`
 - [x] Add atlas coordinate validation tests (ensure sprite IDs map to valid regions)
-- [ ] Add shader compilation test (verify Kage shaders compile without errors)
+- [x] Add shader compilation test (verify Kage shaders compile without errors)
 - [ ] **Validation**: `go test -race ./client/ebiten/...` coverage > 60%
 
 ---
