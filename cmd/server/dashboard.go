@@ -151,6 +151,10 @@ func (gs *GameServer) recalcPacketLoss(q *ConnectionQuality) {
 	}
 	missed := q.pingsSent - q.pongsReceived
 	if missed < 0 {
+		// pongsReceived exceeds pingsSent — should not occur; reset counters.
+		log.Printf("recalcPacketLoss: pongsReceived (%d) > pingsSent (%d); resetting",
+			q.pongsReceived, q.pingsSent)
+		q.pingsSent = q.pongsReceived
 		missed = 0
 	}
 	q.PacketLoss = float64(missed) / float64(q.pingsSent)

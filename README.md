@@ -202,7 +202,7 @@ bostonfear/
 │   └── dashboard.html      # Performance monitoring dashboard
 ├── go.mod                  # Go module dependencies
 ├── go.sum
-├── ROADMAP.md              # Goal-achievement assessment and future improvements
+├── ROADMAP.md              # Phased migration plan, AH3e compliance, and future priorities
 ├── RULES.md                # AH3e rules engine specification + compliance table
 ├── CLIENT_SPEC.md          # Ebitengine client UI/UX requirements
 └── README.md               # This file

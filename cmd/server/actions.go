@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
 // performMove executes the Move action: validates adjacency and updates player location.
@@ -388,7 +389,7 @@ func (gs *GameServer) performSelectInvestigator(player *Player, playerID, target
 	if gs.gameState.GamePhase != "waiting" {
 		return fmt.Errorf("investigator selection is only allowed in the waiting phase")
 	}
-	invType := InvestigatorType(target)
+	invType := InvestigatorType(strings.ToLower(target))
 	if _, ok := DefaultInvestigatorAbilities[invType]; !ok {
 		return fmt.Errorf("unknown investigator type %q", target)
 	}

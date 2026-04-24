@@ -112,11 +112,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 // drawGameContent renders the in-game view. Called from SceneGame.Draw and
 // from the Draw fallback path when no active scene is set.
 func (g *Game) drawGameContent(screen *ebiten.Image) {
-	// Lazily compile Kage shaders on first draw. Errors are non-fatal: the game
-	// renders correctly without shader effects, just without the doom vignette.
+	// Lazily compile Kage shaders on first draw. Errors are logged but non-fatal:
+	// the game renders correctly without shader effects, just without the doom vignette.
 	if g.shaders == nil {
 		if ss, err := render.NewShaderSet(); err == nil {
 			g.shaders = ss
+		} else {
+			log.Printf("shader compilation failed (vignette disabled): %v", err)
+			// Assign a sentinel non-nil value so we don't retry every frame.
+			g.shaders = &render.ShaderSet{}
 		}
 	}
 
