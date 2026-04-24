@@ -161,10 +161,10 @@
 
 **Impact**: Educational project; not critical. However, adding origin checking demonstrates best practices to the target audience.
 
-- [x] Add configurable `allowedOrigins` list (default: `["localhost", "127.0.0.1"]`)
+- [x] Add configurable `allowedOrigins` list (default: empty/permissive unless explicitly configured)
 - [x] Implement `CheckOrigin` function in the upgrader
 - [x] Document in README.md how to configure for production deployments
-- [x] **Validation**: WebSocket upgrades from non-allowed origins are rejected with 403
+- [x] **Validation**: When `allowedOrigins` is configured, WebSocket upgrades from non-allowed origins are rejected
 
 ---
 

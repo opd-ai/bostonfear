@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -136,21 +137,36 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 // which is appropriate for local development. For production deployments, set
 // this to the specific domain(s) that serve the game client.
 //
+// The slice is copied and each entry is lowercased and trimmed so that
+// concurrent reads by checkOrigin are safe without further synchronisation.
+//
 // Example (from main.go or flags):
 //
 //	gs.SetAllowedOrigins([]string{"localhost:8080", "mygame.example.com"})
 func (gs *GameServer) SetAllowedOrigins(origins []string) {
-	gs.allowedOrigins = origins
+	normalized := make([]string, len(origins))
+	for i, o := range origins {
+		normalized[i] = strings.ToLower(strings.TrimSpace(o))
+	}
+	gs.mutex.Lock()
+	gs.allowedOrigins = normalized
+	gs.mutex.Unlock()
 }
 
 // checkOrigin is the websocket.Upgrader.CheckOrigin implementation.
 // It accepts the upgrade when:
 //   - allowedOrigins is empty (permissive default — safe for local dev), OR
-//   - the request's Origin header host matches one of the allowedOrigins entries.
+//   - the request's Origin header parses to a host that matches one of the
+//     allowedOrigins entries (case-insensitive, scheme-agnostic).
 //
-// Comparison is case-insensitive and ignores scheme (http/https).
+// A missing Origin header is always accepted. A malformed Origin URL is rejected
+// when the allowedOrigins list is non-empty.
 func (gs *GameServer) checkOrigin(r *http.Request) bool {
-	if len(gs.allowedOrigins) == 0 {
+	gs.mutex.RLock()
+	allowed := gs.allowedOrigins
+	gs.mutex.RUnlock()
+
+	if len(allowed) == 0 {
 		// Permissive default: accept any origin.
 		return true
 	}
@@ -159,16 +175,14 @@ func (gs *GameServer) checkOrigin(r *http.Request) bool {
 		// No Origin header (e.g. direct TCP connections, curl); allow.
 		return true
 	}
-	// Strip the scheme to get the host portion for comparison.
-	host := origin
-	if idx := strings.Index(host, "://"); idx >= 0 {
-		host = host[idx+3:]
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
+		return false
 	}
-	// Strip trailing slashes.
-	host = strings.TrimRight(host, "/")
-	hostLower := strings.ToLower(host)
-	for _, allowed := range gs.allowedOrigins {
-		if strings.ToLower(allowed) == hostLower {
+	hostLower := strings.ToLower(u.Host)
+	for _, a := range allowed {
+		if a == hostLower {
 			return true
 		}
 	}

@@ -93,7 +93,7 @@ func TestMythosPhase_EventPlacement(t *testing.T) {
 	t.Run("resurgence restores health of engaged enemies", func(t *testing.T) {
 		gs, pid := newTestServer(t)
 		gs.gameState.LocationDoomTokens = make(map[string]int)
-		enemy := &Enemy{ID: "e1", Name: "Ghoul", Health: 1, Engaged: []string{pid}}
+		enemy := &Enemy{ID: "e1", Name: "Ghoul", Health: 1, MaxHealth: 3, Engaged: []string{pid}}
 		gs.gameState.Enemies = map[string]*Enemy{"e1": enemy}
 		gs.gameState.MythosEventDeck = []MythosEvent{
 			{LocationID: string(Downtown), Effect: "resurgence", MythosEventType: MythosEventResurgence},

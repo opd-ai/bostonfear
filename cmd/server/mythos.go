@@ -119,9 +119,9 @@ func (gs *GameServer) resolveEventEffect(evt MythosEvent) {
 		gs.spawnAnomaly(evt.LocationID)
 
 	case MythosEventFogMadness:
-		// All connected investigators lose 1 Sanity.
+		// All connected (and non-defeated) investigators lose 1 Sanity.
 		for _, p := range gs.gameState.Players {
-			if !p.Defeated {
+			if p.Connected && !p.Defeated {
 				p.Resources.Sanity = max(p.Resources.Sanity-1, 0)
 				gs.validateResources(&p.Resources)
 			}
@@ -144,10 +144,10 @@ func (gs *GameServer) resolveEventEffect(evt MythosEvent) {
 		gs.gameState.Doom = min(gs.gameState.Doom+inc, 12)
 
 	case MythosEventResurgence:
-		// Each engaged enemy regains 1 Health (capped at its template max).
+		// Each engaged enemy regains 1 Health, capped at its archetype MaxHealth.
 		for _, e := range gs.gameState.Enemies {
 			if len(e.Engaged) > 0 {
-				e.Health++
+				e.Health = min(e.Health+1, e.MaxHealth)
 			}
 		}
 	}
@@ -342,13 +342,14 @@ func (gs *GameServer) spawnEnemiesForDoom() {
 		loc := locations[mathrand.Intn(len(locations))]
 		id := fmt.Sprintf("enemy_%d", mathrand.Int())
 		e := &Enemy{
-			ID:       id,
-			Name:     tmpl.Name,
-			Health:   tmpl.Health,
-			Damage:   tmpl.Damage,
-			Horror:   tmpl.Horror,
-			Location: loc,
-			Engaged:  nil,
+			ID:        id,
+			Name:      tmpl.Name,
+			Health:    tmpl.Health,
+			MaxHealth: tmpl.Health, // archetype baseline for Resurgence capping
+			Damage:    tmpl.Damage,
+			Horror:    tmpl.Horror,
+			Location:  loc,
+			Engaged:   nil,
 		}
 		gs.gameState.Enemies[id] = e
 		log.Printf("Enemy spawned: %s at %s (doom=%d)", e.Name, loc, gs.gameState.Doom)

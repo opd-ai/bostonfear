@@ -120,15 +120,17 @@ type AgendaCard struct {
 
 // Enemy represents a monster on the board that investigators can attack or evade.
 // Health tracks remaining hit points; the enemy is removed when Health reaches 0.
+// MaxHealth is the archetype baseline set at spawn time; it caps Resurgence healing.
 // Engaged lists the player IDs currently in combat with this enemy.
 type Enemy struct {
-	ID       string   `json:"id"`
-	Name     string   `json:"name"`
-	Health   int      `json:"health"`
-	Damage   int      `json:"damage"` // health damage dealt to the investigator per attack
-	Horror   int      `json:"horror"` // sanity damage dealt to the investigator per attack
-	Location Location `json:"location"`
-	Engaged  []string `json:"engaged"` // player IDs currently engaged with this enemy
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Health    int      `json:"health"`
+	MaxHealth int      `json:"maxHealth"` // archetype max; set at spawn, used to cap healing
+	Damage    int      `json:"damage"`    // health damage dealt to the investigator per attack
+	Horror    int      `json:"horror"`    // sanity damage dealt to the investigator per attack
+	Location  Location `json:"location"`
+	Engaged   []string `json:"engaged"` // player IDs currently engaged with this enemy
 }
 
 // Gate represents an interdimensional rift at a neighbourhood location.

@@ -93,3 +93,36 @@ func TestCheckOrigin_CaseInsensitive(t *testing.T) {
 		t.Error("checkOrigin with case-differing origin = false; want true")
 	}
 }
+
+// TestCheckOrigin_MalformedOrigin verifies that a malformed Origin header is
+// rejected (not panicked upon) when an allowedOrigins list is configured.
+func TestCheckOrigin_MalformedOrigin(t *testing.T) {
+	gs := NewGameServer()
+	gs.SetAllowedOrigins([]string{"localhost:8080"})
+	// "://noscheme" has an empty Host after url.Parse; must be rejected.
+	r := makeRequest("://noscheme")
+	if gs.checkOrigin(r) {
+		t.Error("checkOrigin with malformed origin = true; want false")
+	}
+}
+
+// TestSetAllowedOrigins_NormalizesInput verifies that SetAllowedOrigins lowercases
+// and trims entries so subsequent checkOrigin comparisons are always case-insensitive.
+func TestSetAllowedOrigins_NormalizesInput(t *testing.T) {
+	gs := NewGameServer()
+	gs.SetAllowedOrigins([]string{"  LOCALHOST:8080  ", "MyGame.Example.COM"})
+	cases := []struct {
+		origin string
+		want   bool
+	}{
+		{"http://localhost:8080", true},
+		{"http://mygame.example.com", true},
+		{"http://evil.example.com", false},
+	}
+	for _, tc := range cases {
+		r := makeRequest(tc.origin)
+		if got := gs.checkOrigin(r); got != tc.want {
+			t.Errorf("checkOrigin(%q) = %v, want %v", tc.origin, got, tc.want)
+		}
+	}
+}
