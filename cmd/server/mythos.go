@@ -65,6 +65,14 @@ func (gs *GameServer) runMythosPhase() {
 	gs.gameState.MythosEvents = gs.gameState.MythosEvents[:0]
 	gs.gameState.ActiveEvents = gs.gameState.ActiveEvents[:0]
 
+	// Recover defeated investigators who are still connected (RULES.md §Defeat/Recovery).
+	// Recovery happens at the start of each Mythos Phase so they re-enter the next round.
+	for id, p := range gs.gameState.Players {
+		if p.LostInTimeAndSpace && p.Connected {
+			gs.recoverInvestigator(id)
+		}
+	}
+
 	// Rebuild event deck when exhausted.
 	if len(gs.gameState.MythosEventDeck) == 0 {
 		gs.gameState.MythosEventDeck = defaultMythosEventDeck()

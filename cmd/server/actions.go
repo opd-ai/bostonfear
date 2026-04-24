@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
 // performMove executes the Move action: validates adjacency and updates player location.
@@ -378,4 +379,43 @@ func (gs *GameServer) performCloseGate(player *Player, playerID string) (string,
 		}
 	}
 	return "fail", fmt.Errorf("no open gate at %s", loc)
+}
+
+// performSelectInvestigator sets the player's InvestigatorType during the waiting phase.
+// target must be one of the six valid archetype strings (e.g. "researcher", "soldier").
+// Returns an error if the game has already started or the archetype is unrecognised.
+// Caller must hold gs.mutex.
+func (gs *GameServer) performSelectInvestigator(player *Player, playerID, target string) error {
+	if gs.gameState.GamePhase != "waiting" {
+		return fmt.Errorf("investigator selection is only allowed in the waiting phase")
+	}
+	invType := InvestigatorType(strings.ToLower(target))
+	if _, ok := DefaultInvestigatorAbilities[invType]; !ok {
+		return fmt.Errorf("unknown investigator type %q", target)
+	}
+	player.InvestigatorType = invType
+	log.Printf("Player %s selected investigator type: %s", playerID, invType)
+	return nil
+}
+
+// performSetDifficulty applies a difficulty preset during the waiting phase.
+// target must be "easy", "standard", or "hard".
+// Returns an error if the game has already started or the name is unrecognised.
+// Caller must hold gs.mutex.
+func (gs *GameServer) performSetDifficulty(target string) error {
+	if gs.gameState.GamePhase != "waiting" {
+		return fmt.Errorf("difficulty can only be set in the waiting phase")
+	}
+	return gs.applyDifficulty(strings.ToLower(strings.TrimSpace(target)))
+}
+
+// performChat broadcasts a quick-chat phrase from the player to all connected clients.
+// phrase must be non-empty. The message is recorded in the game update event log.
+// Caller must hold gs.mutex.
+func (gs *GameServer) performChat(playerID, phrase string) error {
+	if phrase == "" {
+		return fmt.Errorf("chat phrase must not be empty")
+	}
+	log.Printf("Chat from %s: %s", playerID, phrase)
+	return nil
 }

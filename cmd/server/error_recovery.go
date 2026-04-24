@@ -327,15 +327,23 @@ func (v *GameStateValidator) copyGameState(original *GameState) *GameState {
 	// Deep copy players
 	for id, player := range original.Players {
 		copied.Players[id] = &Player{
-			ID:       player.ID,
-			Location: player.Location,
+			ID:               player.ID,
+			Location:         player.Location,
 			Resources: Resources{
-				Health: player.Resources.Health,
-				Sanity: player.Resources.Sanity,
-				Clues:  player.Resources.Clues,
+				Health:   player.Resources.Health,
+				Sanity:   player.Resources.Sanity,
+				Clues:    player.Resources.Clues,
+				Money:    player.Resources.Money,
+				Remnants: player.Resources.Remnants,
+				Focus:    player.Resources.Focus,
 			},
-			ActionsRemaining: player.ActionsRemaining,
-			Connected:        player.Connected,
+			ActionsRemaining:   player.ActionsRemaining,
+			Connected:          player.Connected,
+			InvestigatorType:   player.InvestigatorType,
+			ReconnectToken:     player.ReconnectToken,
+			Defeated:           player.Defeated,
+			LostInTimeAndSpace: player.LostInTimeAndSpace,
+			DisconnectedAt:     player.DisconnectedAt,
 		}
 	}
 

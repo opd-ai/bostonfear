@@ -183,59 +183,6 @@ type GameState struct {
 	EncounterDecks map[string][]EncounterCard `json:"encounterDecks"`
 }
 
-// ConnectionAnalytics represents player connection patterns and engagement metrics
-type ConnectionAnalytics struct {
-	RecentConnections   []ConnectionEvent     `json:"recentConnections"`
-	PlayerEngagement    map[string]float64    `json:"playerEngagement"`
-	ConnectionQuality   ConnectionQualityData `json:"connectionQuality"`
-	SessionDistribution SessionDistribution   `json:"sessionDistribution"`
-	GeographicData      map[string]int        `json:"geographicData"`
-}
-
-// ConnectionEvent represents individual connection events for analytics
-type ConnectionEvent struct {
-	Type      string        `json:"type"` // "connect", "disconnect", "reconnect"
-	PlayerID  string        `json:"playerId"`
-	Timestamp time.Time     `json:"timestamp"`
-	Duration  time.Duration `json:"duration,omitempty"`
-	Reason    string        `json:"reason,omitempty"`
-}
-
-// ConnectionQualityData represents connection stability metrics
-type ConnectionQualityData struct {
-	AverageLatency    time.Duration `json:"averageLatency"`
-	PacketLossRate    float64       `json:"packetLossRate"`
-	ReconnectionRate  float64       `json:"reconnectionRate"`
-	StableConnections int           `json:"stableConnections"`
-}
-
-// SessionDistribution represents session length distribution for analytics
-type SessionDistribution struct {
-	Short  int `json:"short"`  // < 5 minutes
-	Medium int `json:"medium"` // 5-30 minutes
-	Long   int `json:"long"`   // > 30 minutes
-}
-
-// PlayerSessionMetrics tracks individual player session data
-type PlayerSessionMetrics struct {
-	PlayerID        string        `json:"playerId"`
-	SessionStart    time.Time     `json:"sessionStart"`
-	LastActivity    time.Time     `json:"lastActivity"`
-	TotalActions    int           `json:"totalActions"`
-	GamesCompleted  int           `json:"gamesCompleted"`
-	AvgResponseTime time.Duration `json:"avgResponseTime"`
-	Disconnections  int           `json:"disconnections"`
-}
-
-// AlertThreshold represents configurable monitoring thresholds
-type AlertThreshold struct {
-	MaxResponseTime time.Duration `json:"maxResponseTime"`
-	MaxErrorRate    float64       `json:"maxErrorRate"`
-	MinUptime       float64       `json:"minUptime"`
-	MaxMemoryUsage  float64       `json:"maxMemoryUsage"`
-	MaxConnFailRate float64       `json:"maxConnFailRate"`
-}
-
 // GameUpdateMessage represents a lightweight event notification emitted after each
 // player action. It is distinct from the full gameState broadcast and carries only
 // the delta: which action occurred, its outcome, and any resource/doom changes.

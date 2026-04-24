@@ -36,8 +36,8 @@ func TestAtlas_DrawSprite_OutOfBounds(t *testing.T) {
 	atlas := NewAtlas()
 	dst := ebiten.NewImage(64, 64)
 	// Must not panic for an invalid sprite ID.
-	atlas.DrawSprite(dst, SpriteID(-1), 0, 0, color.RGBA{})
-	atlas.DrawSprite(dst, SpriteID(9999), 0, 0, color.RGBA{})
+	atlas.DrawSprite(dst, SpriteID(-1), 0, 0, 1, 1, color.RGBA{})
+	atlas.DrawSprite(dst, SpriteID(9999), 0, 0, 1, 1, color.RGBA{})
 }
 
 // TestAtlas_DrawSprite_ValidID verifies that DrawSprite does not panic when
@@ -46,9 +46,9 @@ func TestAtlas_DrawSprite_ValidID(t *testing.T) {
 	atlas := NewAtlas()
 	dst := ebiten.NewImage(200, 200)
 	// Background sprite at origin, no tint.
-	atlas.DrawSprite(dst, SpriteBackground, 0, 0, color.RGBA{})
+	atlas.DrawSprite(dst, SpriteBackground, 0, 0, 1, 1, color.RGBA{})
 	// Player token with a tint colour.
-	atlas.DrawSprite(dst, SpritePlayerToken, 10, 10, color.RGBA{R: 255, G: 0, B: 0, A: 128})
+	atlas.DrawSprite(dst, SpritePlayerToken, 10, 10, 1, 1, color.RGBA{R: 255, G: 0, B: 0, A: 128})
 }
 
 // TestImageRect verifies that imageRect constructs the correct image.Rectangle.
