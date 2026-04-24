@@ -127,12 +127,12 @@
 
 **Impact**: Performance regressions could be introduced without notice.
 
-- [ ] Add benchmark step to `.github/workflows/ci.yml`:
+- [x] Add benchmark step to `.github/workflows/ci.yml`:
   ```yaml
   - name: Run benchmarks
     run: go test -bench=. -benchtime=10s ./cmd/server/... | tee benchmark-results.txt
   ```
-- [ ] Upload `benchmark-results.txt` as CI artifact
+- [x] Upload `benchmark-results.txt` as CI artifact
 - [ ] Define pass/fail threshold: average broadcast latency must be < 200ms
 - [ ] Optionally integrate with a benchmark tracking service (e.g., Bencher, codspeed)
 - [ ] **Validation**: CI run shows benchmark artifact with latency metrics
