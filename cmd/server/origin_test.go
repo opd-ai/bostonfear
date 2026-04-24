@@ -126,3 +126,37 @@ func TestSetAllowedOrigins_NormalizesInput(t *testing.T) {
 		}
 	}
 }
+
+// TestSetAllowedOrigins_DropsBlanks verifies that whitespace-only entries are
+// silently dropped so an empty string cannot match any origin.
+func TestSetAllowedOrigins_DropsBlanks(t *testing.T) {
+	gs := NewGameServer()
+	gs.SetAllowedOrigins([]string{"   ", "", "localhost:8080"})
+	// Only "localhost:8080" should be in the allowed list.
+	// "evil.example.com" must be rejected.
+	r := makeRequest("http://evil.example.com")
+	if gs.checkOrigin(r) {
+		t.Error("checkOrigin allowed an unlisted origin; blank entries may have been retained")
+	}
+	// Confirm the legitimate entry still works.
+	if !gs.checkOrigin(makeRequest("http://localhost:8080")) {
+		t.Error("checkOrigin rejected a legitimately allowed origin after blank dropping")
+	}
+}
+
+// TestCheckOrigin_UnsupportedScheme verifies that origins with non-web schemes
+// (e.g. "javascript:") are rejected even if the host would otherwise match.
+func TestCheckOrigin_UnsupportedScheme(t *testing.T) {
+	gs := NewGameServer()
+	gs.SetAllowedOrigins([]string{"localhost:8080"})
+	for _, origin := range []string{
+		"javascript:alert(1)",
+		"file:///etc/passwd",
+		"ftp://localhost:8080",
+	} {
+		r := makeRequest(origin)
+		if gs.checkOrigin(r) {
+			t.Errorf("checkOrigin(%q) = true; want false (unsupported scheme)", origin)
+		}
+	}
+}

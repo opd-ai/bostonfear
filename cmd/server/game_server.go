@@ -137,16 +137,20 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 // which is appropriate for local development. For production deployments, set
 // this to the specific domain(s) that serve the game client.
 //
-// The slice is copied and each entry is lowercased and trimmed so that
-// concurrent reads by checkOrigin are safe without further synchronisation.
+// The slice is copied, each entry is lowercased and trimmed, and empty entries
+// (e.g. after trimming whitespace-only strings) are silently dropped. This ensures
+// that concurrent reads by checkOrigin are safe and an empty string cannot
+// accidentally match an origin with an empty host.
 //
 // Example (from main.go or flags):
 //
 //	gs.SetAllowedOrigins([]string{"localhost:8080", "mygame.example.com"})
 func (gs *GameServer) SetAllowedOrigins(origins []string) {
-	normalized := make([]string, len(origins))
-	for i, o := range origins {
-		normalized[i] = strings.ToLower(strings.TrimSpace(o))
+	normalized := make([]string, 0, len(origins))
+	for _, o := range origins {
+		if n := strings.ToLower(strings.TrimSpace(o)); n != "" {
+			normalized = append(normalized, n)
+		}
 	}
 	gs.mutex.Lock()
 	gs.allowedOrigins = normalized
@@ -159,8 +163,10 @@ func (gs *GameServer) SetAllowedOrigins(origins []string) {
 //   - the request's Origin header parses to a host that matches one of the
 //     allowedOrigins entries (case-insensitive, scheme-agnostic).
 //
-// A missing Origin header is always accepted. A malformed Origin URL is rejected
-// when the allowedOrigins list is non-empty.
+// Only "http", "https", "ws", and "wss" schemes are accepted; other schemes
+// (e.g. "javascript:") are rejected even when the host would otherwise match.
+// A missing Origin header is always accepted. A malformed or unsupported-scheme
+// Origin is rejected when the allowedOrigins list is non-empty.
 func (gs *GameServer) checkOrigin(r *http.Request) bool {
 	gs.mutex.RLock()
 	allowed := gs.allowedOrigins
@@ -178,6 +184,14 @@ func (gs *GameServer) checkOrigin(r *http.Request) bool {
 	u, err := url.Parse(origin)
 	if err != nil || u.Host == "" {
 		log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
+		return false
+	}
+	// Reject non-web schemes (e.g. "javascript:", "file:") for safety.
+	switch strings.ToLower(u.Scheme) {
+	case "http", "https", "ws", "wss":
+		// acceptable
+	default:
+		log.Printf("WebSocket upgrade rejected: unsupported scheme in origin %q", origin)
 		return false
 	}
 	hostLower := strings.ToLower(u.Host)
