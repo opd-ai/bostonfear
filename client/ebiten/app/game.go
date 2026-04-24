@@ -55,10 +55,12 @@ var playerColours = []color.RGBA{
 // The layered renderer composites board, tokens, effects, UI, and animations in
 // correct z-order every frame.
 type Game struct {
-	state    *ebclient.LocalState
-	net      *ebclient.NetClient
-	input    *InputHandler
-	renderer *render.Compositor
+	state       *ebclient.LocalState
+	net         *ebclient.NetClient
+	input       *InputHandler
+	renderer    *render.Compositor
+	shaders     *render.ShaderSet // lazily compiled on first Draw call; nil until then
+	activeScene Scene             // current full-screen scene; managed by updateScene
 }
 
 // NewGame creates a Game connected to the given server URL.
@@ -68,17 +70,25 @@ func NewGame(serverURL string) *Game {
 	net := ebclient.NewNetClient(state)
 	input := NewInputHandler(net, state)
 	net.Connect()
-	return &Game{
+	g := &Game{
 		state:    state,
 		net:      net,
 		input:    input,
 		renderer: render.NewCompositor(),
 	}
+	g.activeScene = &SceneConnect{game: g}
+	return g
 }
 
 // Update is called every tick (60 TPS by default).
-// It processes player input and is the integration point for any per-tick logic.
+// It transitions between scenes based on connection and game-end state,
+// then delegates per-tick logic to the active scene.
 func (g *Game) Update() error {
+	g.updateScene()
+	if g.activeScene != nil {
+		return g.activeScene.Update()
+	}
+	// Fallback when activeScene is unset (e.g. in unit tests that build Game directly).
 	g.input.Update()
 	return nil
 }
@@ -91,6 +101,25 @@ func (g *Game) Layout(_, _ int) (int, int) {
 // Draw renders the full game board each frame using the five-layer pipeline.
 // Layers are flushed in z-order: board → tokens → effects → UI → animation.
 func (g *Game) Draw(screen *ebiten.Image) {
+	if g.activeScene != nil {
+		g.activeScene.Draw(screen)
+		return
+	}
+	// Fallback when activeScene is unset (e.g. in unit tests that build Game directly).
+	g.drawGameContent(screen)
+}
+
+// drawGameContent renders the in-game view. Called from SceneGame.Draw and
+// from the Draw fallback path when no active scene is set.
+func (g *Game) drawGameContent(screen *ebiten.Image) {
+	// Lazily compile Kage shaders on first draw. Errors are non-fatal: the game
+	// renders correctly without shader effects, just without the doom vignette.
+	if g.shaders == nil {
+		if ss, err := render.NewShaderSet(); err == nil {
+			g.shaders = ss
+		}
+	}
+
 	screen.Fill(color.RGBA{R: 20, G: 20, B: 30, A: 255})
 
 	gs, playerID, connected := g.state.Snapshot()
@@ -113,6 +142,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.drawPlayerPanel(screen, gs, playerID)
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
+
+	// Post-process: doom vignette shader composited over the fully rendered frame.
+	if gs.Doom > 0 {
+		render.DrawDoomVignette(screen, g.shaders, float32(gs.Doom)/12)
+	}
 }
 
 // enqueueBoard adds one board-layer draw command per location.

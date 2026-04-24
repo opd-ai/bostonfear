@@ -51,8 +51,9 @@ func NewAtlas() *Atlas {
 }
 
 // DrawSprite blits the named sprite onto dst at pixel position (dx, dy).
+// scaleX and scaleY scale the sprite around its top-left origin before translation.
 // An optional colour tint is applied via ebiten's ColorScale.
-func (a *Atlas) DrawSprite(dst *ebiten.Image, id SpriteID, dx, dy float64, tint color.RGBA) {
+func (a *Atlas) DrawSprite(dst *ebiten.Image, id SpriteID, dx, dy, scaleX, scaleY float64, tint color.RGBA) {
 	if id < 0 || int(id) >= len(a.entries) {
 		return
 	}
@@ -60,6 +61,7 @@ func (a *Atlas) DrawSprite(dst *ebiten.Image, id SpriteID, dx, dy float64, tint 
 
 	src := a.image.SubImage(imageRect(r.x, r.y, r.w, r.h)).(*ebiten.Image)
 	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(scaleX, scaleY)
 	op.GeoM.Translate(dx, dy)
 	if tint != (color.RGBA{}) {
 		op.ColorScale.SetR(float32(tint.R) / 255)

@@ -268,6 +268,61 @@ func (gs *GameServer) validateMovement(from, to Location) bool {
 // The mutex is acquired at the start for all state validation and mutation,
 // then released before broadcasting so broadcastGameState can re-acquire it.
 func (gs *GameServer) processAction(action PlayerActionMessage) error {
+	// Normalize action type to lowercase so clients using camelCase variants
+	// (e.g. "selectInvestigator") are accepted alongside the canonical forms.
+	action.Action = ActionType(strings.ToLower(string(action.Action)))
+
+	// Pre-game and out-of-turn actions are validated and handled separately
+	// so they are not subject to the normal turn-based restrictions.
+	switch action.Action {
+	case ActionSelectInvestigator:
+		gs.mutex.Lock()
+		player, exists := gs.gameState.Players[action.PlayerID]
+		if !exists {
+			gs.mutex.Unlock()
+			return fmt.Errorf("player %s not found", action.PlayerID)
+		}
+		err := gs.performSelectInvestigator(player, action.PlayerID, action.Target)
+		gs.mutex.Unlock()
+		if err != nil {
+			return err
+		}
+		gs.broadcastGameState()
+		return nil
+
+	case ActionSetDifficulty:
+		gs.mutex.Lock()
+		err := gs.performSetDifficulty(action.Target)
+		gs.mutex.Unlock()
+		if err != nil {
+			return err
+		}
+		gs.broadcastGameState()
+		return nil
+
+	case ActionChat:
+		gs.mutex.Lock()
+		_, exists := gs.gameState.Players[action.PlayerID]
+		if !exists {
+			gs.mutex.Unlock()
+			return fmt.Errorf("player %s not found", action.PlayerID)
+		}
+		err := gs.performChat(action.PlayerID, action.Target)
+		gs.mutex.Unlock()
+		if err != nil {
+			return err
+		}
+		chatUpdate := &GameUpdateMessage{
+			Type:      "gameUpdate",
+			PlayerID:  action.PlayerID,
+			Event:     "chat",
+			Result:    action.Target,
+			Timestamp: time.Now(),
+		}
+		gs.broadcastActionResults(chatUpdate, nil)
+		return nil
+	}
+
 	gs.mutex.Lock()
 
 	player, err := gs.validateActionRequest(action)
@@ -336,6 +391,7 @@ func isValidActionType(a ActionType) bool {
 		ActionMove, ActionGather, ActionInvestigate, ActionCastWard,
 		ActionFocus, ActionResearch, ActionTrade,
 		ActionEncounter, ActionComponent, ActionAttack, ActionEvade, ActionCloseGate,
+		ActionSelectInvestigator, ActionSetDifficulty, ActionChat,
 	} {
 		if a == v {
 			return true

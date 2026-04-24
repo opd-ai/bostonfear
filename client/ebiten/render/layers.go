@@ -71,7 +71,7 @@ func (r *Compositor) Enqueue(layer LayerID, cmd DrawCmd) {
 func (r *Compositor) Flush(screen *ebiten.Image) {
 	for id := LayerID(0); id < layerCount; id++ {
 		for _, cmd := range r.layers[id] {
-			r.atlas.DrawSprite(screen, cmd.Sprite, cmd.X, cmd.Y, cmd.Tint)
+			r.atlas.DrawSprite(screen, cmd.Sprite, cmd.X, cmd.Y, cmd.ScaleX, cmd.ScaleY, cmd.Tint)
 		}
 		// Reset slice length but keep capacity to avoid allocations next frame.
 		r.layers[id] = r.layers[id][:0]

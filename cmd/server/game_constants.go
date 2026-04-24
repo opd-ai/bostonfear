@@ -32,9 +32,12 @@ const (
 	ActionTrade       ActionType = "trade"
 	ActionComponent   ActionType = "component" // Per-investigator special ability (ROADMAP Priority 1)
 	ActionEncounter   ActionType = "encounter"
-	ActionAttack      ActionType = "attack"    // Combat: roll dice against an engaged enemy
-	ActionEvade       ActionType = "evade"     // Combat: disengage from an engaged enemy
-	ActionCloseGate   ActionType = "closegate" // Spend 2 Clues to close a gate at current location
+	ActionAttack      ActionType = "attack"              // Combat: roll dice against an engaged enemy
+	ActionEvade       ActionType = "evade"               // Combat: disengage from an engaged enemy
+	ActionCloseGate   ActionType = "closegate"           // Spend 2 Clues to close a gate at current location
+	ActionSelectInvestigator ActionType = "selectinvestigator" // Choose investigator archetype during waiting phase
+	ActionSetDifficulty      ActionType = "setdifficulty"      // Choose difficulty level during waiting phase
+	ActionChat               ActionType = "chat"               // Quick-chat phrase broadcast to all players
 )
 
 // InvestigatorType identifies which investigator archetype a player is using.
