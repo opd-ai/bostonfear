@@ -116,6 +116,22 @@ Each player gets 2 actions per turn:
 - **Concurrent Connection Handling**: Goroutines with channel-based communication
 - **State Management**: Centralized game state with mutex protection
 - **Error Handling**: Explicit Go-style error checking and propagation
+- **WebSocket Origin Validation**: Configurable `allowedOrigins` list (empty = accept any origin for local dev; set to specific hosts for production)
+
+#### Configuring Allowed Origins (Production)
+By default the server accepts WebSocket upgrades from any origin, which is safe
+for local development. For production deployments, restrict upgrades to your
+specific domain(s):
+
+```go
+// In main.go, after NewGameServer():
+gameServer.SetAllowedOrigins([]string{
+    "mygame.example.com",   // production domain
+    "localhost:8080",        // keep for local testing
+})
+```
+
+Requests from origins not in the list receive HTTP 403 Forbidden.
 
 ### Ebitengine Client Features (Active — alpha; placeholder sprites)
 - **Sprite/Layer Rendering**: Board, tokens, UI overlays, and animations via Ebitengine draw layers
