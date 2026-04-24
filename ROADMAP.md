@@ -146,12 +146,12 @@
 **Impact**: Large files increase cognitive load for contributors. go-stats-generator flagged these with high "burden" scores.
 
 **Suggested splits for `game_mechanics.go`**:
-- [ ] Extract dice logic → `dice.go` (~70 lines: `rollDice`, `rollDicePool`)
-- [ ] Extract action performers → `actions.go` (~300 lines: `performMove`, `performGather`, etc.)
-- [ ] Extract Mythos Phase → `mythos.go` (~150 lines: `runMythosPhase`, `resolveEventEffect`, `drawMythosToken`)
-- [ ] Keep coordination logic in `game_mechanics.go` (~400 lines)
+- [x] Extract dice logic → `dice.go` (~70 lines: `rollDice`, `rollDicePool`)
+- [x] Extract action performers → `actions.go` (~300 lines: `performMove`, `performGather`, etc.)
+- [x] Extract Mythos Phase → `mythos.go` (~150 lines: `runMythosPhase`, `resolveEventEffect`, `drawMythosToken`)
+- [x] Keep coordination logic in `game_mechanics.go` (~400 lines)
 
-- [ ] **Validation**: No file > 500 lines; `go test -race ./cmd/server/...` passes
+- [x] **Validation**: No file > 500 lines; `go test -race ./cmd/server/...` passes
 
 ---
 
