@@ -9,6 +9,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -61,6 +63,11 @@ type GameServer struct {
 	// needs its own write mutex.
 	wsWriteMu map[string]*sync.Mutex
 	wsMuMutex sync.Mutex // guards wsWriteMu map itself
+
+	// allowedOrigins is the set of hostname:port values permitted by CheckOrigin.
+	// When nil or empty the upgrader falls back to permissive mode (any origin
+	// is accepted). Set via SetAllowedOrigins for production deployments.
+	allowedOrigins []string
 }
 
 // NewGameServer creates a new game server instance using the provided Scenario
@@ -88,9 +95,11 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		connections: make(map[string]net.Conn),
 		wsConns:     make(map[string]*websocket.Conn),
 		playerConns: make(map[string]net.Conn),
-		upgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) bool { return true },
-		},
+		// CheckOrigin is wired to checkOrigin so that allowed origins can be
+		// configured at runtime via SetAllowedOrigins. The default (empty list)
+		// accepts any origin, matching the previous behaviour and keeping tests
+		// green without requiring explicit origin configuration.
+		upgrader: websocket.Upgrader{},
 		broadcastCh: ch,
 		broadcaster: &channelBroadcaster{ch: ch}, // Inject concrete Broadcaster
 		actionCh:    make(chan PlayerActionMessage, 100),
@@ -117,7 +126,82 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 	if scenario.SetupFn != nil {
 		scenario.SetupFn(gs.gameState)
 	}
+	// Wire CheckOrigin now that gs is initialised; the closure captures gs.
+	gs.upgrader.CheckOrigin = gs.checkOrigin
 	return gs
+}
+
+// SetAllowedOrigins configures the list of permitted WebSocket upgrade origins.
+// Each entry should be a host or host:port string (e.g. "localhost:8080",
+// "example.com"). When the list is empty (the default), any origin is accepted
+// which is appropriate for local development. For production deployments, set
+// this to the specific domain(s) that serve the game client.
+//
+// The slice is copied, each entry is lowercased and trimmed, and empty entries
+// (e.g. after trimming whitespace-only strings) are silently dropped. This ensures
+// that concurrent reads by checkOrigin are safe and an empty string cannot
+// accidentally match an origin with an empty host.
+//
+// Example (from main.go or flags):
+//
+//	gs.SetAllowedOrigins([]string{"localhost:8080", "mygame.example.com"})
+func (gs *GameServer) SetAllowedOrigins(origins []string) {
+	normalized := make([]string, 0, len(origins))
+	for _, o := range origins {
+		if n := strings.ToLower(strings.TrimSpace(o)); n != "" {
+			normalized = append(normalized, n)
+		}
+	}
+	gs.mutex.Lock()
+	gs.allowedOrigins = normalized
+	gs.mutex.Unlock()
+}
+
+// checkOrigin is the websocket.Upgrader.CheckOrigin implementation.
+// It accepts the upgrade when:
+//   - allowedOrigins is empty (permissive default — safe for local dev), OR
+//   - the request's Origin header parses to a host that matches one of the
+//     allowedOrigins entries (case-insensitive, scheme-agnostic).
+//
+// Only "http", "https", "ws", and "wss" schemes are accepted; other schemes
+// (e.g. "javascript:") are rejected even when the host would otherwise match.
+// A missing Origin header is always accepted. A malformed or unsupported-scheme
+// Origin is rejected when the allowedOrigins list is non-empty.
+func (gs *GameServer) checkOrigin(r *http.Request) bool {
+	gs.mutex.RLock()
+	allowed := gs.allowedOrigins
+	gs.mutex.RUnlock()
+
+	if len(allowed) == 0 {
+		// Permissive default: accept any origin.
+		return true
+	}
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		// No Origin header (e.g. direct TCP connections, curl); allow.
+		return true
+	}
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
+		return false
+	}
+	// Reject non-web schemes (e.g. "javascript:", "file:") for safety.
+	switch strings.ToLower(u.Scheme) {
+	case "http", "https", "ws", "wss":
+		// acceptable
+	default:
+		log.Printf("WebSocket upgrade rejected: unsupported scheme in origin %q", origin)
+		return false
+	}
+	hostLower := strings.ToLower(u.Host)
+	for _, a := range allowed {
+		if a == hostLower {
+			return true
+		}
+	}
+	log.Printf("WebSocket upgrade rejected: origin %q not in allowed list", origin)
+	return false
 }
 
 // connWriteLock returns the per-connection write mutex for addr, creating it if needed.

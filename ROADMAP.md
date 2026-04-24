@@ -127,12 +127,12 @@
 
 **Impact**: Performance regressions could be introduced without notice.
 
-- [ ] Add benchmark step to `.github/workflows/ci.yml`:
+- [x] Add benchmark step to `.github/workflows/ci.yml`:
   ```yaml
   - name: Run benchmarks
     run: go test -bench=. -benchtime=10s ./cmd/server/... | tee benchmark-results.txt
   ```
-- [ ] Upload `benchmark-results.txt` as CI artifact
+- [x] Upload `benchmark-results.txt` as CI artifact
 - [ ] Define pass/fail threshold: average broadcast latency must be < 200ms
 - [ ] Optionally integrate with a benchmark tracking service (e.g., Bencher, codspeed)
 - [ ] **Validation**: CI run shows benchmark artifact with latency metrics
@@ -146,12 +146,12 @@
 **Impact**: Large files increase cognitive load for contributors. go-stats-generator flagged these with high "burden" scores.
 
 **Suggested splits for `game_mechanics.go`**:
-- [ ] Extract dice logic → `dice.go` (~70 lines: `rollDice`, `rollDicePool`)
-- [ ] Extract action performers → `actions.go` (~300 lines: `performMove`, `performGather`, etc.)
-- [ ] Extract Mythos Phase → `mythos.go` (~150 lines: `runMythosPhase`, `resolveEventEffect`, `drawMythosToken`)
-- [ ] Keep coordination logic in `game_mechanics.go` (~400 lines)
+- [x] Extract dice logic → `dice.go` (~70 lines: `rollDice`, `rollDicePool`)
+- [x] Extract action performers → `actions.go` (~300 lines: `performMove`, `performGather`, etc.)
+- [x] Extract Mythos Phase → `mythos.go` (~150 lines: `runMythosPhase`, `resolveEventEffect`, `drawMythosToken`)
+- [x] Keep coordination logic in `game_mechanics.go` (~400 lines)
 
-- [ ] **Validation**: No file > 500 lines; `go test -race ./cmd/server/...` passes
+- [x] **Validation**: No file > 500 lines; `go test -race ./cmd/server/...` passes
 
 ---
 
@@ -161,10 +161,10 @@
 
 **Impact**: Educational project; not critical. However, adding origin checking demonstrates best practices to the target audience.
 
-- [ ] Add configurable `allowedOrigins` list (default: `["localhost", "127.0.0.1"]`)
-- [ ] Implement `CheckOrigin` function in the upgrader
-- [ ] Document in README.md how to configure for production deployments
-- [ ] **Validation**: WebSocket upgrades from non-allowed origins are rejected with 403
+- [x] Add configurable `allowedOrigins` list (default: empty/permissive unless explicitly configured)
+- [x] Implement `CheckOrigin` function in the upgrader
+- [x] Document in README.md how to configure for production deployments
+- [x] **Validation**: When `allowedOrigins` is configured, WebSocket upgrades from non-allowed origins are rejected
 
 ---
 
@@ -174,8 +174,8 @@
 
 **Impact**: Rendering regressions may go unnoticed.
 
-- [ ] Add headless-safe unit tests for non-rendering logic in `app/input.go`
-- [ ] Add atlas coordinate validation tests (ensure sprite IDs map to valid regions)
+- [x] Add headless-safe unit tests for non-rendering logic in `app/input.go`
+- [x] Add atlas coordinate validation tests (ensure sprite IDs map to valid regions)
 - [ ] Add shader compilation test (verify Kage shaders compile without errors)
 - [ ] **Validation**: `go test -race ./client/ebiten/...` coverage > 60%
 

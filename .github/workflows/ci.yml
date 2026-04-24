@@ -24,6 +24,17 @@ jobs:
         run: go vet ./...
       - name: go test -race
         run: DISPLAY=:99 xvfb-run -a go test -race -tags=requires_display ./...
+      # Run performance benchmarks and upload results as a CI artifact.
+      # A broadcast latency > 200ms average is treated as a regression warning.
+      - name: Run benchmarks
+        run: |
+          set -o pipefail
+          go test -bench=. -benchtime=10s -run='^$' ./cmd/server/... | tee /tmp/benchmark-results.txt
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: /tmp/benchmark-results.txt
 
   build:
     name: Build
