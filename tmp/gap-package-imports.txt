@@ -1,6 +1,0 @@
-github.com/opd-ai/bostonfear/client/ebiten|encoding/json,github.com/gorilla/websocket,log,os,path/filepath,sync,time
-github.com/opd-ai/bostonfear/client/ebiten/app|fmt,github.com/hajimehoshi/ebiten/v2,github.com/hajimehoshi/ebiten/v2/ebitenutil,github.com/hajimehoshi/ebiten/v2/inpututil,github.com/opd-ai/bostonfear/client/ebiten,github.com/opd-ai/bostonfear/client/ebiten/render,image/color,log
-github.com/opd-ai/bostonfear/client/ebiten/render|bytes,embed,fmt,github.com/hajimehoshi/ebiten/v2,image,image/color,image/png,log
-github.com/opd-ai/bostonfear/cmd/desktop|flag,github.com/hajimehoshi/ebiten/v2,github.com/opd-ai/bostonfear/client/ebiten/app,log
-github.com/opd-ai/bostonfear/cmd/mobile|github.com/hajimehoshi/ebiten/v2,github.com/hajimehoshi/ebiten/v2/mobile,github.com/opd-ai/bostonfear/client/ebiten/app
-github.com/opd-ai/bostonfear/cmd/server|crypto/rand,encoding/hex,encoding/json,errors,fmt,github.com/gorilla/websocket,log,math/rand,net,net/http,net/url,runtime,strings,sync,sync/atomic,time

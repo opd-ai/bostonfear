@@ -1,6 +1,0 @@
-github.com/opd-ai/bostonfear/client/ebiten
-github.com/opd-ai/bostonfear/client/ebiten/app
-github.com/opd-ai/bostonfear/client/ebiten/render
-github.com/opd-ai/bostonfear/cmd/desktop
-github.com/opd-ai/bostonfear/cmd/mobile
-github.com/opd-ai/bostonfear/cmd/server
