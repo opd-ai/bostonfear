@@ -93,11 +93,11 @@ func TestLocationSpriteID_FallbackToBackground(t *testing.T) {
 // to produce correct image.Rectangle values from (x, y, w, h) parameters.
 func TestImageRect_Correctness(t *testing.T) {
 	cases := []struct {
-		x, y, w, h  int
-		wantMinX    int
-		wantMinY    int
-		wantMaxX    int
-		wantMaxY    int
+		x, y, w, h int
+		wantMinX   int
+		wantMinY   int
+		wantMaxX   int
+		wantMaxY   int
 	}{
 		{0, 0, 64, 64, 0, 0, 64, 64},
 		{128, 64, 64, 64, 128, 64, 192, 128},

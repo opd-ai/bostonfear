@@ -609,7 +609,6 @@ func TestInvestigatorAutoRecovery(t *testing.T) {
 	}
 }
 
-
 // AH3e: Victory when all act cards are completed; defeat when final agenda card
 // is reached or all investigators are defeated.
 

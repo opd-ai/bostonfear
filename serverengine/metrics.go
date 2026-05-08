@@ -11,14 +11,16 @@ import (
 	"github.com/opd-ai/bostonfear/monitoringdata"
 )
 
-type PerformanceMetrics = monitoringdata.PerformanceMetrics
-type MemoryStats = monitoringdata.MemoryStats
-type MemoryMetrics = monitoringdata.MemoryMetrics
-type GCMetrics = monitoringdata.GCMetrics
-type MessageThroughputMetrics = monitoringdata.MessageThroughputMetrics
-type ConnectionAnalyticsSimplified = monitoringdata.ConnectionAnalyticsSimplified
-type PlayerSessionMetricsSimplified = monitoringdata.PlayerSessionMetricsSimplified
-type ConnectionEventSimplified = monitoringdata.ConnectionEventSimplified
+type (
+	PerformanceMetrics             = monitoringdata.PerformanceMetrics
+	MemoryStats                    = monitoringdata.MemoryStats
+	MemoryMetrics                  = monitoringdata.MemoryMetrics
+	GCMetrics                      = monitoringdata.GCMetrics
+	MessageThroughputMetrics       = monitoringdata.MessageThroughputMetrics
+	ConnectionAnalyticsSimplified  = monitoringdata.ConnectionAnalyticsSimplified
+	PlayerSessionMetricsSimplified = monitoringdata.PlayerSessionMetricsSimplified
+	ConnectionEventSimplified      = monitoringdata.ConnectionEventSimplified
+)
 
 // collectMemorySnapshot reads current Go runtime memory statistics.
 // It is goroutine-safe and requires no lock.

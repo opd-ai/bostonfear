@@ -327,8 +327,8 @@ func (v *GameStateValidator) copyGameState(original *GameState) *GameState {
 	// Deep copy players
 	for id, player := range original.Players {
 		copied.Players[id] = &Player{
-			ID:               player.ID,
-			Location:         player.Location,
+			ID:       player.ID,
+			Location: player.Location,
 			Resources: Resources{
 				Health:   player.Resources.Health,
 				Sanity:   player.Resources.Sanity,

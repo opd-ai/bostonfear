@@ -119,4 +119,3 @@ func (gs *GameServer) applyDifficulty(difficulty string) error {
 	gs.gameState.Doom = cfg.InitialDoom
 	return nil
 }
-

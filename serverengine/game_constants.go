@@ -1,5 +1,7 @@
 package serverengine
 
+import "github.com/opd-ai/bostonfear/protocol"
+
 // clientDir is the path to the client assets directory, relative to cmd/server/.
 // Both the static file handler and the dashboard handler use this constant so
 // that a single change keeps them in sync.
@@ -17,46 +19,38 @@ const (
 	MaxPlayers = 6 // Maximum concurrent players per game
 )
 
-// Location constants define the 4 interconnected neighborhoods
-// Moved from: main.go
 const (
-	Downtown   Location = "Downtown"
-	University Location = "University"
-	Rivertown  Location = "Rivertown"
-	Northside  Location = "Northside"
+	Downtown   = protocol.Downtown
+	University = protocol.University
+	Rivertown  = protocol.Rivertown
+	Northside  = protocol.Northside
 )
 
-// ActionType constants define the 4 available actions per turn
-// Moved from: main.go
 const (
-	ActionMove               ActionType = "move"
-	ActionGather             ActionType = "gather"
-	ActionInvestigate        ActionType = "investigate"
-	ActionCastWard           ActionType = "ward"
-	ActionFocus              ActionType = "focus"
-	ActionResearch           ActionType = "research"
-	ActionTrade              ActionType = "trade"
-	ActionComponent          ActionType = "component" // Per-investigator special ability (ROADMAP Priority 1)
-	ActionEncounter          ActionType = "encounter"
-	ActionAttack             ActionType = "attack"             // Combat: roll dice against an engaged enemy
-	ActionEvade              ActionType = "evade"              // Combat: disengage from an engaged enemy
-	ActionCloseGate          ActionType = "closegate"          // Spend 2 Clues to close a gate at current location
-	ActionSelectInvestigator ActionType = "selectinvestigator" // Choose investigator archetype during waiting phase
-	ActionSetDifficulty      ActionType = "setdifficulty"      // Choose difficulty level during waiting phase
-	ActionChat               ActionType = "chat"               // Quick-chat phrase broadcast to all players
+	ActionMove               = protocol.ActionMove
+	ActionGather             = protocol.ActionGather
+	ActionInvestigate        = protocol.ActionInvestigate
+	ActionCastWard           = protocol.ActionCastWard
+	ActionFocus              = protocol.ActionFocus
+	ActionResearch           = protocol.ActionResearch
+	ActionTrade              = protocol.ActionTrade
+	ActionComponent          = protocol.ActionComponent
+	ActionEncounter          = protocol.ActionEncounter
+	ActionAttack             = protocol.ActionAttack
+	ActionEvade              = protocol.ActionEvade
+	ActionCloseGate          = protocol.ActionCloseGate
+	ActionSelectInvestigator = protocol.ActionSelectInvestigator
+	ActionSetDifficulty      = protocol.ActionSetDifficulty
+	ActionChat               = protocol.ActionChat
 )
 
-// InvestigatorType identifies which investigator archetype a player is using.
-// Each type maps to a unique component ability in DefaultInvestigatorAbilities.
-type InvestigatorType string
-
 const (
-	InvestigatorResearcher InvestigatorType = "researcher" // Gain 1 Clue without a dice roll
-	InvestigatorDetective  InvestigatorType = "detective"  // Draw a free encounter card
-	InvestigatorOccultist  InvestigatorType = "occultist"  // Reduce Doom by 1 (costs 2 Sanity)
-	InvestigatorSoldier    InvestigatorType = "soldier"    // Gain +2 Health (costs 1 Sanity)
-	InvestigatorMystic     InvestigatorType = "mystic"     // Gain +1 Focus (no cost)
-	InvestigatorSurvivor   InvestigatorType = "survivor"   // Gain +1 Health and +1 Sanity
+	InvestigatorResearcher = protocol.InvestigatorResearcher
+	InvestigatorDetective  = protocol.InvestigatorDetective
+	InvestigatorOccultist  = protocol.InvestigatorOccultist
+	InvestigatorSoldier    = protocol.InvestigatorSoldier
+	InvestigatorMystic     = protocol.InvestigatorMystic
+	InvestigatorSurvivor   = protocol.InvestigatorSurvivor
 )
 
 // InvestigatorAbility describes the mechanical effect of a component action.
@@ -123,11 +117,10 @@ const (
 	MaxFocus    = 3
 )
 
-// Moved from: main.go
 const (
-	DiceSuccess  DiceResult = "success"
-	DiceBlank    DiceResult = "blank"
-	DiceTentacle DiceResult = "tentacle"
+	DiceSuccess  = protocol.DiceSuccess
+	DiceBlank    = protocol.DiceBlank
+	DiceTentacle = protocol.DiceTentacle
 )
 
 // maxEnemiesOnBoard caps the total number of active enemies to keep combat manageable.

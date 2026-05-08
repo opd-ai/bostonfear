@@ -38,5 +38,5 @@ func TestShaderSet_Compiles(t *testing.T) {
 // when called on a ShaderSet with nil shader fields.
 func TestShaderSet_Deallocate_NilSafe(t *testing.T) {
 	ss := &ShaderSet{} // all fields nil
-	ss.Deallocate()   // must not panic
+	ss.Deallocate()    // must not panic
 }

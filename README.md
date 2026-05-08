@@ -193,6 +193,8 @@ bostonfear/
 │   └── handlers.go
 ├── monitoringdata/         # Shared monitoring DTOs used by serverengine and monitoring
 │   └── types.go
+├── protocol/               # Shared Go WebSocket wire schema used by serverengine and Go clients
+│   └── protocol.go
 ├── transport/
 │   └── ws/                 # HTTP/WebSocket route registration over net.Listener
 │       └── server.go
@@ -233,6 +235,9 @@ bostonfear/
 - **Ebitengine Client** (alpha): `github.com/hajimehoshi/ebiten/v2` (v2.7+)
 - **Mobile Build** (alpha): `ebitenmobile` CLI, `gomobile`, Android SDK (API 29+), Xcode 15+
 - **Legacy Client** (current): Modern web browser with HTML5 Canvas and WebSocket support
+
+### Shared Go Protocol
+- The Go server engine and Go/Ebitengine client compile against the shared wire schema in `protocol/`, which owns the JSON payload structs and protocol enums used on the WebSocket boundary.
 
 ### Testing Multi-player
 1. Start the server

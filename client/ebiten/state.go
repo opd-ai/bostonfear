@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/opd-ai/bostonfear/protocol"
 )
 
 // sessionFile is the JSON structure for the persisted session file.
@@ -70,64 +72,16 @@ func (s *LocalState) SaveTokenToFile() error {
 	return os.WriteFile(path, data, 0o600)
 }
 
-// Location mirrors the server's Location type for JSON decoding.
-type Location string
-
-// DiceResult mirrors the server's DiceResult type for JSON decoding.
-type DiceResult string
-
-// Resources mirrors the server's Resources type for JSON decoding.
-// Health and Sanity range 1-10; Clues range 0-5; Money 0-99; Remnants 0-5; Focus 0-3.
-type Resources struct {
-	Health   int `json:"health"`
-	Sanity   int `json:"sanity"`
-	Clues    int `json:"clues"`
-	Money    int `json:"money"`
-	Remnants int `json:"remnants"`
-	Focus    int `json:"focus"`
-}
-
-// Player mirrors the server's Player type for JSON decoding.
-type Player struct {
-	ID               string    `json:"id"`
-	Location         Location  `json:"location"`
-	Resources        Resources `json:"resources"`
-	ActionsRemaining int       `json:"actionsRemaining"`
-	Connected        bool      `json:"connected"`
-}
-
-// GameState mirrors the server's GameState type for JSON decoding.
-type GameState struct {
-	Players       map[string]*Player `json:"players"`
-	CurrentPlayer string             `json:"currentPlayer"`
-	Doom          int                `json:"doom"`
-	GamePhase     string             `json:"gamePhase"`
-	TurnOrder     []string           `json:"turnOrder"`
-	GameStarted   bool               `json:"gameStarted"`
-	WinCondition  bool               `json:"winCondition"`
-	LoseCondition bool               `json:"loseCondition"`
-	RequiredClues int                `json:"requiredClues"`
-}
-
-// DiceResultData mirrors the server's DiceResultMessage.Data for JSON decoding.
-type DiceResultData struct {
-	PlayerID     string       `json:"playerId"`
-	Action       string       `json:"action"`
-	Results      []DiceResult `json:"results"`
-	Successes    int          `json:"successes"`
-	Tentacles    int          `json:"tentacles"`
-	Success      bool         `json:"success"`
-	DoomIncrease int          `json:"doomIncrease"`
-}
-
-// GameUpdateData mirrors the server's GameUpdateMessage for JSON decoding.
-type GameUpdateData struct {
-	PlayerID  string    `json:"playerId"`
-	Event     string    `json:"event"`
-	Result    string    `json:"result"`
-	DoomDelta int       `json:"doomDelta"`
-	Timestamp time.Time `json:"timestamp"`
-}
+// Shared protocol aliases keep the Go client on the same wire schema as the server.
+type (
+	Location       = protocol.Location
+	DiceResult     = protocol.DiceResult
+	Resources      = protocol.Resources
+	Player         = protocol.Player
+	GameState      = protocol.GameState
+	DiceResultData = protocol.DiceResultMessage
+	GameUpdateData = protocol.GameUpdateMessage
+)
 
 // ConnectionQuality mirrors the server's ConnectionQuality type.
 type ConnectionQuality struct {
@@ -218,7 +172,7 @@ func (s *LocalState) UpdateDiceResult(dr DiceResultData) {
 	}
 	s.appendEventLocked(EventLogEntry{
 		Timestamp: time.Now(),
-		Text:      dr.PlayerID + " rolled " + dr.Action + ": " + outcome,
+		Text:      dr.PlayerID + " rolled " + string(dr.Action) + ": " + outcome,
 	})
 }
 

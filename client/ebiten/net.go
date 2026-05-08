@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/opd-ai/bostonfear/protocol"
 )
 
 // serverMessage is the top-level envelope for all messages from the server.
@@ -16,12 +17,7 @@ type serverMessage struct {
 }
 
 // PlayerActionMessage is the outbound message the client sends to the server.
-type PlayerActionMessage struct {
-	Type     string `json:"type"`
-	PlayerID string `json:"playerId"`
-	Action   string `json:"action"`
-	Target   string `json:"target,omitempty"`
-}
+type PlayerActionMessage = protocol.PlayerActionMessage
 
 // NetClient manages the WebSocket connection to the game server.
 // It reads incoming messages, routes them to LocalState, and exposes a channel

@@ -4,6 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
+	"github.com/opd-ai/bostonfear/protocol"
 )
 
 // actionKey maps a keyboard key to the action string sent to the server.
@@ -54,7 +55,7 @@ func (h *InputHandler) Update() {
 			h.net.SendAction(ebclient.PlayerActionMessage{
 				Type:     "playerAction",
 				PlayerID: playerID,
-				Action:   kb.action,
+				Action:   protocol.ActionType(kb.action),
 				Target:   kb.target,
 			})
 		}

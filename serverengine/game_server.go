@@ -99,7 +99,7 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		// configured at runtime via SetAllowedOrigins. The default (empty list)
 		// accepts any origin, matching the previous behaviour and keeping tests
 		// green without requiring explicit origin configuration.
-		upgrader: websocket.Upgrader{},
+		upgrader:    websocket.Upgrader{},
 		broadcastCh: ch,
 		broadcaster: &channelBroadcaster{ch: ch}, // Inject concrete Broadcaster
 		actionCh:    make(chan PlayerActionMessage, 100),
