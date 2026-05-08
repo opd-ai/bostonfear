@@ -1,5 +1,16 @@
 # Performance Monitoring Dashboard - Implementation Complete
 
+> **⚠️ Intellectual Property Notice**
+> BostonFear is a **rules-only game engine** designed to execute the mechanics of the
+> Arkham Horror series of games. This repository contains **no copyrighted content**
+> produced by Fantasy Flight Games. No card text, scenario narratives, investigator
+> stories, artwork, encounter text, or any other proprietary material owned by
+> Fantasy Flight Games (an Asmodee brand) is, or will ever be, reproduced here.
+> *Arkham Horror* is a trademark of Fantasy Flight Games. This project is an
+> independent, fan-made rules engine and is not affiliated with or endorsed by
+> Fantasy Flight Games or Asmodee.
+
+
 ## Task Completion Summary
 
 **Selected Task**: Performance Monitoring Dashboard (ROADMAP.md Phase 1.1, Priority Score: 7.5)

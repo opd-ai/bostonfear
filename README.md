@@ -1,5 +1,15 @@
 # Arkham Horror - Multiplayer Game
 
+> **⚠️ Intellectual Property Notice**
+> BostonFear is a **rules-only game engine** designed to execute the mechanics of the
+> Arkham Horror series of games. This repository contains **no copyrighted content**
+> produced by Fantasy Flight Games. No card text, scenario narratives, investigator
+> stories, artwork, encounter text, or any other proprietary material owned by
+> Fantasy Flight Games (an Asmodee brand) is, or will ever be, reproduced here.
+> *Arkham Horror* is a trademark of Fantasy Flight Games. This project is an
+> independent, fan-made rules engine and is not affiliated with or endorsed by
+> Fantasy Flight Games or Asmodee.
+
 A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and an HTML/JS canvas client with 1-6 concurrent players. Players can join a game already in progress. A Go/Ebitengine client supporting desktop, web (WASM), and mobile platforms is implemented and compilable — see `ROADMAP.md` for ongoing improvements.
 
 > **Active migration:** The client is being migrated from HTML/JS canvas to
