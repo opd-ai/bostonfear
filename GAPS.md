@@ -1,61 +1,29 @@
-# Implementation Gaps — 2026-05-08
+# Organization Gaps — 2026-05-08
 
-> **⚠️ Intellectual Property Notice**
-> BostonFear is a **rules-only game engine** designed to execute the mechanics of the
-> Arkham Horror series of games. This repository contains **no copyrighted content**
-> produced by Fantasy Flight Games. No card text, scenario narratives, investigator
-> stories, artwork, encounter text, or any other proprietary material owned by
-> Fantasy Flight Games (an Asmodee brand) is, or will ever be, reproduced here.
-> *Arkham Horror* is a trademark of Fantasy Flight Games. This project is an
-> independent, fan-made rules engine and is not affiliated with or endorsed by
-> Fantasy Flight Games or Asmodee.
+## Server Engine Lives In A Command Package
 
+- **Desired Organization**: `cmd/server` should only parse config, construct dependencies, register handlers, and start the process. Core gameplay state and rules execution should live in an importable package such as `internal/serverengine` or `internal/game`.
+- **Current State**: The server engine lives directly in `cmd/server`, including `GameServer` (`cmd/server/game_server.go:22`), the action pipeline (`cmd/server/game_server.go:270`), state types (`cmd/server/game_types.go:154`), and mechanic files (`cmd/server/game_mechanics.go:1`, `cmd/server/actions.go:1`).
+- **Impact**: Alternate hosts, integration tools, simulations, and future non-HTTP entrypoints cannot reuse the engine without first extracting code from a command package. This is the main blocker to a library-forward architecture.
+- **Closing the Gap**: Create `internal/serverengine`, move state/types/mechanics/mythos/validation into it, then update `cmd/server/main.go` and `cmd/server/game_utils.go` to compose that package. Keep the refactor incremental by moving whole files together first, then refining package boundaries. Validate with `go build ./...`, `go test -race ./...`, and `/home/user/go/bin/go-stats-generator analyze . --sections packages,interfaces,structs`.
 
-## Legacy JS Client Parse Failure (Critical Runtime Blocker)
-- **Intended Behavior**: Legacy browser client remains functional during migration (`README.md` marks legacy browser target active).
-- **Current State**: Duplicate code fragment exists in class body and breaks JavaScript parsing (`client/game.js:397-434`).
-- **Blocked Goal**: Browser client cannot run, so multiplayer access via `client/index.html` is broken.
-- **Implementation Path**: Remove duplicated fragment, keep single `displayDiceResult` implementation, then re-check class structure for balanced braces/method boundaries.
-- **Dependencies**: None.
-- **Effort**: small
+## Server Interfaces Stop At The Command Boundary
 
-## Missing SceneCharacterSelect in Ebitengine Scene State Machine
-- **Intended Behavior**: CLIENT_SPEC requires `SceneConnect → SceneCharacterSelect → SceneGame → SceneGameOver`.
-- **Current State**: Code explicitly defers SceneCharacterSelect and transitions directly to SceneGame when connected (`client/ebiten/app/scenes.go:7-8`, `108-112`).
-- **Blocked Goal**: Planned investigator-selection UX and phased migration completeness.
-- **Implementation Path**: Implement `SceneCharacterSelect` UI/state, add readiness criteria from server state, and update transition logic/tests to enforce four-scene sequencing.
-- **Dependencies**: Requires stable client handling for `selectInvestigator` action and selection readiness state.
-- **Effort**: medium
+- **Desired Organization**: Interfaces should be owned by the importable package that consumes them, so other packages can provide implementations and depend on contracts instead of concrete command-local types.
+- **Current State**: `Broadcaster` and `StateValidator` are defined in `cmd/server/interfaces.go:7` and `cmd/server/interfaces.go:13`, then consumed by `GameServer` fields in `cmd/server/game_server.go:31` and `cmd/server/game_server.go:34`.
+- **Impact**: The project does use interfaces, but only inside the command package. That limits substitution, testing from outside the package, and future composition of the server engine in a different runtime.
+- **Closing the Gap**: Move the interfaces with the extracted server engine, keep concrete broadcaster and validator implementations in provider packages, and inject them via constructors. A safe sequence is: extract interfaces, move the engine package, then move provider implementations. Validate with `go build ./...`, `go test -race ./...`, and `/home/user/go/bin/go-stats-generator analyze . --sections interfaces,packages`.
 
-## Connection Quality Self-Indicator Not Wired
-- **Intended Behavior**: Client updates own status badge from `connectionQuality` payloads.
-- **Current State**: Client checks `qualityMessage.playerID`, but server emits `playerId` (`client/game.js:462`, `cmd/server/dashboard.go:31`).
-- **Blocked Goal**: Real-time own-connection quality feedback from implemented ping/pong system.
-- **Implementation Path**: Normalize key usage to `playerId` on client path; add a message-shape regression test for quality update handling.
-- **Dependencies**: None.
-- **Effort**: small
+## Server Separation Of Concerns Ends At Files
 
-## Difficulty System Partially Wired (ExtraDoomTokens Unused)
-- **Intended Behavior**: Difficulty should adjust initial conditions including extra doom-token pressure (`DifficultySetup`).
-- **Current State**: `applyDifficulty` only applies `InitialDoom`; `ExtraDoomTokens` is never consumed (`cmd/server/game_constants.go:215-224`, `cmd/server/game_mechanics.go:113-120`).
-- **Blocked Goal**: Full modular difficulty behavior promised by architecture/spec docs.
-- **Implementation Path**: Add token-cup representation to game state and consume `ExtraDoomTokens` in setup/mythos token draw logic; add deterministic tests proving per-difficulty token composition effects.
-- **Dependencies**: Requires explicit Mythos cup state modeling if currently implicit/random-only.
-- **Effort**: medium
+- **Desired Organization**: Separate packages should own rules/state, transport, monitoring, and recovery concerns, with dependency flow from `cmd/server` into those packages rather than lateral coordination inside one large package.
+- **Current State**: The same `cmd/server` package owns mechanics (`cmd/server/game_mechanics.go:1`), connection handling (`cmd/server/connection.go:1`), dashboard logic (`cmd/server/dashboard.go:1`), metrics export (`cmd/server/metrics.go:1`), and recovery/validation (`cmd/server/error_recovery.go:10`).
+- **Impact**: The package remains understandable today, but change blast radius is larger than necessary. Rules changes, observability changes, and transport changes all happen in one broad namespace, which will become harder to evolve as the server grows.
+- **Closing the Gap**: After extracting the engine, split remaining code into focused packages such as `internal/transport/ws`, `internal/monitoring`, and `internal/validation`. Keep HTTP route registration in `cmd/server` or a thin transport package. Validate with `go build ./...`, `go test -race ./...`, and `/home/user/go/bin/go-stats-generator analyze . --sections packages,functions,structs`.
 
-## Runtime-Dead Helpers in Ebitengine App Layer
-- **Intended Behavior**: Production helpers in `app/game.go` should support runtime rendering logic.
-- **Current State**: `playerColourIndex` and `min8` are defined in production file but only referenced in tests (`client/ebiten/app/game.go:324`, `334`).
-- **Blocked Goal**: None directly; adds maintenance burden and obscures active code paths.
-- **Implementation Path**: Remove dead helpers or wire them into draw paths that currently duplicate equivalent logic.
-- **Dependencies**: None.
-- **Effort**: small
+## Shared Go Protocol Types Lack A Single Owner
 
-## Unused Base Protocol Type in Server
-- **Intended Behavior**: Protocol types should reflect actively used server message contracts.
-- **Current State**: `Message` envelope type is declared but not used in processing flow (`cmd/server/game_types.go:31`).
-- **Blocked Goal**: None directly; ambiguous API surface can mislead contributors.
-- **Implementation Path**: Either remove the type or standardize decode/encode flow around it and update handlers accordingly.
-- **Dependencies**: None.
-- **Effort**: small
-
+- **Desired Organization**: Shared JSON message contracts and protocol enums should live in one Go package so the server and Go client compile against the same wire schema.
+- **Current State**: The server defines protocol and state structs in `cmd/server/game_types.go:20`, `cmd/server/game_types.go:61`, `cmd/server/game_types.go:154`, and `cmd/server/game_types.go:190`, while the Ebitengine client mirrors them in `client/ebiten/state.go:81`, `client/ebiten/state.go:91`, `client/ebiten/state.go:100`, and `client/ebiten/net.go:19`.
+- **Impact**: Every protocol change requires coordinated edits across packages. That raises schema-drift risk and makes the stable server/client protocol harder to evolve safely.
+- **Closing the Gap**: Introduce a shared Go protocol package, likely `internal/protocol`, move message types and shared enums there, and keep client-only view state local to `client/ebiten`. Add compatibility-focused tests around marshal/unmarshal boundaries after the move. Validate with `go build ./...`, `go test -race ./...`, and `/home/user/go/bin/go-stats-generator analyze . --sections structs,packages`.
