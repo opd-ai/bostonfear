@@ -1,4 +1,4 @@
-// Package main — Mythos Phase implementation for the Arkham Horror multiplayer
+// Package serverengine implements the Mythos Phase for the Arkham Horror multiplayer
 // game server. This file implements the AH3e Mythos Phase (event draw, placement,
 // spreading, token cup, enemy spawning) and the turn-order advancement logic that
 // triggers it at the end of each investigator round.

@@ -1,14 +1,14 @@
-// Package main implements health check endpoint and state diagnostics for the
+// Package serverengine implements health diagnostics and state validation for the
 // Arkham Horror multiplayer game server. This file handles HTTP health reporting,
 // game state validation and recovery, error rate tracking, and game statistics.
 package serverengine
 
 import (
-	"fmt"
 	"log"
 	"sync/atomic"
 	"time"
 
+	"github.com/opd-ai/bostonfear/monitoring"
 	"github.com/opd-ai/bostonfear/monitoringdata"
 )
 
@@ -147,63 +147,6 @@ func classifyDoomThreat(doomPercent float64) string {
 	}
 }
 
-// getSystemAlerts checks for system issues and returns alerts
-func (gs *GameServer) getSystemAlerts() []map[string]interface{} {
-	alerts := []map[string]interface{}{}
-
-	// Performance alerts
-	performanceMetrics := gs.collectPerformanceMetrics()
-
-	// High memory usage alert
-	if performanceMetrics.MemoryUsage.AllocMB > 100 {
-		alerts = append(alerts, map[string]interface{}{
-			"type":     "warning",
-			"message":  fmt.Sprintf("High memory usage: %.1f MB", performanceMetrics.MemoryUsage.AllocMB),
-			"severity": "medium",
-		})
-	}
-
-	// High response time alert
-	if performanceMetrics.ResponseTimeMs > 100 {
-		alerts = append(alerts, map[string]interface{}{
-			"type":     "warning",
-			"message":  fmt.Sprintf("High response time: %.1f ms", performanceMetrics.ResponseTimeMs),
-			"severity": "medium",
-		})
-	}
-
-	// High error rate alert
-	if performanceMetrics.ErrorRate > 5 {
-		alerts = append(alerts, map[string]interface{}{
-			"type":     "error",
-			"message":  fmt.Sprintf("High error rate: %.1f%%", performanceMetrics.ErrorRate),
-			"severity": "high",
-		})
-	}
-
-	// Game state alerts: capture doom under a lock, then use the snapshot below.
-	gs.mutex.RLock()
-	doom := gs.gameState.Doom
-	doomPercent := float64(doom) / 12.0 * 100
-	gs.mutex.RUnlock()
-
-	if doomPercent > 80 {
-		alerts = append(alerts, map[string]interface{}{
-			"type":     "error",
-			"message":  fmt.Sprintf("Critical doom level: %d/12 (%.0f%%)", doom, doomPercent),
-			"severity": "critical",
-		})
-	} else if doomPercent > 60 {
-		alerts = append(alerts, map[string]interface{}{
-			"type":     "warning",
-			"message":  fmt.Sprintf("High doom level: %d/12 (%.0f%%)", doom, doomPercent),
-			"severity": "medium",
-		})
-	}
-
-	return alerts
-}
-
 // CollectPerformanceMetrics exposes performance aggregation to the monitoring package.
 func (gs *GameServer) CollectPerformanceMetrics() PerformanceMetrics {
 	return gs.collectPerformanceMetrics()
@@ -234,7 +177,11 @@ func (gs *GameServer) GameStatistics() map[string]interface{} {
 	return gs.getGameStatistics()
 }
 
-// SystemAlerts exposes derived operational alerts to the monitoring package.
-func (gs *GameServer) SystemAlerts() []map[string]interface{} {
-	return gs.getSystemAlerts()
+// getSystemAlerts delegates alert-threshold policy to the monitoring package.
+func (gs *GameServer) getSystemAlerts() []map[string]interface{} {
+	performanceMetrics := gs.collectPerformanceMetrics()
+	gs.mutex.RLock()
+	doom := gs.gameState.Doom
+	gs.mutex.RUnlock()
+	return monitoring.BuildSystemAlerts(performanceMetrics, doom)
 }

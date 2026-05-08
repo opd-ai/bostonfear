@@ -1,4 +1,4 @@
-// Package main implements Prometheus metrics export and performance data collection
+// Package serverengine implements Prometheus metrics export and performance data collection
 // for the Arkham Horror multiplayer game server. This file handles all metric
 // gathering, throughput analysis, broadcast latency tracking, and session analytics.
 package serverengine

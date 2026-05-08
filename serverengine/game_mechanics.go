@@ -1,4 +1,4 @@
-// Package main contains game-logic methods for the Arkham Horror multiplayer
+// Package serverengine contains game-logic methods for the Arkham Horror multiplayer
 // game server. This file coordinates the core mechanics: resource tracking,
 // action dispatch, doom counter management, and investigator defeat/recovery.
 // Dice resolution is in dice.go; action performers are in actions.go;

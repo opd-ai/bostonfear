@@ -38,7 +38,7 @@ func run() error {
 	defer listener.Close()
 
 	handlers := transportws.RouteHandlers{
-		WebSocket: gameServer.WebSocketHandler(),
+		WebSocket: transportws.NewWebSocketHandler(gameServer),
 		Health:    monitoring.HealthHandler(gameServer),
 		Metrics:   monitoring.MetricsHandler(gameServer),
 		Dashboard: monitoring.DashboardHandler(serverengine.ClientDir()),

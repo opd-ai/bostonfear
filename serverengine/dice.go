@@ -1,4 +1,4 @@
-// Package main — dice resolution for the Arkham Horror multiplayer game server.
+// Package serverengine implements dice resolution for the Arkham Horror multiplayer game server.
 // This file implements the 3-sided dice mechanics (Success/Blank/Tentacle) with
 // configurable dice pool sizes and focus-token rerolls (AH3e §Dice Resolution).
 package serverengine

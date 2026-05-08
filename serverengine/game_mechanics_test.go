@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+type stubConn struct {
+	local  net.Addr
+	remote net.Addr
+}
+
+func (c *stubConn) Read([]byte) (int, error)         { return 0, nil }
+func (c *stubConn) Write(b []byte) (int, error)      { return len(b), nil }
+func (c *stubConn) Close() error                     { return nil }
+func (c *stubConn) LocalAddr() net.Addr              { return c.local }
+func (c *stubConn) RemoteAddr() net.Addr             { return c.remote }
+func (c *stubConn) SetDeadline(time.Time) error      { return nil }
+func (c *stubConn) SetReadDeadline(time.Time) error  { return nil }
+func (c *stubConn) SetWriteDeadline(time.Time) error { return nil }
+
 // newTestServer returns a GameServer in "playing" state with one connected player.
 // It does not start the broadcast/action goroutines, making it safe for unit tests.
 func newTestServer(t *testing.T) (*GameServer, string) {
@@ -589,9 +603,9 @@ func TestHandlePlayerDisconnect_MapsCleanedUp(t *testing.T) {
 	gs, p1ID := newTestServer(t)
 	addPlayer(gs, "p2", true)
 
-	// Use a ConnectionWrapper as a net.Conn stand-in for the maps.
+	// Use a stub net.Conn stand-in for the maps.
 	addrStr := "127.0.0.1:12345"
-	var stub net.Conn = &ConnectionWrapper{}
+	var stub net.Conn = &stubConn{remote: &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 12345}}
 	gs.connections[addrStr] = stub
 	gs.playerConns[p1ID] = stub
 
@@ -734,7 +748,7 @@ func TestSessionReconnection_RestoreByToken(t *testing.T) {
 
 	// Simulate reconnection via token.
 	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9999}
-	fakeConn := NewConnectionWrapper(nil, addr, addr)
+	fakeConn := &stubConn{local: addr, remote: addr}
 	restoredID := gs.restorePlayerByToken(token, fakeConn)
 
 	if restoredID != p1ID {
@@ -753,7 +767,7 @@ func TestSessionReconnection_RestoreByToken(t *testing.T) {
 func TestSessionReconnection_UnknownTokenReturnsEmpty(t *testing.T) {
 	gs, _ := newTestServer(t)
 	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9999}
-	fakeConn := NewConnectionWrapper(nil, addr, addr)
+	fakeConn := &stubConn{local: addr, remote: addr}
 	result := gs.restorePlayerByToken("invalid-token-xyz", fakeConn)
 	if result != "" {
 		t.Errorf("unknown token should return empty string; got %q", result)

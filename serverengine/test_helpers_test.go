@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	transportws "github.com/opd-ai/bostonfear/transport/ws"
 )
 
 // testServerWithCleanup represents a running test server with cleanup function.
@@ -27,7 +28,7 @@ func newIntegrationTestServer(t testing.TB) (*testServerWithCleanup, func()) {
 	go gs.broadcastHandler()
 	go gs.actionHandler()
 
-	srv := httptest.NewServer(gs.WebSocketHandler())
+	srv := httptest.NewServer(transportws.NewWebSocketHandler(gs))
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
 
 	cleanup := func() {

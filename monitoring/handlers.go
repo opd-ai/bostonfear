@@ -19,7 +19,6 @@ type Provider interface {
 	CollectGCMetrics() monitoringdata.GCMetrics
 	CollectMessageThroughput(time.Duration) monitoringdata.MessageThroughputMetrics
 	GameStatistics() map[string]interface{}
-	SystemAlerts() []map[string]interface{}
 }
 
 // HealthHandler serves a JSON health payload assembled from engine snapshots.
@@ -29,7 +28,7 @@ func HealthHandler(provider Provider) http.Handler {
 		perfMetrics := provider.CollectPerformanceMetrics()
 		connAnalytics := provider.CollectConnectionAnalytics()
 		gameStats := provider.GameStatistics()
-		alerts := provider.SystemAlerts()
+		alerts := BuildSystemAlerts(perfMetrics, snapshot.Doom)
 
 		recentCorruptions := 0
 		fiveMinutesAgo := time.Now().Add(-5 * time.Minute)

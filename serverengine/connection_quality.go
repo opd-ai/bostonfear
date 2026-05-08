@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 // ConnectionQuality represents real-time connection quality metrics for a single player.
@@ -152,18 +150,12 @@ func (gs *GameServer) startPingTimer(playerID string) {
 func (gs *GameServer) sendPingToPlayer(playerID string) {
 	gs.mutex.RLock()
 	conn, connExists := gs.playerConns[playerID]
-	var wsConn *websocket.Conn
-	var wsAddr string
-	var wsExists bool
-	if connExists && conn != nil {
-		wsAddr = conn.RemoteAddr().String()
-		wsConn, wsExists = gs.wsConns[wsAddr]
-	}
 	gs.mutex.RUnlock()
 
-	if !connExists || conn == nil || !wsExists {
+	if !connExists || conn == nil {
 		return
 	}
+	connAddr := conn.RemoteAddr().String()
 
 	pingMsg := PingMessage{
 		Type:      "ping",
@@ -186,7 +178,7 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 	}
 	gs.qualityMutex.Unlock()
 
-	if err := gs.writeToConn(wsConn, wsAddr, pingData); err != nil {
+	if err := gs.writeToConn(conn, connAddr, pingData); err != nil {
 		log.Printf("Error sending ping to player %s: %v", playerID, err)
 		gs.qualityMutex.Lock()
 		if quality, exists := gs.connectionQualities[playerID]; exists {

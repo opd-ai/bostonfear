@@ -1,4 +1,4 @@
-// Package main — action performer methods for the Arkham Horror multiplayer game server.
+// Package serverengine provides action performer methods for the Arkham Horror multiplayer game server.
 // This file implements the concrete handler for each of the 12 available investigator
 // actions: Move, Gather, Investigate, CastWard, Focus, Research, Trade, Encounter,
 // Component, Attack, Evade, and CloseGate (AH3e §Actions).

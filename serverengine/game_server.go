@@ -1,4 +1,4 @@
-// Package main is the entry point for the Arkham Horror multiplayer game server.
+// Package serverengine contains core game server orchestration.
 // This file defines the GameServer struct, its constructors, the Start method,
 // and the core action-processing pipeline shared across all game mechanics.
 package serverengine
@@ -13,20 +13,16 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 // GameServer manages the central game state for the Arkham Horror multiplayer game,
 // handling WebSocket connections, player actions, turn management, and state broadcasting.
 type GameServer struct {
 	gameState   *GameState
-	scenario    Scenario                   // scenario configuration for this session
-	connections map[string]net.Conn        // Using net.Conn interface
-	wsConns     map[string]*websocket.Conn // Internal WebSocket connections
-	playerConns map[string]net.Conn        // Player ID to connection mapping
+	scenario    Scenario            // scenario configuration for this session
+	connections map[string]net.Conn // Using net.Conn interface
+	playerConns map[string]net.Conn // Player ID to connection mapping
 	mutex       sync.RWMutex
-	upgrader    websocket.Upgrader
 	broadcastCh chan []byte
 	broadcaster Broadcaster // Interface for sending state updates to all clients
 	actionCh    chan PlayerActionMessage
@@ -57,9 +53,11 @@ type GameServer struct {
 	pingTimers          map[string]*time.Timer
 	qualityMutex        sync.RWMutex
 
-	// wsWriteMu serialises concurrent WebSocket writes per connection.
-	// gorilla/websocket is not safe for concurrent writes; both broadcastHandler
-	// and sendPingToPlayer write to the same *websocket.Conn, so each connection
+	// wsWriteMu serialises concurrent writes per connection address.
+	// The websocket transport adapter wraps ws connections as net.Conn, but the
+	// one-writer-at-a-time requirement still applies for each wrapped session.
+	// broadcastHandler and sendPingToPlayer can write to the same connection, so
+	// each connection
 	// needs its own write mutex.
 	wsWriteMu map[string]*sync.Mutex
 	wsMuMutex sync.Mutex // guards wsWriteMu map itself
@@ -93,13 +91,7 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 			EncounterDecks:     make(map[string][]EncounterCard),
 		},
 		connections: make(map[string]net.Conn),
-		wsConns:     make(map[string]*websocket.Conn),
 		playerConns: make(map[string]net.Conn),
-		// CheckOrigin is wired to checkOrigin so that allowed origins can be
-		// configured at runtime via SetAllowedOrigins. The default (empty list)
-		// accepts any origin, matching the previous behaviour and keeping tests
-		// green without requiring explicit origin configuration.
-		upgrader:    websocket.Upgrader{},
 		broadcastCh: ch,
 		broadcaster: &channelBroadcaster{ch: ch}, // Inject concrete Broadcaster
 		actionCh:    make(chan PlayerActionMessage, 100),
@@ -126,8 +118,6 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 	if scenario.SetupFn != nil {
 		scenario.SetupFn(gs.gameState)
 	}
-	// Wire CheckOrigin now that gs is initialised; the closure captures gs.
-	gs.upgrader.CheckOrigin = gs.checkOrigin
 	return gs
 }
 
@@ -157,43 +147,41 @@ func (gs *GameServer) SetAllowedOrigins(origins []string) {
 	gs.mutex.Unlock()
 }
 
-// checkOrigin is the websocket.Upgrader.CheckOrigin implementation.
-// It accepts the upgrade when:
-//   - allowedOrigins is empty (permissive default — safe for local dev), OR
-//   - the request's Origin header parses to a host that matches one of the
-//     allowedOrigins entries (case-insensitive, scheme-agnostic).
-//
-// Only "http", "https", "ws", and "wss" schemes are accepted; other schemes
-// (e.g. "javascript:") are rejected even when the host would otherwise match.
-// A missing Origin header is always accepted. A malformed or unsupported-scheme
-// Origin is rejected when the allowedOrigins list is non-empty.
-func (gs *GameServer) checkOrigin(r *http.Request) bool {
+// AllowedOrigins returns a copy of the normalized allowed origin list used by
+// the transport adapter during websocket upgrade checks.
+func (gs *GameServer) AllowedOrigins() []string {
 	gs.mutex.RLock()
-	allowed := gs.allowedOrigins
+	allowed := append([]string(nil), gs.allowedOrigins...)
 	gs.mutex.RUnlock()
+	return allowed
+}
 
+// checkOrigin evaluates whether an incoming request origin should be accepted.
+// It is kept package-local for origin-policy unit tests and transport reuse.
+func (gs *GameServer) checkOrigin(r *http.Request) bool {
+	allowed := gs.AllowedOrigins()
 	if len(allowed) == 0 {
-		// Permissive default: accept any origin.
 		return true
 	}
+
 	origin := r.Header.Get("Origin")
 	if origin == "" {
-		// No Origin header (e.g. direct TCP connections, curl); allow.
 		return true
 	}
+
 	u, err := url.Parse(origin)
 	if err != nil || u.Host == "" {
 		log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
 		return false
 	}
-	// Reject non-web schemes (e.g. "javascript:", "file:") for safety.
+
 	switch strings.ToLower(u.Scheme) {
 	case "http", "https", "ws", "wss":
-		// acceptable
 	default:
 		log.Printf("WebSocket upgrade rejected: unsupported scheme in origin %q", origin)
 		return false
 	}
+
 	hostLower := strings.ToLower(u.Host)
 	for _, a := range allowed {
 		if a == hostLower {
@@ -225,12 +213,12 @@ func (gs *GameServer) removeConnWriteLock(addr string) {
 	gs.wsMuMutex.Unlock()
 }
 
-// writeToConn serialises a single WebSocket write for addr through its per-connection
-// mutex so that concurrent callers (broadcastHandler, sendPingToPlayer) cannot race.
-func (gs *GameServer) writeToConn(wsConn *websocket.Conn, addr string, data []byte) error {
+// writeToConn serialises a single connection write for addr through its
+// per-connection mutex so concurrent callers cannot race.
+func (gs *GameServer) writeToConn(conn net.Conn, addr string, data []byte) error {
 	mu := gs.connWriteLock(addr)
 	mu.Lock()
-	err := wsConn.WriteMessage(websocket.TextMessage, data)
+	_, err := conn.Write(data)
 	mu.Unlock()
 	return err
 }

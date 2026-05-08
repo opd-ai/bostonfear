@@ -1,6 +1,5 @@
-// Package main contains WebSocket connection handling for the Arkham Horror
-// multiplayer game server. This file manages player connections, authentication
-// via reconnect tokens, message routing, and the broadcast/action goroutines.
+// Package serverengine contains transport-neutral session handling for the
+// Arkham Horror multiplayer game server.
 package serverengine
 
 import (
@@ -10,52 +9,60 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"sync/atomic"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
-// WebSocketHandler exposes the upgrade endpoint for route registration outside
-// the core engine package.
-func (gs *GameServer) WebSocketHandler() http.Handler {
-	return http.HandlerFunc(gs.handleWebSocket)
-}
-
-// handleConnection manages WebSocket connections using net.Conn interface
-// Moved from: main.go
-func (gs *GameServer) handleConnection(conn net.Conn) error {
+// HandleConnection manages a player session using only net.Conn so transports
+// can adapt websocket, tcp, or in-process connections without engine changes.
+func (gs *GameServer) HandleConnection(conn net.Conn, reconnectToken string) error {
 	defer func() {
 		if err := conn.Close(); err != nil {
 			log.Printf("Error closing connection: %v", err)
 		}
 	}()
+	addrStr := conn.RemoteAddr().String()
+	gs.mutex.Lock()
+	gs.connections[addrStr] = conn
+	atomic.AddInt64(&gs.activeConnections, 1)
+	gs.mutex.Unlock()
 
-	// Handshake timeout: give the client 30 seconds to complete the WebSocket
-	// upgrade. This is distinct from the per-message inactivity timeout applied
-	// in runMessageLoop, which resets after every successfully received message.
+	// Initial timeout before first client message arrives.
 	if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 		log.Printf("Failed to set read deadline: %v", err)
 	}
-	gs.mutex.RLock()
-	wsConn, ok := gs.wsConns[conn.RemoteAddr().String()]
-	gs.mutex.RUnlock()
-	if !ok {
-		return fmt.Errorf("websocket connection not found for %s", conn.RemoteAddr().String())
+
+	if reconnectToken != "" {
+		if restoredID := gs.restorePlayerByToken(reconnectToken, conn); restoredID != "" {
+			log.Printf("Player %s reconnected via token", restoredID)
+			gs.sendConnectionStatus(conn, restoredID)
+			gs.broadcastGameState()
+			gs.runMessageLoop(conn, restoredID)
+			gs.handlePlayerDisconnect(restoredID, addrStr)
+			return nil
+		}
 	}
 
 	playerID, err := gs.registerPlayer(conn)
 	if err != nil {
+		gs.removeConnection(addrStr)
 		return err
 	}
 
-	gs.sendConnectionStatus(wsConn, playerID)
+	gs.sendConnectionStatus(conn, playerID)
 	gs.broadcastGameState()
-	gs.runMessageLoop(conn, wsConn, playerID)
+	gs.runMessageLoop(conn, playerID)
 
-	gs.handlePlayerDisconnect(playerID, conn.RemoteAddr().String())
+	gs.handlePlayerDisconnect(playerID, addrStr)
 	return nil
+}
+
+func (gs *GameServer) removeConnection(addrStr string) {
+	gs.mutex.Lock()
+	delete(gs.connections, addrStr)
+	atomic.AddInt64(&gs.activeConnections, -1)
+	gs.mutex.Unlock()
+	gs.removeConnWriteLock(addrStr)
 }
 
 // generateReconnectToken returns a cryptographically random 16-byte hex token
@@ -122,9 +129,9 @@ func (gs *GameServer) registerPlayer(conn net.Conn) (string, error) {
 	return playerID, nil
 }
 
-// sendConnectionStatus sends the connectionStatus message to the newly connected client,
-// including the reconnection token so the client can reclaim its slot on reconnect.
-func (gs *GameServer) sendConnectionStatus(wsConn *websocket.Conn, playerID string) {
+// sendConnectionStatus sends the connectionStatus message to the player,
+// including the reconnection token so the client can reclaim its slot.
+func (gs *GameServer) sendConnectionStatus(conn net.Conn, playerID string) {
 	gs.mutex.RLock()
 	token := ""
 	if p, ok := gs.gameState.Players[playerID]; ok {
@@ -139,21 +146,18 @@ func (gs *GameServer) sendConnectionStatus(wsConn *websocket.Conn, playerID stri
 		"status":   "connected",
 	}
 	data, _ := json.Marshal(msg)
-	gs.writeToConn(wsConn, wsConn.RemoteAddr().String(), data) //nolint:errcheck
+	gs.writeToConn(conn, conn.RemoteAddr().String(), data) //nolint:errcheck
 }
 
-// runMessageLoop reads incoming WebSocket messages until the connection closes or errors.
-// The read deadline is renewed after every received message (inactivity timeout),
-// so the 30-second window applies per-message, not as a single reconnection window.
-func (gs *GameServer) runMessageLoop(conn net.Conn, wsConn *websocket.Conn, playerID string) {
+// runMessageLoop reads incoming messages until the connection closes or errors.
+func (gs *GameServer) runMessageLoop(conn net.Conn, playerID string) {
+	buf := make([]byte, 64*1024)
 	for {
-		// Per-message inactivity timeout: if no message arrives within 30 seconds
-		// the deadline fires. The deadline is renewed after each successful read.
 		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 			log.Printf("Failed to set read deadline: %v", err)
 		}
 
-		_, messageData, err := wsConn.ReadMessage()
+		n, err := conn.Read(buf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				log.Printf("Connection timeout for player %s", playerID)
@@ -167,6 +171,11 @@ func (gs *GameServer) runMessageLoop(conn net.Conn, wsConn *websocket.Conn, play
 			}
 			break
 		}
+		if n == 0 {
+			continue
+		}
+		messageData := make([]byte, n)
+		copy(messageData, buf[:n])
 
 		receiveTime := time.Now()
 		if !gs.handleIncomingMessage(messageData, playerID, receiveTime) {
@@ -222,7 +231,6 @@ func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
 
 	gs.mutex.Lock()
 	delete(gs.connections, addrStr)
-	delete(gs.wsConns, addrStr)
 	delete(gs.playerConns, playerID)
 	atomic.AddInt64(&gs.activeConnections, -1)
 	gs.mutex.Unlock()
@@ -231,10 +239,12 @@ func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
 	gs.broadcastGameState()
 }
 
-// restorePlayerByToken looks up a disconnected player whose ReconnectToken matches
-// token, marks them connected, and returns their playerID.  Returns "" if not found.
-// Caller must hold gs.mutex.
+// restorePlayerByToken looks up a disconnected player whose ReconnectToken
+// matches token, marks them connected, and returns their playerID.
 func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn) string {
+	gs.mutex.Lock()
+	defer gs.mutex.Unlock()
+
 	for id, p := range gs.gameState.Players {
 		if p.ReconnectToken == token && !p.Connected {
 			p.Connected = true
@@ -279,57 +289,6 @@ func (gs *GameServer) cleanupDisconnectedPlayers() {
 	}
 }
 
-// handleWebSocket handles WebSocket upgrade and connection setup.
-// If the request includes a ?token= query param, the matching disconnected
-// player slot is restored instead of creating a new player.
-func (gs *GameServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	log.Printf("New WebSocket connection attempt from %s", r.RemoteAddr)
-
-	wsConn, err := gs.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("WebSocket upgrade error: %v", err)
-		atomic.AddInt64(&gs.errorCount, 1)
-		return
-	}
-
-	log.Printf("WebSocket connection established with %s", wsConn.RemoteAddr())
-
-	// Create connection wrapper implementing net.Conn interface with distinct local/remote addresses
-	remoteAddr := wsConn.RemoteAddr()
-	localAddr := wsConn.NetConn().LocalAddr()
-	connWrapper := NewConnectionWrapper(wsConn, localAddr, remoteAddr)
-
-	// Store connections with proper interface usage
-	gs.mutex.Lock()
-	addrStr := remoteAddr.String()
-	gs.connections[addrStr] = connWrapper
-	gs.wsConns[addrStr] = wsConn
-	atomic.AddInt64(&gs.activeConnections, 1)
-	log.Printf("Stored connection %s, total connections: %d", addrStr, len(gs.connections))
-
-	// Token-based reconnection: restore disconnected player if token matches.
-	reconnectToken := r.URL.Query().Get("token")
-	if reconnectToken != "" {
-		if restoredID := gs.restorePlayerByToken(reconnectToken, connWrapper); restoredID != "" {
-			gs.mutex.Unlock()
-			log.Printf("Player %s reconnected via token", restoredID)
-			gs.sendConnectionStatus(wsConn, restoredID)
-			gs.broadcastGameState()
-			gs.runMessageLoop(connWrapper, wsConn, restoredID)
-			gs.handlePlayerDisconnect(restoredID, addrStr)
-			return
-		}
-	}
-	gs.mutex.Unlock()
-
-	// Handle connection in separate goroutine
-	go func() {
-		if err := gs.handleConnection(connWrapper); err != nil {
-			log.Printf("Connection handling error: %v", err)
-		}
-	}()
-}
-
 // broadcastHandler processes broadcast messages to all connected clients
 func (gs *GameServer) broadcastHandler() {
 	for {
@@ -337,8 +296,8 @@ func (gs *GameServer) broadcastHandler() {
 		case message := <-gs.broadcastCh:
 			writeStart := time.Now()
 			gs.mutex.RLock()
-			for addr, wsConn := range gs.wsConns {
-				if err := gs.writeToConn(wsConn, addr, message); err != nil {
+			for addr, conn := range gs.connections {
+				if err := gs.writeToConn(conn, addr, message); err != nil {
 					log.Printf("Broadcast error: %v", err)
 					atomic.AddInt64(&gs.errorCount, 1)
 				} else {
