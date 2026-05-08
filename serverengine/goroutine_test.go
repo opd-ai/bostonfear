@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/opd-ai/bostonfear/monitoring"
 )
 
 // --- broadcastHandler: shutdown path ---
@@ -175,7 +177,7 @@ func TestHandleMetrics_DoomLevel(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
-	gs.handleMetrics(w, req)
+	monitoring.MetricsHandler(gs).ServeHTTP(w, req)
 
 	body := w.Body.String()
 	if !strings.Contains(body, "arkham_horror_game_doom_level 7") {

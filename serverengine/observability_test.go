@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/opd-ai/bostonfear/monitoring"
 )
 
 // --- min / max ---
@@ -216,10 +218,10 @@ func TestConnectionQuality_InitAssessCleanup(t *testing.T) {
 
 func TestAssessConnectionQuality_PacketLossDegradation(t *testing.T) {
 	cases := []struct {
-		name      string
-		latencyMs float64
+		name       string
+		latencyMs  float64
 		packetLoss float64
-		want      string
+		want       string
 	}{
 		{"excellent_latency_high_loss", 25, 0.10, "good"},
 		{"good_latency_high_loss", 75, 0.10, "fair"},
@@ -265,7 +267,7 @@ func TestHandleHealthCheck_ReturnsJSON(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
-	gs.handleHealthCheck(w, req)
+	monitoring.HealthHandler(gs).ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", w.Code)
@@ -288,7 +290,7 @@ func TestHandleMetrics_ContainsBroadcastLatency(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	w := httptest.NewRecorder()
 
-	gs.handleMetrics(w, req)
+	monitoring.MetricsHandler(gs).ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", w.Code)
@@ -416,7 +418,7 @@ func TestHandleHealthCheck_ConcurrentActions(t *testing.T) {
 		w := httptest.NewRecorder()
 		done := make(chan struct{})
 		go func() {
-			gs.handleHealthCheck(w, req)
+			monitoring.HealthHandler(gs).ServeHTTP(w, req)
 			close(done)
 		}()
 		select {

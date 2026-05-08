@@ -17,6 +17,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WebSocketHandler exposes the upgrade endpoint for route registration outside
+// the core engine package.
+func (gs *GameServer) WebSocketHandler() http.Handler {
+	return http.HandlerFunc(gs.handleWebSocket)
+}
+
 // handleConnection manages WebSocket connections using net.Conn interface
 // Moved from: main.go
 func (gs *GameServer) handleConnection(conn net.Conn) error {

@@ -125,6 +125,7 @@ Each player gets 2 actions per turn:
 - **Interface-based Design**: Uses `net.Conn`, `net.Listener`, and `net.Addr` interfaces
 - **Concurrent Connection Handling**: Goroutines with channel-based communication
 - **State Management**: Centralized game state with mutex protection
+- **Package Separation**: `serverengine` owns rules/state, `transport/ws` owns HTTP route registration, and `monitoring` owns health/metrics/dashboard handlers
 - **Error Handling**: Explicit Go-style error checking and propagation
 - **WebSocket Origin Validation**: Configurable `allowedOrigins` list (empty = accept any origin for local dev; set to specific hosts for production)
 
@@ -180,21 +181,30 @@ Requests from origins not in the list receive HTTP 403 Forbidden.
 ```
 bostonfear/
 ├── cmd/
-│   ├── server/             # Go WebSocket server entry point + game logic
+│   ├── server/             # Go WebSocket server entry point and dependency wiring
 │   │   ├── main.go
-│   │   ├── game_server.go
-│   │   ├── types.go
-│   │   ├── constants.go
-│   │   ├── utils.go
-│   │   ├── connection_wrapper.go
-│   │   ├── error_recovery.go
-│   │   └── *_test.go
 │   ├── desktop/            # Desktop entrypoint (Ebitengine, alpha)
 │   │   └── main.go
 │   ├── web/                # WASM entrypoint (Ebitengine, alpha)
 │   │   └── main.go
 │   └── mobile/             # Mobile entrypoint (Ebitengine, alpha binding scaffolding)
 │       └── binding.go
+├── monitoring/             # HTTP health, metrics, and dashboard handlers
+│   └── handlers.go
+├── monitoringdata/         # Shared monitoring DTOs used by serverengine and monitoring
+│   └── types.go
+├── transport/
+│   └── ws/                 # HTTP/WebSocket route registration over net.Listener
+│       └── server.go
+├── serverengine/           # Importable game engine: rules, state, WebSocket session handling
+│   ├── actions.go
+│   ├── connection.go
+│   ├── connection_quality.go
+│   ├── game_server.go
+│   ├── game_types.go
+│   ├── metrics.go
+│   ├── health.go
+│   └── *_test.go
 ├── client/
 │   ├── ebiten/             # Ebitengine client package (alpha)
 │   │   ├── game.go         #   ebiten.Game implementation

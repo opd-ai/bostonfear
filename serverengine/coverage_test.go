@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/opd-ai/bostonfear/monitoring"
 )
 
 // --- broadcastGameState: valid & corrupted state ---
@@ -177,7 +179,7 @@ func TestHandleHealthCheck_UnhealthyOnHighCorruption(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
-	gs.handleHealthCheck(w, req)
+	monitoring.HealthHandler(gs).ServeHTTP(w, req)
 
 	if w.Code != http.StatusServiceUnavailable {
 		t.Errorf("expected 503 for unhealthy state, got %d", w.Code)

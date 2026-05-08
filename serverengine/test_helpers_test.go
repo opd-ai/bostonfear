@@ -4,7 +4,6 @@ package serverengine
 
 import (
 	"encoding/json"
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -28,7 +27,7 @@ func newIntegrationTestServer(t testing.TB) (*testServerWithCleanup, func()) {
 	go gs.broadcastHandler()
 	go gs.actionHandler()
 
-	srv := httptest.NewServer(http.HandlerFunc(gs.handleWebSocket))
+	srv := httptest.NewServer(gs.WebSocketHandler())
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
 
 	cleanup := func() {

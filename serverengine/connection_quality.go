@@ -1,14 +1,9 @@
-// Package main implements connection quality tracking and the performance monitoring
-// dashboard for the Arkham Horror multiplayer game server. This file manages
-// WebSocket ping/pong latency measurement, per-player quality classification,
-// and the dashboard HTML endpoint.
 package serverengine
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -16,13 +11,13 @@ import (
 
 // ConnectionQuality represents real-time connection quality metrics for a single player.
 type ConnectionQuality struct {
-	LatencyMs    float64   `json:"latencyMs"`
-	Quality      string    `json:"quality"` // "excellent", "good", "fair", "poor"
-	PacketLoss   float64   `json:"packetLoss"`
-	LastPingTime time.Time `json:"lastPingTime"`
-	MessageDelay float64   `json:"messageDelay"`
-	pingsSent    int       // total pings sent; used for packet-loss calculation
-	pongsReceived int      // total pongs received; used for packet-loss calculation
+	LatencyMs     float64   `json:"latencyMs"`
+	Quality       string    `json:"quality"`
+	PacketLoss    float64   `json:"packetLoss"`
+	LastPingTime  time.Time `json:"lastPingTime"`
+	MessageDelay  float64   `json:"messageDelay"`
+	pingsSent     int
+	pongsReceived int
 }
 
 // ConnectionStatusMessage represents connection quality updates broadcast to clients.
@@ -41,18 +36,7 @@ type PingMessage struct {
 	PingID    string    `json:"pingId"`
 }
 
-// handleDashboard serves the performance monitoring dashboard
-func (gs *GameServer) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	// Set CORS headers for dashboard access
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	// Serve the dashboard HTML file using the package-level clientDir constant
-	http.ServeFile(w, r, clientDir+"/dashboard.html")
-}
-
-// initializeConnectionQuality sets up initial connection quality for a player
+// initializeConnectionQuality sets up initial connection quality for a player.
 func (gs *GameServer) initializeConnectionQuality(playerID string) {
 	gs.qualityMutex.Lock()
 	defer gs.qualityMutex.Unlock()
@@ -65,11 +49,10 @@ func (gs *GameServer) initializeConnectionQuality(playerID string) {
 		MessageDelay: 0,
 	}
 
-	// Start ping timer for this player
 	gs.startPingTimer(playerID)
 }
 
-// updateConnectionQuality updates connection quality metrics based on message timing
+// updateConnectionQuality updates connection quality metrics based on message timing.
 func (gs *GameServer) updateConnectionQuality(playerID string, messageTime time.Time) {
 	gs.qualityMutex.Lock()
 	defer gs.qualityMutex.Unlock()
@@ -79,18 +62,12 @@ func (gs *GameServer) updateConnectionQuality(playerID string, messageTime time.
 		return
 	}
 
-	// Calculate message delay (simplified metric)
 	now := time.Now()
-	quality.MessageDelay = float64(now.Sub(messageTime).Nanoseconds()) / 1000000 // Convert to milliseconds
-
-	// Update quality assessment based on current metrics
+	quality.MessageDelay = float64(now.Sub(messageTime).Nanoseconds()) / 1000000
 	gs.assessConnectionQuality(playerID)
 }
 
 // handlePongMessage processes pong responses and calculates latency.
-// The write lock is released before calling broadcastConnectionQuality to
-// prevent a deadlock: broadcastConnectionQuality acquires qualityMutex.RLock,
-// and Go's sync.RWMutex is not reentrant.
 func (gs *GameServer) handlePongMessage(pingMsg PingMessage, receiveTime time.Time) {
 	gs.qualityMutex.Lock()
 	quality, exists := gs.connectionQualities[pingMsg.PlayerID]
@@ -99,26 +76,21 @@ func (gs *GameServer) handlePongMessage(pingMsg PingMessage, receiveTime time.Ti
 		return
 	}
 
-	// Calculate round-trip latency in milliseconds
 	latency := float64(receiveTime.Sub(pingMsg.Timestamp).Nanoseconds()) / 1e6
 	quality.LatencyMs = latency
 	quality.LastPingTime = receiveTime
 	quality.pongsReceived++
 	gs.recalcPacketLoss(quality)
-
-	// Update quality assessment while still holding the lock
 	gs.assessConnectionQuality(pingMsg.PlayerID)
-	gs.qualityMutex.Unlock() // release before broadcasting to avoid reentrant lock
+	gs.qualityMutex.Unlock()
 
-	// Broadcast quality update to all clients
 	gs.broadcastConnectionQuality()
 }
 
-// assessConnectionQuality determines connection quality rating based on metrics
+// assessConnectionQuality determines connection quality rating based on metrics.
 func (gs *GameServer) assessConnectionQuality(playerID string) {
 	quality := gs.connectionQualities[playerID]
 
-	// Assess quality based on latency
 	switch {
 	case quality.LatencyMs < 50:
 		quality.Quality = "excellent"
@@ -130,8 +102,7 @@ func (gs *GameServer) assessConnectionQuality(playerID string) {
 		quality.Quality = "poor"
 	}
 
-	// Factor in packet loss (simplified - would need more sophisticated tracking)
-	if quality.PacketLoss > 0.05 { // 5% packet loss threshold
+	if quality.PacketLoss > 0.05 {
 		if quality.Quality == "excellent" {
 			quality.Quality = "good"
 		} else if quality.Quality == "good" {
@@ -143,7 +114,6 @@ func (gs *GameServer) assessConnectionQuality(playerID string) {
 }
 
 // recalcPacketLoss computes PacketLoss as the ratio of unanswered pings to pings sent.
-// Caller must hold qualityMutex (any variant).
 func (gs *GameServer) recalcPacketLoss(q *ConnectionQuality) {
 	if q.pingsSent == 0 {
 		q.PacketLoss = 0
@@ -151,7 +121,6 @@ func (gs *GameServer) recalcPacketLoss(q *ConnectionQuality) {
 	}
 	missed := q.pingsSent - q.pongsReceived
 	if missed < 0 {
-		// pongsReceived exceeds pingsSent — should not occur; reset counters.
 		log.Printf("recalcPacketLoss: pongsReceived (%d) > pingsSent (%d); resetting",
 			q.pongsReceived, q.pingsSent)
 		q.pingsSent = q.pongsReceived
@@ -160,9 +129,9 @@ func (gs *GameServer) recalcPacketLoss(q *ConnectionQuality) {
 	q.PacketLoss = float64(missed) / float64(q.pingsSent)
 }
 
-// startPingTimer starts periodic ping for connection quality monitoring
+// startPingTimer starts periodic ping for connection quality monitoring.
 func (gs *GameServer) startPingTimer(playerID string) {
-	timer := time.NewTimer(5 * time.Second) // Ping every 5 seconds
+	timer := time.NewTimer(5 * time.Second)
 	gs.pingTimers[playerID] = timer
 
 	go func() {
@@ -180,8 +149,6 @@ func (gs *GameServer) startPingTimer(playerID string) {
 }
 
 // sendPingToPlayer sends a ping message to measure latency.
-// Guards against nil connections that can appear when a concurrent disconnect
-// cleanup removes playerConns[playerID] while this function is running.
 func (gs *GameServer) sendPingToPlayer(playerID string) {
 	gs.mutex.RLock()
 	conn, connExists := gs.playerConns[playerID]
@@ -211,21 +178,16 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 		return
 	}
 
-	// Use writeToConn so this write is serialised with broadcastHandler writes
-	// on the same connection (gorilla/websocket is not concurrent-write safe).
 	gs.qualityMutex.Lock()
 	if q, exists := gs.connectionQualities[playerID]; exists {
 		q.pingsSent++
 		q.LastPingTime = time.Now()
-		// Recalculate immediately so packet loss reflects missed pongs even when
-		// ping writes continue to succeed and no subsequent pong arrives.
 		gs.recalcPacketLoss(q)
 	}
 	gs.qualityMutex.Unlock()
 
 	if err := gs.writeToConn(wsConn, wsAddr, pingData); err != nil {
 		log.Printf("Error sending ping to player %s: %v", playerID, err)
-		// Treat a send failure as a dropped packet.
 		gs.qualityMutex.Lock()
 		if quality, exists := gs.connectionQualities[playerID]; exists {
 			quality.Quality = "poor"
@@ -235,7 +197,7 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 	}
 }
 
-// broadcastConnectionQuality sends connection quality updates to all clients
+// broadcastConnectionQuality sends connection quality updates to all clients.
 func (gs *GameServer) broadcastConnectionQuality() {
 	gs.qualityMutex.RLock()
 	allQualities := make(map[string]ConnectionQuality)
@@ -244,8 +206,6 @@ func (gs *GameServer) broadcastConnectionQuality() {
 	}
 	gs.qualityMutex.RUnlock()
 
-	// Hold a read lock on the game state while iterating players to prevent
-	// a concurrent write (e.g., from handleConnection) from modifying the map.
 	gs.mutex.RLock()
 	playerIDs := make([]string, 0, len(gs.gameState.Players))
 	for playerID := range gs.gameState.Players {
@@ -267,9 +227,6 @@ func (gs *GameServer) broadcastConnectionQuality() {
 			continue
 		}
 
-		// Non-blocking send mirrors the broadcastGameState pattern.
-		// When the channel is full the quality update is dropped rather than
-		// causing the ping goroutine to accumulate blocked sends under load.
 		select {
 		case gs.broadcastCh <- statusData:
 		default:
@@ -278,17 +235,15 @@ func (gs *GameServer) broadcastConnectionQuality() {
 	}
 }
 
-// cleanupConnectionQuality removes connection quality tracking for disconnected player
+// cleanupConnectionQuality removes connection quality tracking for disconnected player.
 func (gs *GameServer) cleanupConnectionQuality(playerID string) {
 	gs.qualityMutex.Lock()
 	defer gs.qualityMutex.Unlock()
 
-	// Stop ping timer
 	if timer, exists := gs.pingTimers[playerID]; exists {
 		timer.Stop()
 		delete(gs.pingTimers, playerID)
 	}
 
-	// Remove quality tracking
 	delete(gs.connectionQualities, playerID)
 }

@@ -5,6 +5,12 @@ package serverengine
 // that a single change keeps them in sync.
 const clientDir = "../client"
 
+// ClientDir exposes the configured client asset directory to route-registration
+// packages without exporting the constant itself.
+func ClientDir() string {
+	return clientDir
+}
+
 // Player count limits matching AH3e core rulebook (1-6 investigators).
 const (
 	MinPlayers = 1 // Minimum players required to start a game
@@ -23,18 +29,18 @@ const (
 // ActionType constants define the 4 available actions per turn
 // Moved from: main.go
 const (
-	ActionMove        ActionType = "move"
-	ActionGather      ActionType = "gather"
-	ActionInvestigate ActionType = "investigate"
-	ActionCastWard    ActionType = "ward"
-	ActionFocus       ActionType = "focus"
-	ActionResearch    ActionType = "research"
-	ActionTrade       ActionType = "trade"
-	ActionComponent   ActionType = "component" // Per-investigator special ability (ROADMAP Priority 1)
-	ActionEncounter   ActionType = "encounter"
-	ActionAttack      ActionType = "attack"              // Combat: roll dice against an engaged enemy
-	ActionEvade       ActionType = "evade"               // Combat: disengage from an engaged enemy
-	ActionCloseGate   ActionType = "closegate"           // Spend 2 Clues to close a gate at current location
+	ActionMove               ActionType = "move"
+	ActionGather             ActionType = "gather"
+	ActionInvestigate        ActionType = "investigate"
+	ActionCastWard           ActionType = "ward"
+	ActionFocus              ActionType = "focus"
+	ActionResearch           ActionType = "research"
+	ActionTrade              ActionType = "trade"
+	ActionComponent          ActionType = "component" // Per-investigator special ability (ROADMAP Priority 1)
+	ActionEncounter          ActionType = "encounter"
+	ActionAttack             ActionType = "attack"             // Combat: roll dice against an engaged enemy
+	ActionEvade              ActionType = "evade"              // Combat: disengage from an engaged enemy
+	ActionCloseGate          ActionType = "closegate"          // Spend 2 Clues to close a gate at current location
 	ActionSelectInvestigator ActionType = "selectinvestigator" // Choose investigator archetype during waiting phase
 	ActionSetDifficulty      ActionType = "setdifficulty"      // Choose difficulty level during waiting phase
 	ActionChat               ActionType = "chat"               // Quick-chat phrase broadcast to all players

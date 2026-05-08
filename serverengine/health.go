@@ -4,79 +4,33 @@
 package serverengine
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"sync/atomic"
 	"time"
+
+	"github.com/opd-ai/bostonfear/monitoringdata"
 )
 
-// handleHealthCheck provides a health monitoring endpoint.
-// Game state is snapshotted under a short RLock; serialization happens outside the lock.
-func (gs *GameServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	// Snapshot required game-state fields under a single short read lock.
-	// All helper calls that touch gs.mutex must happen AFTER this block.
+type HealthSnapshot = monitoringdata.HealthSnapshot
+
+// SnapshotHealth captures the game-state fields needed by monitoring handlers.
+func (gs *GameServer) SnapshotHealth() HealthSnapshot {
 	gs.mutex.RLock()
-	isHealthy := gs.validator.IsGameStateHealthy(gs.gameState)
-	playerCount := len(gs.gameState.Players)
-	connectionCount := len(gs.connections)
-	corruptionHistory := gs.validator.GetCorruptionHistory()
-	gamePhase := gs.gameState.GamePhase
-	doom := gs.gameState.Doom
-	gameStarted := gs.gameState.GameStarted
+	snapshot := HealthSnapshot{
+		IsHealthy:         gs.validator.IsGameStateHealthy(gs.gameState),
+		PlayerCount:       len(gs.gameState.Players),
+		ConnectionCount:   len(gs.connections),
+		CorruptionHistory: make([]time.Time, 0, len(gs.validator.GetCorruptionHistory())),
+		GamePhase:         gs.gameState.GamePhase,
+		Doom:              gs.gameState.Doom,
+		GameStarted:       gs.gameState.GameStarted,
+	}
+	for _, event := range gs.validator.GetCorruptionHistory() {
+		snapshot.CorruptionHistory = append(snapshot.CorruptionHistory, event.Timestamp)
+	}
 	gs.mutex.RUnlock()
-
-	// Helpers below may acquire their own locks (performanceMutex or gs.mutex).
-	// Calling them outside gs.mutex prevents nested-RLock deadlock under write pressure.
-	perfMetrics := gs.collectPerformanceMetrics()
-	connAnalytics := gs.collectConnectionAnalytics()
-	gameStats := gs.getGameStatistics()
-	alerts := gs.getSystemAlerts()
-
-	// Compute derived fields outside the lock.
-	recentCorruptions := 0
-	fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
-	for _, event := range corruptionHistory {
-		if event.Timestamp.After(fiveMinutesAgo) {
-			recentCorruptions++
-		}
-	}
-
-	status := "healthy"
-	if !isHealthy {
-		status = "degraded"
-	}
-	if recentCorruptions > 10 {
-		status = "unhealthy"
-	}
-
-	healthData := map[string]interface{}{
-		"status":             status,
-		"gamePhase":          gamePhase,
-		"playerCount":        playerCount,
-		"connectionCount":    connectionCount,
-		"doomLevel":          doom,
-		"gameStarted":        gameStarted,
-		"recentCorruptions":  recentCorruptions,
-		"isGameStateHealthy": isHealthy,
-		"timestamp":          time.Now().Unix(),
-
-		// Enhanced performance metrics
-		"performanceMetrics":  perfMetrics,
-		"connectionAnalytics": connAnalytics,
-		"gameStatistics":      gameStats,
-
-		// System alerts: high memory, slow response, high error rate, critical doom
-		"systemAlerts": alerts,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if status != "healthy" {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-	json.NewEncoder(w).Encode(healthData)
+	return snapshot
 }
 
 // validateAndRecoverState validates the current game state and attempts recovery when
@@ -248,4 +202,39 @@ func (gs *GameServer) getSystemAlerts() []map[string]interface{} {
 	}
 
 	return alerts
+}
+
+// CollectPerformanceMetrics exposes performance aggregation to the monitoring package.
+func (gs *GameServer) CollectPerformanceMetrics() PerformanceMetrics {
+	return gs.collectPerformanceMetrics()
+}
+
+// CollectConnectionAnalytics exposes connection analytics to the monitoring package.
+func (gs *GameServer) CollectConnectionAnalytics() ConnectionAnalyticsSimplified {
+	return gs.collectConnectionAnalytics()
+}
+
+// CollectMemoryMetrics exposes runtime memory metrics to the monitoring package.
+func (gs *GameServer) CollectMemoryMetrics() MemoryMetrics {
+	return gs.collectMemoryMetrics()
+}
+
+// CollectGCMetrics exposes garbage-collection metrics to the monitoring package.
+func (gs *GameServer) CollectGCMetrics() GCMetrics {
+	return gs.collectGCMetrics()
+}
+
+// CollectMessageThroughput exposes throughput metrics to the monitoring package.
+func (gs *GameServer) CollectMessageThroughput(runtime time.Duration) MessageThroughputMetrics {
+	return gs.collectMessageThroughput(runtime)
+}
+
+// GameStatistics exposes derived game-state analytics to the monitoring package.
+func (gs *GameServer) GameStatistics() map[string]interface{} {
+	return gs.getGameStatistics()
+}
+
+// SystemAlerts exposes derived operational alerts to the monitoring package.
+func (gs *GameServer) SystemAlerts() []map[string]interface{} {
+	return gs.getSystemAlerts()
 }

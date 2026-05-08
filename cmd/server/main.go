@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 
+	"github.com/opd-ai/bostonfear/monitoring"
 	"github.com/opd-ai/bostonfear/serverengine"
+	transportws "github.com/opd-ai/bostonfear/transport/ws"
 )
 
 // Main server setup using net.Listener interface
@@ -34,8 +37,16 @@ func run() error {
 	}
 	defer listener.Close()
 
+	handlers := transportws.RouteHandlers{
+		WebSocket: gameServer.WebSocketHandler(),
+		Health:    monitoring.HealthHandler(gameServer),
+		Metrics:   monitoring.MetricsHandler(gameServer),
+		Dashboard: monitoring.DashboardHandler(serverengine.ClientDir()),
+		Static:    http.FileServer(http.Dir(serverengine.ClientDir() + "/")),
+	}
+
 	// Setup and start server with proper interface usage
-	if err := serverengine.SetupServer(listener, gameServer); err != nil {
+	if err := transportws.SetupServer(listener, handlers); err != nil {
 		return fmt.Errorf("setup server: %w", err)
 	}
 
