@@ -53,6 +53,10 @@ type GameServer struct {
 	pingTimers          map[string]*time.Timer
 	qualityMutex        sync.RWMutex
 
+	actionProcessor  *actionProcessor
+	sessionManager   *sessionManager
+	metricsCollector *metricsCollector
+
 	// wsWriteMu serialises concurrent writes per connection address.
 	// The websocket transport adapter wraps ws connections as net.Conn, but the
 	// one-writer-at-a-time requirement still applies for each wrapped session.
@@ -114,6 +118,9 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		wsWriteMu:           make(map[string]*sync.Mutex),
 		scenario:            scenario,
 	}
+	gs.actionProcessor = newActionProcessor(gs)
+	gs.sessionManager = newSessionManager(gs)
+	gs.metricsCollector = newMetricsCollector(gs)
 	// Apply scenario setup (populates decks, sets doom, etc.).
 	if scenario.SetupFn != nil {
 		scenario.SetupFn(gs.gameState)
@@ -252,10 +259,18 @@ func (gs *GameServer) validateMovement(from, to Location) bool {
 	return false
 }
 
-// processAction handles individual player actions with mechanic integration.
+// processAction dispatches through the action processor component.
+func (gs *GameServer) processAction(action PlayerActionMessage) error {
+	if gs.actionProcessor == nil {
+		return gs.processActionCore(action)
+	}
+	return gs.actionProcessor.Process(action)
+}
+
+// processActionCore handles individual player actions with mechanic integration.
 // The mutex is acquired at the start for all state validation and mutation,
 // then released before broadcasting so broadcastGameState can re-acquire it.
-func (gs *GameServer) processAction(action PlayerActionMessage) error {
+func (gs *GameServer) processActionCore(action PlayerActionMessage) error {
 	// Normalize action type to lowercase so clients using camelCase variants
 	// (e.g. "selectInvestigator") are accepted alongside the canonical forms.
 	action.Action = ActionType(strings.ToLower(string(action.Action)))

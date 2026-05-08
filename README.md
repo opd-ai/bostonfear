@@ -125,7 +125,7 @@ Each player gets 2 actions per turn:
 - **Interface-based Design**: Uses `net.Conn`, `net.Listener`, and `net.Addr` interfaces
 - **Concurrent Connection Handling**: Goroutines with channel-based communication
 - **State Management**: Centralized game state with mutex protection
-- **Package Separation**: `serverengine` owns rules/state, `transport/ws` owns HTTP route registration, and `monitoring` owns health/metrics/dashboard handlers
+- **Package Separation**: `serverengine` owns rules/state and transport-neutral session orchestration, `transport/ws` owns HTTP/WebSocket upgrade and route registration, and `monitoring` owns health/metrics/dashboard handlers
 - **Error Handling**: Explicit Go-style error checking and propagation
 - **WebSocket Origin Validation**: Configurable `allowedOrigins` list (empty = accept any origin for local dev; set to specific hosts for production)
 
@@ -196,9 +196,9 @@ bostonfear/
 ├── protocol/               # Shared Go WebSocket wire schema used by serverengine and Go clients
 │   └── protocol.go
 ├── transport/
-│   └── ws/                 # HTTP/WebSocket route registration over net.Listener
+│   └── ws/                 # HTTP/WebSocket upgrade + route registration over net.Listener
 │       └── server.go
-├── serverengine/           # Importable game engine: rules, state, WebSocket session handling
+├── serverengine/           # Importable game engine: rules, state, transport-neutral session orchestration
 │   ├── actions.go
 │   ├── connection.go
 │   ├── connection_quality.go

@@ -80,8 +80,16 @@ func (gs *GameServer) calculateErrorRate() float64 {
 	return float64(errors) / float64(total) * 100
 }
 
-// getGameStatistics provides detailed game state analytics
+// getGameStatistics provides detailed game state analytics via metricsCollector.
 func (gs *GameServer) getGameStatistics() map[string]interface{} {
+	if gs.metricsCollector == nil {
+		return gs.getGameStatisticsCore()
+	}
+	return gs.metricsCollector.GameStatistics()
+}
+
+// getGameStatisticsCore computes detailed game state analytics.
+func (gs *GameServer) getGameStatisticsCore() map[string]interface{} {
 	gs.mutex.RLock()
 	defer gs.mutex.RUnlock()
 

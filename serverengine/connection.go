@@ -210,11 +210,20 @@ func (gs *GameServer) handleIncomingMessage(data []byte, playerID string, receiv
 	return true
 }
 
-// handlePlayerDisconnect cleans up all state for a disconnecting player.
+// handlePlayerDisconnect routes disconnect processing through sessionManager.
+func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
+	if gs.sessionManager == nil {
+		gs.handlePlayerDisconnectCore(playerID, addrStr)
+		return
+	}
+	gs.sessionManager.HandleDisconnect(playerID, addrStr)
+}
+
+// handlePlayerDisconnectCore cleans up all state for a disconnecting player.
 // If the player held the current turn the turn is advanced so the game never
 // stalls (fixes GAP-03). DisconnectedAt is set so the reaper can reclaim the
 // slot after the reconnection TTL expires.
-func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
+func (gs *GameServer) handlePlayerDisconnectCore(playerID, addrStr string) {
 	gs.mutex.Lock()
 	if player, exists := gs.gameState.Players[playerID]; exists {
 		player.Connected = false
