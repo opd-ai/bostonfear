@@ -31,7 +31,7 @@ jobs:
       - name: Run benchmarks
         run: |
           set -o pipefail
-          go test -bench=. -benchtime=10s -run='^$' ./cmd/server/... | tee /tmp/benchmark-results.txt
+          go test -bench=. -benchtime=10s -run='^$' ./serverengine/... | tee /tmp/benchmark-results.txt
       - name: Check broadcast latency threshold
         run: |
           threshold_ns=200000000
