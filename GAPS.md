@@ -1,5 +1,16 @@
 # Implementation Gaps — 2026-05-08
 
+> **⚠️ Intellectual Property Notice**
+> BostonFear is a **rules-only game engine** designed to execute the mechanics of the
+> Arkham Horror series of games. This repository contains **no copyrighted content**
+> produced by Fantasy Flight Games. No card text, scenario narratives, investigator
+> stories, artwork, encounter text, or any other proprietary material owned by
+> Fantasy Flight Games (an Asmodee brand) is, or will ever be, reproduced here.
+> *Arkham Horror* is a trademark of Fantasy Flight Games. This project is an
+> independent, fan-made rules engine and is not affiliated with or endorsed by
+> Fantasy Flight Games or Asmodee.
+
+
 ## Legacy JS Client Parse Failure (Critical Runtime Blocker)
 - **Intended Behavior**: Legacy browser client remains functional during migration (`README.md` marks legacy browser target active).
 - **Current State**: Duplicate code fragment exists in class body and breaks JavaScript parsing (`client/game.js:397-434`).
