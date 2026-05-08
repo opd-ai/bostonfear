@@ -44,7 +44,7 @@
 
 ## Findings
 ### CRITICAL
-- [ ] None.
+- [x] None.
 
 ### HIGH
 - [ ] Core engine package mixes domain rules with WebSocket transport lifecycle — `serverengine/game_server.go:26`, `serverengine/game_server.go:29`, `serverengine/connection.go:22`, `serverengine/connection.go:285` — `serverengine` is not transport-agnostic because it owns upgrader/session/IO details in the same package as rules/orchestration; this raises extension cost for alternate transports and increases boundary churn risk — **Remediation:**
