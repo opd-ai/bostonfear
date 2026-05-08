@@ -1,0 +1,351 @@
+=== GO SOURCE CODE STATISTICS REPORT ===
+Repository: /home/runner/work/bostonfear/bostonfear
+Generated: 2026-05-08 20:54:17
+Analysis Time: 172ms
+Files Processed: 27
+
+=== OVERVIEW ===
+Total Lines of Code: 2744
+Total Functions: 53
+Total Methods: 157
+Total Structs: 59
+Total Interfaces: 3
+Total Packages: 5
+Total Files: 27
+
+=== FUNCTION ANALYSIS ===
+Function Statistics:
+  Average Function Length: 14.8 lines
+  Longest Function: processAction (94 lines)
+  Functions > 50 lines: 5 (2.4%)
+  Functions > 100 lines: 0 (0.0%)
+  Average Complexity: 4.4
+  High Complexity (>10): 1 functions
+
+Top Complex Functions:
+Rank Function                  File                    Lines Complexity
+-----------------------------------------------------------------------
+   1 processAction             cmd/server/game_s...       94       16.6
+   2 cleanupDisconnectedPla... cmd/server/connec...       26       14.7
+   3 runMythosPhase            cmd/server/mythos.go       56       13.2
+   4 resolveEventEffect        cmd/server/mythos.go       37       13.2
+   5 checkGameEndConditions    cmd/server/mythos.go       41       11.4
+   6 broadcastConnectionQua... cmd/server/dashbo...       39       11.4
+   7 broadcastHandler          cmd/server/connec...       21       11.1
+   8 rollDicePool              cmd/server/dice.go         36       10.6
+   9 advanceTurn               cmd/server/mythos.go       30       10.6
+  10 sendPingToPlayer          cmd/server/dashbo...       50       10.1
+
+=== COMPLEXITY ANALYSIS ===
+Top 10 Most Complex Functions:
+Function                       Package                 Lines Cyclomatic    Overall
+--------------------------------------------------------------------------------
+processAction                  main                       94         12       16.6
+cleanupDisconnectedPlayers     main                       26          9       14.7
+runMythosPhase                 main                       56          9       13.2
+resolveEventEffect             main                       37          9       13.2
+checkGameEndConditions         main                       41          8       11.4
+broadcastConnectionQuality     main                       39          8       11.4
+broadcastHandler               main                       21          7       11.1
+rollDicePool                   main                       36          7       10.6
+advanceTurn                    main                       30          7       10.6
+sendPingToPlayer               main                       50          7       10.1
+
+=== PACKAGE ANALYSIS ===
+Total Packages: 5
+Average Dependencies per Package: 2.6
+Average Files per Package: 5.4
+
+High Coupling Packages (>3 dependencies):
+  app: 5 dependencies (coupling: 2.5)
+
+Low Cohesion Packages (<2.0 cohesion score):
+  mobile: 0.6 cohesion, 1 files, 3 functions
+  render: 1.4 cohesion, 3 files, 14 functions
+
+Largest Packages (by function count):
+  main: 142 functions, 41 structs, 0 interfaces, 18 files
+  ebiten: 27 functions, 15 structs, 0 interfaces, 2 files
+  app: 24 functions, 7 structs, 0 interfaces, 3 files
+  render: 14 functions, 7 structs, 0 interfaces, 3 files
+  mobile: 3 functions, 0 structs, 0 interfaces, 1 files
+
+=== CIRCULAR DEPENDENCIES ===
+No circular dependencies detected.
+
+=== NAMING CONVENTION ANALYSIS ===
+File Name Violations: 0
+Identifier Violations: 1
+Package Name Violations: 0
+Overall Naming Score: 1.00
+
+Top 1 Identifier Violations:
+Name                      Type       Violation    File:Line                               
+--------------------------------------------------------------------------------
+SceneGameOver             type       stuttering   client/ebiten/app/scenes.go:68          
+
+=== PLACEMENT ANALYSIS ===
+Misplaced Functions: 74
+Misplaced Methods: 80
+Low Cohesion Files: 12
+Average File Cohesion: 0.38
+
+Top 10 Misplaced Functions:
+Function                       Current File              Suggested File            Affinity Gain
+--------------------------------------------------------------------------------
+maxEnemiesOnBoard              cmd/server/game_consta... cmd/server/mythos.go      +1.00
+DefaultScenario                cmd/server/game_consta... cmd/server/game_server.go +1.00
+NewGameStateValidator          cmd/server/error_recov... cmd/server/game_server.go +1.00
+Scene                          client/ebiten/app/scen... client/ebiten/app/game.go +1.00
+MythosTokenBlessing            cmd/server/game_consta... cmd/server/mythos.go      +1.00
+MythosTokenBlank               cmd/server/game_consta... cmd/server/mythos.go      +1.00
+NewShaderSet                   client/ebiten/render/s... client/ebiten/app/game.go +1.00
+Broadcaster                    cmd/server/interfaces.go  cmd/server/game_server.go +1.00
+DiceSuccess                    cmd/server/game_consta... cmd/server/dice.go        +1.00
+DiceBlank                      cmd/server/game_consta... cmd/server/dice.go        +1.00
+
+Top 10 Misplaced Methods:
+Method                         Receiver Type        Current File              Receiver File            
+--------------------------------------------------------------------------------
+Game.updateScene               Game                 client/ebiten/app/scen... client/ebiten/app/game.go
+GameServer.actionHandler       GameServer           cmd/server/connection.go  cmd/server/game_server.go
+GameServer.advanceTurn         GameServer           cmd/server/mythos.go      cmd/server/game_server.go
+GameServer.aggregatePlayerS... GameServer           cmd/server/metrics.go     cmd/server/game_server.go
+GameServer.aggregateSession... GameServer           cmd/server/metrics.go     cmd/server/game_server.go
+GameServer.applyDifficulty     GameServer           cmd/server/game_mechan... cmd/server/game_server.go
+GameServer.assessConnection... GameServer           cmd/server/dashboard.go   cmd/server/game_server.go
+GameServer.averageBroadcast... GameServer           cmd/server/metrics.go     cmd/server/game_server.go
+GameServer.broadcastConnect... GameServer           cmd/server/dashboard.go   cmd/server/game_server.go
+GameServer.broadcastGameState  GameServer           cmd/server/connection.go  cmd/server/game_server.go
+
+Top 10 Low Cohesion Files:
+File                                     Cohesion     Suggested Splits
+--------------------------------------------------------------------------------
+cmd/server/mythos.go                     0.00         game_constants_related.go (+3 more)
+cmd/server/dice.go                       0.00         game_types_related.go (+1 more)
+cmd/server/game_utils.go                 0.00         part1.go (+1 more)
+cmd/desktop/main.go                      0.00         part1.go (+1 more)
+cmd/server/main.go                       0.00         part1.go (+1 more)
+cmd/server/actions.go                    0.05         game_constants_related.go (+4 more)
+cmd/server/health.go                     0.05         error_recovery_related.go (+4 more)
+cmd/server/connection.go                 0.06         game_server_related.go (+4 more)
+cmd/server/game_server.go                0.12         game_types_related.go (+6 more)
+cmd/server/interfaces.go                 0.18         game_types_related.go (+1 more)
+
+=== DOCUMENTATION ANALYSIS ===
+Overall Coverage: 96.7%
+Package Coverage: 100.0%
+Function Coverage: 100.0%
+Type Coverage: 95.4%
+Method Coverage: 97.7%
+
+
+=== MAINTENANCE BURDEN ===
+Magic Numbers: 1103
+Dead Code (Unreferenced): 49 functions
+Dead Code (Unreachable): 0 blocks
+Dead Code Percentage: 0.00%
+Complex Signatures: 8
+Deeply Nested Functions: 1
+Feature Envy Methods: 41
+
+Top 8 Complex Signatures:
+Function                                 File                   Params  Returns
+--------------------------------------------------------------------------------
+drawConnectionBanner                     /home/runner/work...        2        0
+DrawSprite                               /home/runner/work...        7        0
+SetConnected                             /home/runner/work...        1        0
+performCastWard                          /home/runner/work...        3        4
+performAttack                            /home/runner/work...        2        4
+performEvade                             /home/runner/work...        2        4
+dispatchAction                           /home/runner/work...        2        4
+aggregatePlayerStats                     /home/runner/work...        1        5
+
+Top 1 Deeply Nested Functions:
+Function                                 File                 Max Depth
+--------------------------------------------------------------------------------
+cleanupDisconnectedPlayers               /home/runner/work...        6
+
+Top 10 Magic Numbers:
+Value                File                               Line Context
+--------------------------------------------------------------------------------
+"github.com/hajim... /home/runner/work/bostonfea...        4 expression
+"github.com/hajim... /home/runner/work/bostonfea...        5 expression
+"github.com/opd-a... /home/runner/work/bostonfea...        6 expression
+"move"               /home/runner/work/bostonfea...       20 expression
+"Downtown"           /home/runner/work/bostonfea...       20 expression
+"move"               /home/runner/work/bostonfea...       21 expression
+"University"         /home/runner/work/bostonfea...       21 expression
+"move"               /home/runner/work/bostonfea...       22 expression
+"Rivertown"          /home/runner/work/bostonfea...       22 expression
+"move"               /home/runner/work/bostonfea...       23 expression
+
+
+=== ORGANIZATION HEALTH ===
+Oversized Files: 4
+Oversized Packages: 1
+Deep Directories: 0
+High Fan-In Packages: 0
+High Fan-Out Packages: 0
+Avg Package Instability: 0.00
+
+Top 4 Oversized Files:
+File                                                  Lines    Funcs    Types Burden
+--------------------------------------------------------------------------------
+cmd/server/game_types.go                                  0        0       19 1.40
+client/ebiten/state.go                                    0       15       12 1.25
+cmd/server/metrics.go                                     0       18        8 1.19
+cmd/server/error_recovery.go                              0       22        3 0.82
+
+Top 1 Oversized Packages:
+Package                           Files  Exports    Funcs Mega?
+--------------------------------------------------------------------------------
+main                                 18      183      142 No
+
+=== REFACTORING SUGGESTIONS ===
+Total Suggestions: 55 (sorted by impact/effort ratio)
+
+1. [placement] Move to client/ebiten/app/game.go for better cohesion
+   Target: DrawDoomVignette
+   Location: client/ebiten/render/shaders.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+2. [placement] Move to cmd/server/mythos.go for better cohesion
+   Target: enemyTemplates
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+3. [placement] Move to client/ebiten/render/layers.go for better cohesion
+   Target: NewAtlas
+   Location: client/ebiten/render/atlas.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+4. [placement] Move to cmd/server/game_server.go for better cohesion
+   Target: NewGameStateValidator
+   Location: cmd/server/error_recovery.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+5. [placement] Move to client/ebiten/app/game.go for better cohesion
+   Target: Scene
+   Location: client/ebiten/app/scenes.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+6. [placement] Move to cmd/server/mythos.go for better cohesion
+   Target: MythosTokenBlank
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+7. [placement] Move to client/ebiten/app/game.go for better cohesion
+   Target: NewShaderSet
+   Location: client/ebiten/render/shaders.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+8. [placement] Move to cmd/server/mythos.go for better cohesion
+   Target: MythosTokenBlessing
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+9. [placement] Move to cmd/server/dice.go for better cohesion
+   Target: DiceTentacle
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+10. [placement] Move to client/ebiten/app/game.go for better cohesion
+   Target: LayerBoard
+   Location: client/ebiten/render/layers.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+11. [placement] Move to cmd/server/game_server.go for better cohesion
+   Target: DefaultScenario
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+12. [placement] Move to client/ebiten/app/game.go for better cohesion
+   Target: NewInputHandler
+   Location: client/ebiten/app/input.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+13. [placement] Move to cmd/server/game_server.go for better cohesion
+   Target: Broadcaster
+   Location: cmd/server/interfaces.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+14. [placement] Move to cmd/server/dice.go for better cohesion
+   Target: DiceSuccess
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+15. [placement] Move to cmd/server/game_server.go for better cohesion
+   Target: StateValidator
+   Location: cmd/server/interfaces.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+16. [placement] Move to cmd/server/mythos.go for better cohesion
+   Target: maxEnemiesOnBoard
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+17. [placement] Move to cmd/server/mythos.go for better cohesion
+   Target: defaultMythosEventDeck
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+18. [placement] Move to cmd/server/dice.go for better cohesion
+   Target: DiceBlank
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+19. [placement] Move to cmd/server/game_server.go for better cohesion
+   Target: GameUpdateMessage
+   Location: cmd/server/game_types.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+20. [placement] Move to cmd/server/actions.go for better cohesion
+   Target: DefaultInvestigatorAbilities
+   Location: cmd/server/game_constants.go
+   Effort: low (10 lines affected)
+   MBI Impact: 10.0 points
+   ROI Score: 20.00 (higher = better)
+
+... and 35 more suggestions (use JSON output for full list)
+
+=== ANALYSIS COMPLETE ===
+Report generated by go-stats-generator v1.0.0
