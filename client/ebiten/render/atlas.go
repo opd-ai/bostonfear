@@ -5,11 +5,21 @@
 package render
 
 import (
+	"bytes"
+	_ "embed"
 	"image"
 	"image/color"
+	"image/png"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+// spritesheetPNG is the 512×512 sprite-sheet atlas embedded at build time.
+// Artists replace assets/sprites.png to update visuals without any code change.
+//
+//go:embed assets/sprites.png
+var spritesheetPNG []byte
 
 // SpriteID identifies a named entry in the texture atlas.
 type SpriteID int
@@ -31,12 +41,34 @@ type spriteRect struct {
 	x, y, w, h int
 }
 
+// spriteCoords is the authoritative sprite-sheet coordinate table.
+// Each entry maps a SpriteID to the pixel region it occupies in sprites.png.
+// The atlas is laid out as a single row of 64×64 tiles on a 512×512 sheet:
+//
+//	col 0  col 1       col 2         col 3        col 4         col 5       col 6        col 7
+//	Bg     Downtown    University    Rivertown     Northside     PlayerToken DoomMarker   ActionOverlay
+//
+// Updating real art assets only requires replacing assets/sprites.png while
+// keeping the pixel regions in this table the same.
+var spriteCoords = [spriteCount]spriteRect{
+	SpriteBackground:         {x: 0, y: 0, w: 64, h: 64},
+	SpriteLocationDowntown:   {x: 64, y: 0, w: 64, h: 64},
+	SpriteLocationUniversity: {x: 128, y: 0, w: 64, h: 64},
+	SpriteLocationRivertown:  {x: 192, y: 0, w: 64, h: 64},
+	SpriteLocationNorthside:  {x: 256, y: 0, w: 64, h: 64},
+	SpritePlayerToken:        {x: 320, y: 0, w: 64, h: 64},
+	SpriteDoomMarker:         {x: 384, y: 0, w: 64, h: 64},
+	SpriteActionOverlay:      {x: 448, y: 0, w: 64, h: 64},
+}
+
 // Atlas manages the single shared texture image used for all game sprites.
 // The atlas avoids repeated texture uploads and keeps draw-call counts low.
 //
-// In this placeholder implementation every sprite is a solid-colour rectangle
-// rendered onto a shared offscreen image. Real asset integration can replace
-// the generateAtlas function without changing any other render code.
+// At startup generateAtlas decodes the embedded assets/sprites.png sprite
+// sheet and records each sprite's pixel region from the spriteCoords table.
+// Replace assets/sprites.png with production art to update visuals without
+// any code change; the coordinate table in spriteCoords must be kept in sync
+// with the art layout.
 type Atlas struct {
 	image   *ebiten.Image
 	entries [spriteCount]spriteRect
@@ -72,9 +104,36 @@ func (a *Atlas) DrawSprite(dst *ebiten.Image, id SpriteID, dx, dy, scaleX, scale
 	dst.DrawImage(src, op)
 }
 
-// generateAtlas populates the atlas image with solid-colour placeholder tiles.
-// Each sprite occupies a 64×64 region on a 512×512 texture.
+// generateAtlas populates the atlas image from the embedded sprites.png sprite
+// sheet and records each sprite's position from the spriteCoords table.
+// The fallback path generates solid-colour placeholders only when PNG decoding
+// fails (e.g. a corrupt embed), which preserves correctness during development.
 func (a *Atlas) generateAtlas() {
+	img, err := decodeSpritesheet(spritesheetPNG)
+	if err == nil {
+		a.image = img
+		a.entries = spriteCoords
+		return
+	}
+	// Log the decode failure so developers can diagnose corrupt or missing embeds.
+	log.Printf("render: failed to decode embedded sprite sheet, using placeholder atlas: %v", err)
+	// Fallback: programmatically generated placeholder tiles.
+	a.generatePlaceholderAtlas()
+}
+
+// decodeSpritesheet decodes a PNG-encoded sprite sheet into an *ebiten.Image.
+func decodeSpritesheet(data []byte) (*ebiten.Image, error) {
+	decoded, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	return ebiten.NewImageFromImage(decoded), nil
+}
+
+// generatePlaceholderAtlas creates a solid-colour placeholder atlas when the
+// embedded sprite sheet cannot be decoded. Each sprite is a distinct colour so
+// that all game elements remain visually distinguishable during development.
+func (a *Atlas) generatePlaceholderAtlas() {
 	const tileSize = 64
 	const cols = 8 // 512 / 64
 	img := ebiten.NewImage(512, 512)

@@ -132,3 +132,69 @@ func TestLayerIDs_Range(t *testing.T) {
 		}
 	}
 }
+
+// TestSpriteCoords_Coverage verifies that every exported SpriteID has an entry
+// in the spriteCoords table with a non-zero tile size.
+func TestSpriteCoords_Coverage(t *testing.T) {
+	ids := []struct {
+		name string
+		id   SpriteID
+	}{
+		{"SpriteBackground", SpriteBackground},
+		{"SpriteLocationDowntown", SpriteLocationDowntown},
+		{"SpriteLocationUniversity", SpriteLocationUniversity},
+		{"SpriteLocationRivertown", SpriteLocationRivertown},
+		{"SpriteLocationNorthside", SpriteLocationNorthside},
+		{"SpritePlayerToken", SpritePlayerToken},
+		{"SpriteDoomMarker", SpriteDoomMarker},
+		{"SpriteActionOverlay", SpriteActionOverlay},
+	}
+	for _, tc := range ids {
+		r := spriteCoords[tc.id]
+		if r.w <= 0 || r.h <= 0 {
+			t.Errorf("%s: spriteCoords entry has zero or negative size: w=%d h=%d",
+				tc.name, r.w, r.h)
+		}
+	}
+}
+
+// TestSpriteCoords_WithinAtlas verifies that every sprite region in the coordinate
+// table lies entirely within the 512×512 atlas image dimensions.
+// It iterates over the full [0, spriteCount) range (all entries, not just named
+// exports) so that new SpriteID values added to the iota block are automatically
+// validated before they receive an explicit name.
+func TestSpriteCoords_WithinAtlas(t *testing.T) {
+	const atlasW, atlasH = 512, 512
+	for id := SpriteID(0); id < spriteCount; id++ {
+		r := spriteCoords[id]
+		if r.x < 0 || r.y < 0 || r.x+r.w > atlasW || r.y+r.h > atlasH {
+			t.Errorf("spriteCoords[%d]: region (%d,%d,%d,%d) outside atlas %dx%d",
+				id, r.x, r.y, r.w, r.h, atlasW, atlasH)
+		}
+	}
+}
+
+// TestDecodeSpritesheet_EmbeddedPNG verifies that the embedded sprites.png
+// decodes without error and produces an image with the expected atlas dimensions.
+func TestDecodeSpritesheet_EmbeddedPNG(t *testing.T) {
+	img, err := decodeSpritesheet(spritesheetPNG)
+	if err != nil {
+		t.Fatalf("decodeSpritesheet(spritesheetPNG) error: %v", err)
+	}
+	if img == nil {
+		t.Fatal("decodeSpritesheet returned nil image")
+	}
+	bounds := img.Bounds()
+	if bounds.Dx() != 512 || bounds.Dy() != 512 {
+		t.Errorf("spritesheet size = %dx%d, want 512x512", bounds.Dx(), bounds.Dy())
+	}
+}
+
+// TestDecodeSpritesheet_InvalidData verifies that decodeSpritesheet returns an
+// error (and not nil, nil) for invalid PNG data.
+func TestDecodeSpritesheet_InvalidData(t *testing.T) {
+	_, err := decodeSpritesheet([]byte("not a PNG"))
+	if err == nil {
+		t.Error("decodeSpritesheet(invalid data) should return an error, got nil")
+	}
+}

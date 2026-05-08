@@ -101,6 +101,8 @@
 - [ ] Document verified SDK/Xcode versions in README.md §Build Targets
 - [ ] **Validation**: Both platforms show functional game with working touch input
 
+> **Blocker**: Requires physical iOS/Android hardware and Android SDK API 29+/Xcode 15+. Not available in automated CI sandbox. Deferred to manual device verification.
+
 ---
 
 ### Priority 2: Replace Placeholder Sprites with Production Art
@@ -114,10 +116,10 @@
   - Investigator tokens (6 colours for 1-6 players)
   - Dice faces (Success ✓, Blank ○, Tentacle 🐙)
   - UI elements (health/sanity bars, doom counter, clue badges)
-- [ ] Create `client/ebiten/assets/` directory using `go:embed`
-- [ ] Update `client/ebiten/render/atlas.go` with sprite-sheet coordinates
-- [ ] Implement Kage doom vignette shader per CLIENT_SPEC.md §4.4
-- [ ] **Validation**: Desktop client displays themed visuals at 1280×720 logical resolution
+- [x] Create `client/ebiten/render/assets/` directory using `go:embed` (`sprites.png` embedded in `atlas.go`)
+- [x] Update `client/ebiten/render/atlas.go` with explicit sprite-sheet coordinate table (`spriteCoords`)
+- [x] Implement Kage doom vignette shader per CLIENT_SPEC.md §4.4 (`shaders/doom.kage` + `DrawDoomVignette`)
+- [ ] **Validation**: Desktop client displays themed visuals at 1280×720 logical resolution (pending production art)
 
 ---
 
