@@ -77,40 +77,6 @@ func TestStartPingTimer_Shutdown(t *testing.T) {
 	// Verify no panic occurred
 }
 
-// --- assessConnectionQuality: all degradation branches ---
-
-func TestAssessConnectionQuality_FairToPooreWithPacketLoss(t *testing.T) {
-	gs, pid := newTestServer(t)
-	gs.initializeConnectionQuality(pid)
-
-	gs.qualityMutex.Lock()
-	gs.connectionQualities[pid].LatencyMs = 150   // fair latency
-	gs.connectionQualities[pid].PacketLoss = 0.10 // high packet loss
-	gs.assessConnectionQuality(pid)
-	got := gs.connectionQualities[pid].Quality
-	gs.qualityMutex.Unlock()
-
-	if got != "poor" {
-		t.Errorf("expected fair degraded to poor with packet loss, got %s", got)
-	}
-}
-
-func TestAssessConnectionQuality_GoodToFairWithPacketLoss(t *testing.T) {
-	gs, pid := newTestServer(t)
-	gs.initializeConnectionQuality(pid)
-
-	gs.qualityMutex.Lock()
-	gs.connectionQualities[pid].LatencyMs = 75 // good latency
-	gs.connectionQualities[pid].PacketLoss = 0.10
-	gs.assessConnectionQuality(pid)
-	got := gs.connectionQualities[pid].Quality
-	gs.qualityMutex.Unlock()
-
-	if got != "fair" {
-		t.Errorf("expected good degraded to fair with packet loss, got %s", got)
-	}
-}
-
 // --- collectConnectionAnalytics: reconnection events ---
 
 func TestCollectConnectionAnalytics_ReconnectionRate(t *testing.T) {

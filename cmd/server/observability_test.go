@@ -207,6 +207,44 @@ func TestConnectionQuality_InitAssessCleanup(t *testing.T) {
 	}
 }
 
+// --- assessConnectionQuality: packet-loss degradation (table-driven) ---
+// Consolidated from coverage_test.go and recovery_test.go.
+// assessConnectionQuality does not acquire qualityMutex internally
+// (the comment at its declaration says "Caller must hold qualityMutex"),
+// so holding the lock while calling it matches the established test pattern
+// used in TestConnectionQuality_InitAssessCleanup.
+
+func TestAssessConnectionQuality_PacketLossDegradation(t *testing.T) {
+	cases := []struct {
+		name      string
+		latencyMs float64
+		packetLoss float64
+		want      string
+	}{
+		{"excellent_latency_high_loss", 25, 0.10, "good"},
+		{"good_latency_high_loss", 75, 0.10, "fair"},
+		{"fair_latency_high_loss", 150, 0.10, "poor"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gs, pid := newTestServer(t)
+			gs.initializeConnectionQuality(pid)
+
+			gs.qualityMutex.Lock()
+			gs.connectionQualities[pid].LatencyMs = tc.latencyMs
+			gs.connectionQualities[pid].PacketLoss = tc.packetLoss
+			gs.assessConnectionQuality(pid)
+			got := gs.connectionQualities[pid].Quality
+			gs.qualityMutex.Unlock()
+
+			if got != tc.want {
+				t.Errorf("latency=%.0fms packetLoss=%.2f: expected quality %q, got %q",
+					tc.latencyMs, tc.packetLoss, tc.want, got)
+			}
+		})
+	}
+}
+
 // --- getGameStatistics ---
 
 func TestGetGameStatistics(t *testing.T) {

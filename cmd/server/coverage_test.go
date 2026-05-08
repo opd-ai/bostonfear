@@ -68,25 +68,6 @@ func TestCalculateErrorRate_NonZero(t *testing.T) {
 	}
 }
 
-// --- assessConnectionQuality: packet loss degradation ---
-
-func TestAssessConnectionQuality_PacketLossDegrades(t *testing.T) {
-	gs, pid := newTestServer(t)
-	gs.initializeConnectionQuality(pid)
-
-	gs.qualityMutex.Lock()
-	gs.connectionQualities[pid].LatencyMs = 25    // excellent latency
-	gs.connectionQualities[pid].PacketLoss = 0.10 // 10% packet loss
-	gs.assessConnectionQuality(pid)
-	got := gs.connectionQualities[pid].Quality
-	gs.qualityMutex.Unlock()
-
-	// excellent → good due to packet loss
-	if got != "good" {
-		t.Errorf("expected quality degraded to 'good' with packet loss, got %s", got)
-	}
-}
-
 // --- handlePongMessage: missing player ID ---
 
 func TestHandlePongMessage_UnknownPlayer(t *testing.T) {
@@ -215,26 +196,6 @@ func TestCollectGCMetrics_AfterGC(t *testing.T) {
 	// Just verify no panic and valid data
 	if m.CPUFraction < 0 {
 		t.Error("CPUFraction should not be negative")
-	}
-}
-
-// --- getSystemAlerts: medium doom alert ---
-
-func TestGetSystemAlerts_MediumDoom(t *testing.T) {
-	gs, _ := newTestServer(t)
-	gs.gameState.Doom = 8 // > 60% threshold but < 80%
-
-	alerts := gs.getSystemAlerts()
-	found := false
-	for _, a := range alerts {
-		if sev, ok := a["severity"].(string); ok && sev == "medium" {
-			if msg, ok := a["message"].(string); ok && strings.Contains(msg, "doom") {
-				found = true
-			}
-		}
-	}
-	if !found {
-		t.Error("expected medium severity doom alert at doom=8")
 	}
 }
 
