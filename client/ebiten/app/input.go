@@ -132,6 +132,21 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 
 		// Dispatch action based on hit box ID.
 		id := hitBox.ID
+		if id == "trade" {
+			target := h.findColocatedPlayer(gs, playerID)
+			if target == "" {
+				h.state.RecordInvalidActionRetry("trade-no-colocated-player")
+				return
+			}
+			h.state.RecordValidActionSent()
+			h.net.SendAction(ebclient.PlayerActionMessage{
+				Type:     "playerAction",
+				PlayerID: playerID,
+				Action:   protocol.ActionTrade,
+				Target:   target,
+			})
+			return
+		}
 
 		// Check if it's a location (move action).
 		switch protocol.Location(id) {
@@ -154,6 +169,10 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 				"focus":       protocol.ActionFocus,
 				"research":    protocol.ActionResearch,
 				"closegate":   protocol.ActionCloseGate,
+				"component":   protocol.ActionComponent,
+				"attack":      protocol.ActionAttack,
+				"evade":       protocol.ActionEvade,
+				"trade":       protocol.ActionTrade,
 			}
 
 			if action, exists := actionMap[id]; exists {
@@ -209,24 +228,26 @@ func buildTouchInputMapper(vp *ui.Viewport) *ui.InputMapper {
 		mapper.Register(string(location), bounds, 44)
 	}
 
-	actionBarConstraint := ui.Constraint{
-		Anchor:  ui.AnchorBottomLeft,
-		OffsetY: -50,
-		Width:   0,
-		Height:  50,
+	actionGridOriginY := screenHeight - 220
+	actionGridCellWidth := 170
+	actionGridCellHeight := 44
+	actionGrid := [][]string{
+		{"gather", "investigate"},
+		{"ward", "focus"},
+		{"research", "trade"},
+		{"component", "attack"},
+		{"evade", "closegate"},
 	}
-	actionBarBounds := actionBarConstraint.Bounds(vp)
-
-	actionNames := []string{"gather", "investigate", "ward", "focus", "research", "closegate"}
-	regionWidth := actionBarBounds.Dx() / len(actionNames)
-	for i, actionName := range actionNames {
-		regionBounds := image.Rect(
-			actionBarBounds.Min.X+i*regionWidth,
-			actionBarBounds.Min.Y,
-			actionBarBounds.Min.X+(i+1)*regionWidth,
-			actionBarBounds.Max.Y,
-		)
-		mapper.Register(actionName, regionBounds, 44)
+	for row, rowActions := range actionGrid {
+		for col, actionName := range rowActions {
+			regionBounds := image.Rect(
+				10+col*actionGridCellWidth,
+				actionGridOriginY+row*actionGridCellHeight,
+				10+(col+1)*actionGridCellWidth,
+				actionGridOriginY+(row+1)*actionGridCellHeight,
+			)
+			mapper.Register(actionName, regionBounds, 44)
+		}
 	}
 
 	return mapper

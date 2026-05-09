@@ -42,7 +42,7 @@ Primary improvement area: state visibility.
 - [x] Show action costs and disable reasons in the HUD.
 - [x] Render the actual dice faces and required success threshold after each roll.
 - [x] Surface human-readable invalid-action errors instead of only retry counts.
-- [ ] Add touch parity for the full supported action set.
+- [x] Add touch parity for the full supported action set.
 - [ ] Prevent touch action taps from also rotating or toggling the camera.
 - [ ] Promote player display names into the shared wire-visible UI identity.
 - [ ] Correct the WASM host status so it distinguishes client boot from server connectivity.
@@ -103,9 +103,9 @@ Primary improvement area: state visibility.
 - Fix: Expand touch affordances to reach full action parity.
 - Validation: Every supported action should be reachable without a keyboard.
 - Remediation Checklist:
-  - [ ] Add touch affordances for trade, component, attack, evade, and other supported actions.
-  - [ ] Keep touch targets at or above the existing 44 px minimum.
-  - [ ] Indicate which touch actions are context-sensitive.
+  - [x] Add touch affordances for trade, component, attack, evade, and other supported actions.
+  - [x] Keep touch targets at or above the existing 44 px minimum.
+  - [x] Indicate which touch actions are context-sensitive.
 
 ### [HIGH] Multiplayer identity is reduced to opaque player IDs
 - File: `client/ebiten/state.go`, `client/ebiten/app/game.go`

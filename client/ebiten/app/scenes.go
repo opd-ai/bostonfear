@@ -331,6 +331,9 @@ func (s *SceneGame) handleCameraControls() {
 
 	// Touch gesture: tap left third = CCW, right third = CW, center = toggle.
 	for _, id := range inpututil.JustPressedTouchIDs() {
+		if s.isInteractiveTouch(id) {
+			continue
+		}
 		x, _ := ebiten.TouchPosition(id)
 		switch {
 		case x < screenWidth/3:
@@ -341,6 +344,23 @@ func (s *SceneGame) handleCameraControls() {
 			s.game.camera.ToggleViewMode()
 		}
 	}
+}
+
+func (s *SceneGame) isInteractiveTouch(id ebiten.TouchID) bool {
+	x, y := ebiten.TouchPosition(id)
+	if x < 0 || y < 0 || x >= screenWidth || y >= screenHeight {
+		return false
+	}
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth,
+		PhysicalHeight: screenHeight,
+		Scale:          1.0,
+		SafeArea:       ui.SafeArea{},
+	}
+	mapper := buildTouchInputMapper(vp)
+	return mapper.HitTest(float64(x), float64(y)) != nil
 }
 
 // Draw composites the full game board via the layered renderer.
