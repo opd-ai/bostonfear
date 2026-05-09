@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/opd-ai/bostonfear/protocol"
 )
 
@@ -20,16 +19,27 @@ type serverMessage struct {
 // PlayerActionMessage is the outbound message the client sends to the server.
 type PlayerActionMessage = protocol.PlayerActionMessage
 
+// wsConn abstracts a WebSocket connection so that platform-specific dial
+// implementations (gorilla/websocket on native, browser WebSocket API on WASM)
+// can be swapped without changing the read/write logic.
+type wsConn interface {
+	ReadMessage() (messageType int, p []byte, err error)
+	WriteMessage(messageType int, data []byte) error
+	Close() error
+}
+
+// wsTextMessage is the WebSocket text-frame opcode (matches gorilla's constant).
+const wsTextMessage = 1
+
 // NetClient manages the WebSocket connection to the game server.
 // It reads incoming messages, routes them to LocalState, and exposes a channel
 // for the game loop to queue outbound player actions.
+// Dialing is delegated to dialWebSocket, which is platform-specific:
+// gorilla/websocket on native platforms, browser WebSocket API on WASM.
 type NetClient struct {
 	state       *LocalState
 	actionsCh   chan PlayerActionMessage
-	reconnectCh chan struct{} // closed/sent to trigger an immediate redial
-
-	// dialer is the gorilla/websocket dialer used to open connections.
-	dialer *websocket.Dialer
+	reconnectCh chan struct{} // buffered; send to trigger an immediate redial
 }
 
 // NewNetClient creates a NetClient wired to the given LocalState.
@@ -39,7 +49,6 @@ func NewNetClient(state *LocalState) *NetClient {
 		state:       state,
 		actionsCh:   make(chan PlayerActionMessage, 16),
 		reconnectCh: make(chan struct{}, 1),
-		dialer:      websocket.DefaultDialer,
 	}
 }
 
@@ -92,7 +101,7 @@ func (c *NetClient) reconnectLoop() {
 			dialURL = dialURL + "?token=" + tok
 		}
 
-		conn, _, err := c.dialer.Dial(dialURL, nil)
+		conn, err := dialWebSocket(dialURL)
 		if err != nil {
 			log.Printf("net: dial %s failed: %v — retrying in %s", c.state.ServerURL, err, delay)
 			c.state.SetConnected(false)
@@ -133,7 +142,7 @@ func (c *NetClient) reconnectLoop() {
 
 // runConnection drives read and write loops for an established connection.
 // It blocks until the connection is closed or fails.
-func (c *NetClient) runConnection(conn *websocket.Conn) {
+func (c *NetClient) runConnection(conn wsConn) {
 	stop := make(chan struct{})
 	done := make(chan struct{})
 	var stopOnce sync.Once
@@ -152,7 +161,7 @@ func (c *NetClient) runConnection(conn *websocket.Conn) {
 
 // writeLoop forwards queued actions to the server until the connection fails.
 // It signals completion by closing done.
-func (c *NetClient) writeLoop(conn *websocket.Conn, stop <-chan struct{}, done chan struct{}) {
+func (c *NetClient) writeLoop(conn wsConn, stop <-chan struct{}, done chan struct{}) {
 	defer close(done)
 	for {
 		select {
@@ -164,7 +173,7 @@ func (c *NetClient) writeLoop(conn *websocket.Conn, stop <-chan struct{}, done c
 				log.Printf("net: marshal action: %v", err)
 				continue
 			}
-			if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+			if err := conn.WriteMessage(wsTextMessage, data); err != nil {
 				log.Printf("net: write: %v", err)
 				return
 			}
@@ -173,7 +182,7 @@ func (c *NetClient) writeLoop(conn *websocket.Conn, stop <-chan struct{}, done c
 }
 
 // readLoop reads and routes incoming messages until the connection closes or done is signalled.
-func (c *NetClient) readLoop(conn *websocket.Conn, stop <-chan struct{}, signalStop func()) {
+func (c *NetClient) readLoop(conn wsConn, stop <-chan struct{}, signalStop func()) {
 	for {
 		select {
 		case <-stop:
