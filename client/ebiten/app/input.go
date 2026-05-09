@@ -105,93 +105,100 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 		SafeArea:       ui.SafeArea{},
 	}
 
-	mapper := buildTouchInputMapper(vp)
-
 	// Get newly pressed touch IDs from Ebitengine.
 	touchIDs := inpututil.JustPressedTouchIDs()
 	if len(touchIDs) == 0 {
 		return
 	}
+	handleTouchIDs(h, gs, playerID, touchIDs, vp)
+}
 
-	// Process each touch.
+func handleTouchIDs(h *InputHandler, gs ebclient.GameState, playerID string, touchIDs []ebiten.TouchID, vp *ui.Viewport) {
+	mapper := buildTouchInputMapper(vp)
 	for _, touchID := range touchIDs {
-		x, y := ebiten.TouchPosition(touchID)
-		if x < 0 || y < 0 || x >= screenWidth || y >= screenHeight {
+		if !dispatchTouchID(h, gs, playerID, mapper, touchID) {
 			continue
-		}
-
-		// Convert physical coordinates to logical (1:1 scale for now).
-		logicalX := float64(x)
-		logicalY := float64(y)
-
-		// Perform hit test.
-		hitBox := mapper.HitTest(logicalX, logicalY)
-		if hitBox == nil {
-			continue
-		}
-
-		// Dispatch action based on hit box ID.
-		id := hitBox.ID
-		if id == "trade" {
-			target := h.findColocatedPlayer(gs, playerID)
-			if target == "" {
-				h.state.RecordInvalidActionRetry("trade-no-colocated-player")
-				return
-			}
-			h.state.RecordValidActionSent()
-			h.net.SendAction(ebclient.PlayerActionMessage{
-				Type:     "playerAction",
-				PlayerID: playerID,
-				Action:   protocol.ActionTrade,
-				Target:   target,
-			})
-			return
-		}
-
-		// Check if it's a location (move action).
-		switch protocol.Location(id) {
-		case protocol.Downtown, protocol.University, protocol.Rivertown, protocol.Northside:
-			h.state.RecordValidActionSent()
-			h.net.SendAction(ebclient.PlayerActionMessage{
-				Type:     "playerAction",
-				PlayerID: playerID,
-				Action:   protocol.ActionMove,
-				Target:   id,
-			})
-			return
-
-		default:
-			// Must be an action button in the action bar.
-			actionMap := map[string]protocol.ActionType{
-				"gather":      protocol.ActionGather,
-				"investigate": protocol.ActionInvestigate,
-				"ward":        protocol.ActionCastWard,
-				"focus":       protocol.ActionFocus,
-				"research":    protocol.ActionResearch,
-				"closegate":   protocol.ActionCloseGate,
-				"component":   protocol.ActionComponent,
-				"attack":      protocol.ActionAttack,
-				"evade":       protocol.ActionEvade,
-				"trade":       protocol.ActionTrade,
-			}
-
-			if action, exists := actionMap[id]; exists {
-				h.state.RecordValidActionSent()
-				h.net.SendAction(ebclient.PlayerActionMessage{
-					Type:     "playerAction",
-					PlayerID: playerID,
-					Action:   action,
-					Target:   "",
-				})
-				return
-			}
 		}
 	}
 }
 
+func dispatchTouchID(h *InputHandler, gs ebclient.GameState, playerID string, mapper *ui.InputMapper, touchID ebiten.TouchID) bool {
+	x, y := ebiten.TouchPosition(touchID)
+	if x < 0 || y < 0 || x >= screenWidth || y >= screenHeight {
+		return false
+	}
+
+	hitBox := mapper.HitTest(float64(x), float64(y))
+	if hitBox == nil {
+		return false
+	}
+
+	return h.dispatchTouchHitBox(gs, playerID, hitBox.ID)
+}
+
+func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id string) bool {
+	if id == "trade" {
+		target := h.findColocatedPlayer(gs, playerID)
+		if target == "" {
+			h.state.RecordInvalidActionRetry("trade-no-colocated-player")
+			return true
+		}
+		h.state.RecordValidActionSent()
+		h.net.SendAction(ebclient.PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: playerID,
+			Action:   protocol.ActionTrade,
+			Target:   target,
+		})
+		return true
+	}
+
+	switch protocol.Location(id) {
+	case protocol.Downtown, protocol.University, protocol.Rivertown, protocol.Northside:
+		h.state.RecordValidActionSent()
+		h.net.SendAction(ebclient.PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: playerID,
+			Action:   protocol.ActionMove,
+			Target:   id,
+		})
+		return true
+	}
+
+	actionMap := map[string]protocol.ActionType{
+		"gather":      protocol.ActionGather,
+		"investigate": protocol.ActionInvestigate,
+		"ward":        protocol.ActionCastWard,
+		"focus":       protocol.ActionFocus,
+		"research":    protocol.ActionResearch,
+		"closegate":   protocol.ActionCloseGate,
+		"component":   protocol.ActionComponent,
+		"attack":      protocol.ActionAttack,
+		"evade":       protocol.ActionEvade,
+	}
+
+	if action, exists := actionMap[id]; exists {
+		h.state.RecordValidActionSent()
+		h.net.SendAction(ebclient.PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: playerID,
+			Action:   action,
+			Target:   "",
+		})
+		return true
+	}
+	return false
+}
+
 func buildTouchInputMapper(vp *ui.Viewport) *ui.InputMapper {
 	mapper := ui.NewInputMapper()
+	registerTouchLocationHitBoxes(mapper, vp)
+	registerTouchActionHitBoxes(mapper)
 
+	return mapper
+}
+
+func registerTouchLocationHitBoxes(mapper *ui.InputMapper, vp *ui.Viewport) {
 	locationConstraints := map[protocol.Location]*ui.Constraint{
 		protocol.Downtown: {
 			Anchor:  ui.AnchorTopLeft,
@@ -224,10 +231,11 @@ func buildTouchInputMapper(vp *ui.Viewport) *ui.InputMapper {
 	}
 
 	for location, constraint := range locationConstraints {
-		bounds := constraint.Bounds(vp)
-		mapper.Register(string(location), bounds, 44)
+		mapper.Register(string(location), constraint.Bounds(vp), 44)
 	}
+}
 
+func registerTouchActionHitBoxes(mapper *ui.InputMapper) {
 	actionGridOriginY := screenHeight - 220
 	actionGridCellWidth := 170
 	actionGridCellHeight := 44
@@ -249,8 +257,6 @@ func buildTouchInputMapper(vp *ui.Viewport) *ui.InputMapper {
 			mapper.Register(actionName, regionBounds, 44)
 		}
 	}
-
-	return mapper
 }
 
 func hasActionInputAttempted() bool {

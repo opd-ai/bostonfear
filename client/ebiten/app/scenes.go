@@ -329,7 +329,11 @@ func (s *SceneGame) handleCameraControls() {
 		s.game.camera.ToggleViewMode()
 	}
 
-	// Touch gesture: tap left third = CCW, right third = CW, center = toggle.
+	s.handleTouchCameraControls()
+}
+
+func (s *SceneGame) handleTouchCameraControls() {
+	// Touch gesture: only touches outside gameplay hit boxes may orbit or toggle.
 	for _, id := range inpututil.JustPressedTouchIDs() {
 		if s.isInteractiveTouch(id) {
 			continue

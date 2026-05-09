@@ -632,6 +632,12 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 	panelW := 360
 	panelH := 130
 	ebitenutil.DrawRect(screen, float64(panelX-2), float64(panelY-2), float64(panelW), float64(panelH), color.RGBA{R: 10, G: 12, B: 20, A: 210})
+	g.drawActionPanelSummary(screen, gs, myID, panelX, panelY)
+	g.drawAvailableActionList(screen, gs, myID, panelX, panelY+72)
+	g.drawEndBanner(screen, gs)
+}
+
+func (g *Game) drawActionPanelSummary(screen *ebiten.Image, gs ebclient.GameState, myID string, panelX, panelY int) {
 	drawUIText(screen, "-- Available Actions --", panelX, panelY, color.White)
 	panelY += 12
 
@@ -651,11 +657,13 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 		color.RGBA{R: 255, G: 220, B: 180, A: 255})
 	panelY += 12
 	drawUIText(screen, g.cameraStatusText(), panelX, panelY, color.RGBA{R: 200, G: 220, B: 255, A: 255})
+}
 
+func (g *Game) drawAvailableActionList(screen *ebiten.Image, gs ebclient.GameState, myID string, panelX, panelY int) {
 	actions := g.availableActions(gs, myID)
 	leftX := panelX
 	rightX := panelX + 180
-	startY := bottomPanelY() + 72
+	startY := panelY
 	for i, action := range actions {
 		x := leftX
 		y := startY + (i%6)*10
@@ -674,7 +682,6 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 		}
 		drawUIText(screen, trimToWidth(line, 165), x, y, clr)
 	}
-	g.drawEndBanner(screen, gs)
 }
 
 type actionAvailability struct {
