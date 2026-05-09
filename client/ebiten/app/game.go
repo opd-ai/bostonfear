@@ -67,6 +67,8 @@ type Game struct {
 	quality     ui.QualityTier
 	effects     ui.EffectProfile
 	theme       ui.ThemePack
+	tokens      *ui.DesignTokenRegistry
+	icons       *ui.IconRegistry
 	procedural  *ui.ProceduralGenerator
 	camera      *ui.Camera
 	boardView   *ui.BoardView
@@ -96,6 +98,7 @@ func NewGame(serverURL string) *Game {
 	input := NewInputHandler(net, state)
 	net.Connect()
 	quality := ui.ParseQualityTier(os.Getenv("BOSTONFEAR_RENDER_QUALITY"))
+	tokens := ui.NewDefaultArkhamTheme()
 	g := &Game{
 		state:     state,
 		net:       net,
@@ -103,7 +106,9 @@ func NewGame(serverURL string) *Game {
 		renderer:  render.NewCompositor(),
 		quality:   quality,
 		effects:   ui.EffectProfileForTier(quality),
-		theme:     ui.ResolveThemePack(ui.NewDefaultArkhamTheme()),
+		theme:     ui.ResolveThemePack(tokens),
+		tokens:    tokens,
+		icons:     ui.NewIconRegistry(),
 		camera:    ui.NewCamera(),
 		startedAt: time.Now(),
 	}
@@ -327,8 +332,17 @@ func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	// Draw a simple bar.
 	barW := 200.0
 	filled := float64(gs.Doom) / 12.0 * barW
-	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, barW, 14, color.RGBA{R: 60, G: 60, B: 60, A: 255})
-	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, filled, 14, color.RGBA{R: 200, G: 40, B: 40, A: 255})
+	bg := color.RGBA{R: 60, G: 60, B: 60, A: 255}
+	fg := color.RGBA{R: 200, G: 40, B: 40, A: 255}
+	if g.tokens != nil {
+		bg = ui.ResolveThemePack(g.tokens).FogTint
+		fg = ui.ResolveThemePack(g.tokens).Ambient
+		doomToken := g.tokens.GetColor("color-doom")
+		r, gg, b, a := doomToken.RGBA()
+		fg = color.RGBA{R: uint8(r >> 8), G: uint8(gg >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
+	}
+	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, barW, 14, bg)
+	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, filled, 14, fg)
 }
 
 // drawPlayerPanel renders resource levels for all players on the right side.
@@ -345,15 +359,26 @@ func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID
 		col := playerColours[i%len(playerColours)]
 		marker := " "
 		if pid == gs.CurrentPlayer {
-			marker = "►"
+			marker = ">"
+			if g.icons != nil {
+				marker = g.icons.Get(ui.IconTurn)
+			}
 		}
 		me := ""
 		if pid == myID {
 			me = " (you)"
 		}
-		label := marker + " " + pid + me + "  HP:" + strconv.Itoa(p.Resources.Health) +
-			" SN:" + strconv.Itoa(p.Resources.Sanity) +
-			" CL:" + strconv.Itoa(p.Resources.Clues) +
+		hp := "HP"
+		sn := "SN"
+		cl := "CL"
+		if g.icons != nil {
+			hp = g.icons.Get(ui.IconHealth)
+			sn = g.icons.Get(ui.IconSanity)
+			cl = g.icons.Get(ui.IconClues)
+		}
+		label := marker + " " + pid + me + "  " + hp + ":" + strconv.Itoa(p.Resources.Health) +
+			" " + sn + ":" + strconv.Itoa(p.Resources.Sanity) +
+			" " + cl + ":" + strconv.Itoa(p.Resources.Clues) +
 			" ACT:" + strconv.Itoa(p.ActionsRemaining)
 		label = trimToWidth(label, 360)
 

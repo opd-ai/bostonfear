@@ -34,6 +34,13 @@
 // - BoardView: projection mapper that applies camera transforms to board nodes
 // - Labels: projected label anchor helpers for readability-aware placement
 //
+// Icons and Motion:
+// - IconRegistry: semantic icon map for actions/resources/status
+// - MotionCatalog: shared transition duration/easing presets
+//
+// Accessibility:
+// - ContrastRatio: color contrast helper for baseline readability checks
+//
 // Example:
 //
 //	profile := ui.ResolveProfile(width, height)

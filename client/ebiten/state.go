@@ -357,6 +357,23 @@ func (s *LocalState) Snapshot() (gs GameState, playerID string, connected bool) 
 	return s.Game, s.PlayerID, s.Connected
 }
 
+// LatestEventsSnapshot returns copies of the latest game update and dice result.
+// Nil is returned for either value when no corresponding message has been received.
+func (s *LocalState) LatestEventsSnapshot() (gameUpdate *GameUpdateData, diceResult *DiceResultData) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.LastGameUpdate != nil {
+		copy := *s.LastGameUpdate
+		gameUpdate = &copy
+	}
+	if s.LastDiceResult != nil {
+		copy := *s.LastDiceResult
+		diceResult = &copy
+	}
+	return gameUpdate, diceResult
+}
+
 // EventLogSnapshot returns a copy of the event log for rendering.
 func (s *LocalState) EventLogSnapshot() []EventLogEntry {
 	s.mu.RLock()

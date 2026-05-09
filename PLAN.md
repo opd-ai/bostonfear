@@ -83,44 +83,44 @@
 
 ### Workstream 4: Pseudo-3D Board Visualization (8 Directions)
 - Remediation checklist:
-- [ ] Problem statement: Current board is strictly top-down 2D; spatial understanding and immersion are limited.
-- [ ] Proposed changes: Implement pseudo-3D camera projection over node/edge board representation.
-- [ ] Proposed changes: Support at least 8 direction presets plus smooth orbit between adjacent presets.
-- [ ] Proposed changes: Add camera controls for mouse, keyboard, and touch gestures.
-- [ ] Proposed changes: Add top-down accessibility fallback mode.
-- [ ] Reusable component candidates: `ui/camera` (orbit, preset snapping, reset controls).
-- [ ] Reusable component candidates: `ui/boardview` (projection mapper for board nodes/edges/tokens).
-- [ ] Reusable component candidates: `ui/labels` (occlusion-aware location and token labels).
-- [ ] Dependencies: Location graph contract from [protocol/protocol.go](protocol/protocol.go).
-- [ ] Dependencies: Input abstraction from Workstream 1.
-- [ ] Dependencies: Layered renderer integration in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
-- [ ] Acceptance criteria: User can rotate across 8 directions without losing action readability.
-- [ ] Acceptance criteria: Move/action interactions remain consistent regardless of camera direction.
-- [ ] Acceptance criteria: Top-down fallback can be toggled at runtime.
-- [ ] Effort estimate: L
-- [ ] Verification steps: Camera usability tests across desktop and touch.
-- [ ] Verification steps: Hit-test accuracy checks in all camera presets.
-- [ ] Verification steps: Comparison of action error rates versus top-down mode.
+- [x] Problem statement: Current board is strictly top-down 2D; spatial understanding and immersion are limited.
+- [x] Proposed changes: Implement pseudo-3D camera projection over node/edge board representation.
+- [x] Proposed changes: Support at least 8 direction presets plus smooth orbit between adjacent presets.
+- [x] Proposed changes: Add camera controls for mouse, keyboard, and touch gestures.
+- [x] Proposed changes: Add top-down accessibility fallback mode.
+- [x] Reusable component candidates: `ui/camera` (orbit, preset snapping, reset controls).
+- [x] Reusable component candidates: `ui/boardview` (projection mapper for board nodes/edges/tokens).
+- [x] Reusable component candidates: `ui/labels` (occlusion-aware location and token labels).
+- [x] Dependencies: Location graph contract from [protocol/protocol.go](protocol/protocol.go).
+- [x] Dependencies: Input abstraction from Workstream 1.
+- [x] Dependencies: Layered renderer integration in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
+- [x] Acceptance criteria: User can rotate across 8 directions without losing action readability.
+- [x] Acceptance criteria: Move/action interactions remain consistent regardless of camera direction.
+- [x] Acceptance criteria: Top-down fallback can be toggled at runtime.
+- [x] Effort estimate: L
+- [x] Verification steps: Camera usability tests across desktop and touch (documented in [docs/CAMERA_USABILITY_VERIFICATION.md](docs/CAMERA_USABILITY_VERIFICATION.md)).
+- [x] Verification steps: Hit-test accuracy checks in all camera presets.
+- [x] Verification steps: Comparison of action error rates versus top-down mode.
 
 ### Workstream 5: General Visual Upgrades (Typography, Iconography, Motion, Contrast)
 - Remediation checklist:
-- [ ] Problem statement: Typography, spacing, iconography, and contrast are inconsistent across current clients.
-- [ ] Proposed changes: Define a design token system (spacing scale, typography scale, semantic colors, motion durations, elevation).
-- [ ] Proposed changes: Introduce a shared icon system for actions, resources, status, and outcomes.
-- [ ] Proposed changes: Standardize contrast-safe palettes and non-color state cues.
-- [ ] Proposed changes: Refactor critical screens to consume tokens only.
+- [x] Problem statement: Typography, spacing, iconography, and contrast are inconsistent across current clients.
+- [x] Proposed changes: Define a design token system (spacing scale, typography scale, semantic colors, motion durations, elevation).
+- [x] Proposed changes: Introduce a shared icon system for actions, resources, status, and outcomes.
+- [x] Proposed changes: Standardize contrast-safe palettes and non-color state cues.
+- [x] Proposed changes: Refactor critical screens to consume tokens only.
 - [x] Reusable component candidates: `ui/tokens` (centralized design token registry).
-- [ ] Reusable component candidates: `ui/icons` (vector/sprite icon map).
-- [ ] Reusable component candidates: `ui/motion` (transition presets and easing catalog).
-- [ ] Dependencies: Scene and HUD refactor from Workstream 2.
-- [ ] Dependencies: Render atlas pipeline from [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
-- [ ] Acceptance criteria: Token adoption for all primary game screens.
-- [ ] Acceptance criteria: Accessibility baseline met for contrast and scalable text.
-- [ ] Acceptance criteria: Critical state changes perceivable without color dependence.
-- [ ] Effort estimate: M
-- [ ] Verification steps: Automated token usage linting.
-- [ ] Verification steps: Accessibility contrast checks.
-- [ ] Verification steps: Visual regression snapshots across all core scenes.
+- [x] Reusable component candidates: `ui/icons` (vector/sprite icon map).
+- [x] Reusable component candidates: `ui/motion` (transition presets and easing catalog).
+- [x] Dependencies: Scene and HUD refactor from Workstream 2.
+- [x] Dependencies: Render atlas pipeline from [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
+- [x] Acceptance criteria: Token adoption for all primary game screens.
+- [x] Acceptance criteria: Accessibility baseline met for contrast and scalable text.
+- [x] Acceptance criteria: Critical state changes perceivable without color dependence.
+- [x] Effort estimate: M
+- [x] Verification steps: Automated token usage linting.
+- [x] Verification steps: Accessibility contrast checks.
+- [x] Verification steps: Visual regression snapshots across all core scenes (documented in [docs/UI_TOKEN_ACCESSIBILITY_VERIFICATION.md](docs/UI_TOKEN_ACCESSIBILITY_VERIFICATION.md)).
 
 ### Workstream 6: General UX Upgrades (Onboarding, Turn Clarity, Action Feedback, State Visibility)
 - Remediation checklist:
