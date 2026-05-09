@@ -41,7 +41,7 @@ Primary improvement area: state visibility.
 - [x] Replace the static controls legend with a state-driven available-actions panel.
 - [x] Show action costs and disable reasons in the HUD.
 - [x] Render the actual dice faces and required success threshold after each roll.
-- [ ] Surface human-readable invalid-action errors instead of only retry counts.
+- [x] Surface human-readable invalid-action errors instead of only retry counts.
 - [ ] Add touch parity for the full supported action set.
 - [ ] Prevent touch action taps from also rotating or toggling the camera.
 - [ ] Promote player display names into the shared wire-visible UI identity.
@@ -145,9 +145,9 @@ Primary improvement area: state visibility.
 - Fix: Show human-readable error feedback and a next-step hint.
 - Validation: Out-of-turn and invalid trade attempts should display distinct recovery guidance.
 - Remediation Checklist:
-  - [ ] Surface last invalid reason in the HUD.
-  - [ ] Translate machine reasons into player-readable text.
-  - [ ] Pair each invalid message with a recovery hint.
+  - [x] Surface last invalid reason in the HUD.
+  - [x] Translate machine reasons into player-readable text.
+  - [x] Pair each invalid message with a recovery hint.
 
 ### [MEDIUM] Touch action taps may also trigger camera movement
 - File: `client/ebiten/app/scenes.go`, `client/ebiten/app/input.go`
