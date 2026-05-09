@@ -36,6 +36,7 @@ class ArkhamHorrorClient {
 
         this.logicalCanvasWidth = 800;
         this.logicalCanvasHeight = 600;
+        this.resizeObserver = null;
         
         // Action buttons
         this.actionButtons = {
@@ -555,14 +556,41 @@ class ArkhamHorrorClient {
     }
 
     setupResponsiveCanvas() {
-        window.addEventListener('resize', () => this.resizeCanvas());
+        const handleResize = () => this.resizeCanvas();
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
+
+        if (window.ResizeObserver && this.canvas.parentElement) {
+            this.resizeObserver = new ResizeObserver(handleResize);
+            this.resizeObserver.observe(this.canvas.parentElement);
+        }
     }
 
     resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
-        this.canvas.width = Math.floor(this.logicalCanvasWidth * dpr);
-        this.canvas.height = Math.floor(this.logicalCanvasHeight * dpr);
-        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const container = this.canvas.parentElement;
+        const availableWidth = container ? container.clientWidth : window.innerWidth;
+        const availableHeight = Math.max(240, window.innerHeight - 220);
+        const scale = Math.min(
+            availableWidth / this.logicalCanvasWidth,
+            availableHeight / this.logicalCanvasHeight
+        );
+        const displayWidth = Math.max(320, Math.floor(this.logicalCanvasWidth * scale));
+        const displayHeight = Math.max(240, Math.floor(this.logicalCanvasHeight * scale));
+
+        this.canvas.style.width = `${displayWidth}px`;
+        this.canvas.style.height = `${displayHeight}px`;
+        this.canvas.width = Math.floor(displayWidth * dpr);
+        this.canvas.height = Math.floor(displayHeight * dpr);
+        this.ctx.setTransform(
+            (displayWidth / this.logicalCanvasWidth) * dpr,
+            0,
+            0,
+            (displayHeight / this.logicalCanvasHeight) * dpr,
+            0,
+            0
+        );
         this.ctx.imageSmoothingEnabled = true;
         this.render();
     }
