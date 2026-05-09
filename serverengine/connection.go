@@ -210,13 +210,9 @@ func (gs *GameServer) handleIncomingMessage(data []byte, playerID string, receiv
 	return true
 }
 
-// handlePlayerDisconnect routes disconnect processing through sessionManager.
+// handlePlayerDisconnect routes disconnect processing through the core handler.
 func (gs *GameServer) handlePlayerDisconnect(playerID, addrStr string) {
-	if gs.sessionManager == nil {
-		gs.handlePlayerDisconnectCore(playerID, addrStr)
-		return
-	}
-	gs.sessionManager.HandleDisconnect(playerID, addrStr)
+	gs.handlePlayerDisconnectCore(playerID, addrStr)
 }
 
 // handlePlayerDisconnectCore cleans up all state for a disconnecting player.

@@ -27,8 +27,8 @@ func run() error {
 	// No need to call rand.Seed in modern Go versions
 
 	// Create game server
-	gameServer := serverengine.NewGameServer()
-	if err := gameServer.Start(); err != nil {
+	var gameEngine serverengine.GameEngine = serverengine.NewGameServer()
+	if err := gameEngine.Start(); err != nil {
 		return fmt.Errorf("failed to start game server: %w", err)
 	}
 
@@ -40,9 +40,9 @@ func run() error {
 	defer listener.Close()
 
 	handlers := transportws.RouteHandlers{
-		WebSocket: transportws.NewWebSocketHandler(gameServer),
-		Health:    monitoring.HealthHandler(gameServer),
-		Metrics:   monitoring.MetricsHandler(gameServer),
+		WebSocket: transportws.NewWebSocketHandler(gameEngine),
+		Health:    monitoring.HealthHandler(gameEngine),
+		Metrics:   monitoring.MetricsHandler(gameEngine),
 		Dashboard: monitoring.DashboardHandler(clientDir),
 		Static:    http.FileServer(http.Dir(clientDir + "/")),
 	}

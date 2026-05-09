@@ -51,10 +51,6 @@ type GameServer struct {
 	pingTimers          map[string]*time.Timer
 	qualityMutex        sync.RWMutex
 
-	actionProcessor  *actionProcessor
-	sessionManager   *sessionManager
-	metricsCollector *metricsCollector
-
 	// wsWriteMu serialises concurrent writes per connection address.
 	// The websocket transport adapter wraps ws connections as net.Conn, but the
 	// one-writer-at-a-time requirement still applies for each wrapped session.
@@ -116,9 +112,6 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		wsWriteMu:           make(map[string]*sync.Mutex),
 		scenario:            scenario,
 	}
-	gs.actionProcessor = newActionProcessor(gs)
-	gs.sessionManager = newSessionManager(gs)
-	gs.metricsCollector = newMetricsCollector(gs)
 	// Apply scenario setup (populates decks, sets doom, etc.).
 	if scenario.SetupFn != nil {
 		scenario.SetupFn(gs.gameState)
@@ -221,12 +214,9 @@ func (gs *GameServer) validateMovement(from, to Location) bool {
 	return false
 }
 
-// processAction dispatches through the action processor component.
+// processAction dispatches directly to the core action pipeline.
 func (gs *GameServer) processAction(action PlayerActionMessage) error {
-	if gs.actionProcessor == nil {
-		return gs.processActionCore(action)
-	}
-	return gs.actionProcessor.Process(action)
+	return gs.processActionCore(action)
 }
 
 // processActionCore handles individual player actions with mechanic integration.
