@@ -61,8 +61,11 @@ go mod tidy
 
 ### Step 2: Start Server
 ```bash
-cd cmd/server
-go run .
+# New Cobra root CLI
+go run . server
+
+# Backward-compatible entrypoint still supported
+go run ./cmd/server
 ```
 
 ### Step 3: Access Client
@@ -129,6 +132,18 @@ Each player gets 2 actions per turn:
 - **Package Separation**: `serverengine/common` owns reusable runtime contracts/primitives, `serverengine/arkhamhorror` owns Arkham rules binding, and game-family roots (`serverengine/eldersign`, `serverengine/eldritchhorror`, `serverengine/finalhour`) are scaffolded for future engines; `transport/ws` owns HTTP/WebSocket upgrade and route registration, and `monitoring` owns health/metrics/dashboard handlers
 - **Error Handling**: Explicit Go-style error checking and propagation
 - **WebSocket Origin Validation**: Configurable `allowedOrigins` list (empty = accept any origin for local dev; set to specific hosts for production)
+
+#### CLI + Config (Cobra + Viper)
+- Root CLI command: `go run . --help`
+- TOML config template: `config.toml` at repository root
+- Global config flag: `--config /path/to/config.toml`
+- Key mappings:
+  - `server.game` -> module selection (fallback: `BOSTONFEAR_GAME`, default `arkhamhorror`)
+  - `server.listen` -> TCP listen address (default `:8080`)
+  - `server.client-dir` -> static client assets directory (default `./client`)
+  - `network.allowed-origins` -> WebSocket origin allow-list
+  - `desktop.server` -> desktop client WebSocket URL (default `ws://localhost:8080/ws`)
+  - `web.server` -> optional WASM client WebSocket URL override
 
 #### Configuring Allowed Origins (Production)
 By default the server accepts WebSocket upgrades from any origin, which is safe
