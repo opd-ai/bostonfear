@@ -49,7 +49,7 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 | **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Active (alpha — placeholder sprites) |
 | **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Active (alpha — placeholder sprites) |
 | **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/binding.go` | `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile` | Alpha (binding scaffolding; not verified on device) |
-| **Legacy browser** (current) | `client/index.html` | N/A — served by Go server | Active (to be replaced) |
+| **HTML/JS browser** (current) | `client/index.html` | N/A — served by Go server | Active (migration in progress) |
 
 ## Quick Setup
 
@@ -67,7 +67,7 @@ go run .
 
 ### Step 3: Access Client
 
-**Legacy browser client** (current — to be replaced by Ebitengine client):
+**HTML/JS browser client** (migration path to Ebitengine client):
 ```
 http://localhost:8080                # Game client
 http://localhost:8080/dashboard      # Performance monitoring dashboard
@@ -117,7 +117,7 @@ Each player gets 2 actions per turn:
 ### Connection Behaviour
 - The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap). Example: first retry after 5 s, second after 10 s, third after 20 s, all subsequent retries after 30 s. There is no upper limit on attempts.
 - The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the doom counter is incremented and the connection is closed. This is an idle/inactivity deadline, not a reconnection window.
-- **Session Persistence**: The JS legacy client reclaims its player slot automatically using a server-issued reconnect token (stored in `localStorage`). The Ebitengine desktop/WASM client also supports token-based slot reclaim — the token received in a `connectionStatus` message is stored and re-sent as a `?token=` query parameter on the next dial attempt. All clients now support full session persistence on reconnect.
+- **Session Persistence**: The JS browser client reclaims its player slot automatically using a server-issued reconnect token (stored in `localStorage`). The Ebitengine desktop/WASM client also supports token-based slot reclaim — the token received in a `connectionStatus` message is stored and re-sent as a `?token=` query parameter on the next dial attempt. All clients now support full session persistence on reconnect.
 
 ## Technical Implementation
 
@@ -126,7 +126,7 @@ Each player gets 2 actions per turn:
 - **Module-based Runtime Selection**: Server startup now resolves a game module registry (`arkhamhorror` default) via `BOSTONFEAR_GAME` to support multiple Fantasy Flight-style engines
 - **Concurrent Connection Handling**: Goroutines with channel-based communication
 - **State Management**: Centralized game state with mutex protection
-- **Package Separation**: `serverengine` owns rules/state and transport-neutral session orchestration, `transport/ws` owns HTTP/WebSocket upgrade and route registration, and `monitoring` owns health/metrics/dashboard handlers
+- **Package Separation**: `serverengine/common` owns reusable runtime contracts/primitives, `serverengine/arkhamhorror` owns Arkham rules binding, and game-family roots (`serverengine/eldersign`, `serverengine/eldritchhorror`, `serverengine/finalhour`) are scaffolded for future engines; `transport/ws` owns HTTP/WebSocket upgrade and route registration, and `monitoring` owns health/metrics/dashboard handlers
 - **Error Handling**: Explicit Go-style error checking and propagation
 - **WebSocket Origin Validation**: Configurable `allowedOrigins` list (empty = accept any origin for local dev; set to specific hosts for production)
 
@@ -168,10 +168,10 @@ BOSTONFEAR_GAME=finalhour go run ./cmd/server
 - **WASM Compatibility**: Same Go codebase compiled to WebAssembly for browser play
 - **WebSocket Connection**: Automatic reconnection with exponential backoff (5 s initial, doubles per attempt, 30 s cap)
 
-### Legacy JavaScript Client (Deprecated — being replaced by Ebitengine client)
+### HTML/JS Browser Client (Migration Mode)
 > The HTML5 Canvas / JavaScript client (`client/index.html`, `client/game.js`) is
-> being replaced by the Ebitengine client described in `CLIENT_SPEC.md`. See that
-> document for the full UI/UX requirements of the new client.
+> in migration toward the Ebitengine client described in `CLIENT_SPEC.md`.
+> `CLIENT_SPEC.md` remains the source of truth for target UI/UX requirements.
 
 ### JSON Message Protocol
 ```json
@@ -214,14 +214,21 @@ bostonfear/
 ├── transport/
 │   └── ws/                 # HTTP/WebSocket upgrade + route registration over net.Listener
 │       └── server.go
-├── serverengine/           # Importable game engine: rules, state, transport-neutral session orchestration
-│   ├── actions.go
-│   ├── connection.go
-│   ├── connection_quality.go
-│   ├── game_server.go
-│   ├── game_types.go
-│   ├── metrics.go
-│   ├── health.go
+├── serverengine/
+│   ├── common/             # Shared runtime contracts and cross-game primitives
+│   │   ├── contracts/
+│   │   └── runtime/
+│   ├── arkhamhorror/       # Arkham game-family module + rules documentation
+│   │   ├── module.go
+│   │   ├── README.md
+│   │   └── RULES.md
+│   ├── eldersign/          # Future game-family scaffold (placeholder module)
+│   │   └── module.go
+│   ├── eldritchhorror/     # Future game-family scaffold (placeholder module)
+│   │   └── module.go
+│   ├── finalhour/          # Future game-family scaffold (placeholder module)
+│   │   └── module.go
+│   ├── game_server.go      # Current Arkham runtime implementation (compat phase)
 │   └── *_test.go
 ├── client/
 │   ├── ebiten/             # Ebitengine client package (alpha)
@@ -235,8 +242,8 @@ bostonfear/
 │   │       └── shaders/
 │   ├── wasm/               # WASM host files
 │   │   └── index.html
-│   ├── index.html          # Legacy HTML game interface (to be replaced)
-│   ├── game.js             # Legacy JavaScript game client (to be replaced)
+│   ├── index.html          # HTML/JS browser game interface (migration mode)
+│   ├── game.js             # HTML/JS browser client logic (migration mode)
 │   └── dashboard.html      # Performance monitoring dashboard
 ├── go.mod                  # Go module dependencies
 ├── go.sum
@@ -250,7 +257,7 @@ bostonfear/
 - **Server**: Go 1.24+ with `github.com/gorilla/websocket`
 - **Ebitengine Client** (alpha): `github.com/hajimehoshi/ebiten/v2` (v2.7+)
 - **Mobile Build** (alpha): `ebitenmobile` CLI, `gomobile`, Android SDK (API 29+), Xcode 15+
-- **Legacy Client** (current): Modern web browser with HTML5 Canvas and WebSocket support
+- **HTML/JS Browser Client** (migration mode): Modern web browser with HTML5 Canvas and WebSocket support
 
 ### Shared Go Protocol
 - The Go server engine and Go/Ebitengine client compile against the shared wire schema in `protocol/`, which owns the JSON payload structs and protocol enums used on the WebSocket boundary.
@@ -346,7 +353,7 @@ Comprehensive health checks available at `http://localhost:8080/health`:
 - Verify WebSocket support in browser or Ebitengine client connectivity
 
 ### Game State Sync Issues
-- Refresh browser to re-establish connection (legacy client)
+- Refresh browser to re-establish connection (HTML/JS browser client)
 - Restart desktop client to reconnect (Ebitengine client)
 - Check browser console or client logs for WebSocket errors
 - Verify all players are using same server instance

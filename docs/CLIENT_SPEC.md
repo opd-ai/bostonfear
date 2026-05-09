@@ -13,7 +13,7 @@
 
 > This document defines the UI/UX requirements for the BostonFear Ebitengine client.
 > It is intended to be self-sufficient for an Ebitengine developer with no prior
-> context on the legacy HTML/JS client. Requirements cite their source document
+> context on the HTML/JS browser client. Requirements cite their source document
 > where one exists; items without a cited source are new UX decisions introduced by
 > this spec.
 
