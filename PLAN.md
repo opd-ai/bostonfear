@@ -159,11 +159,11 @@ Tasks:
 8. Add integration tests for action parity between mouse and keyboard flows.
 
 Completion checklist:
-- [ ] Action map documented and implemented.
-- [ ] Mouse and keyboard both trigger same command path.
-- [ ] Focus navigation is visible and predictable.
-- [ ] Input conflict handling and debouncing verified.
-- [ ] Interaction parity tests pass.
+- [x] Action map documented and implemented.
+- [x] Mouse and keyboard both trigger same command path.
+- [x] Focus navigation is visible and predictable.
+- [x] Input conflict handling and debouncing verified.
+- [x] Interaction parity tests pass.
 
 Deliverables:
 - Input action map specification.
