@@ -8,7 +8,9 @@
 > independent, fan-made rules engine and is not affiliated with or endorsed by
 > Fantasy Flight Games or Asmodee.
 
-**Arkham Horror Third Edition** is the latest edition of Fantasy Flight Games' flagship cooperative horror board game, released in 2018. This edition represents a significant reimagining of the classic Lovecraftian investigation game, streamlining many mechanics while maintaining the thematic depth the series is known for.
+**BostonFear** implements the rule systems for Arkham Horror Third Edition (AH3e), a cooperative
+board game published by Fantasy Flight Games. This document specifies the engine's compliance
+against those rule systems and defines the canonical implementation requirements.
 
 ## Engine Implementation Status
 
@@ -35,21 +37,51 @@
 
 **Status**: 13/13 core rule systems fully implemented and covered by automated tests.
 
-The game supports 1-6 players who take on the roles of investigators exploring the city of Arkham, Massachusetts in the 1920s. The core objective involves uncovering clues and thwarting the machinations of an Ancient One before doom spreads throughout the city. Unlike previous editions, Third Edition uses a modular board consisting of neighborhood tiles that are placed during setup based on the chosen scenario, creating a more focused and narrative-driven experience.
+## Engine Design Summary
 
-The action system has been completely overhauled from previous editions. Each investigator receives two actions per turn, which can be spent to move between neighborhoods, gather resources, focus to improve dice rolls, ward locations to remove doom, research to gain clues, trade with other investigators, or activate special abilities. Combat and skill tests now use a custom dice system featuring success, blank, and tentacle results, with the tentacle faces potentially triggering negative effects based on the current mythos token.
+The BostonFear engine models a cooperative investigator game as a state machine. Each connected
+client drives one investigator. The server enforces all rules centrally; clients are display and
+input terminals only.
 
-The game employs a scenario-based structure with four included in the base game. Each scenario features unique setup instructions, victory conditions, and narrative elements delivered through event cards and the codex - a companion booklet containing numbered entries that are read when specific game conditions are met. This creates branching storylines where player choices directly impact how the scenario unfolds.
+**Turn structure**: The engine alternates between two phases per round. During the investigator
+phase, each player submits actions in turn order. Each investigator may submit exactly two actions
+before the server advances the turn pointer. Once all investigators have acted, the server
+automatically executes the mythos phase and then loops back to the first investigator.
 
-During the mythos phase, the game uses an innovative event deck system. Two event cards are drawn and placed in neighborhood spaces, creating localized threats that investigators must address. If events spread to neighborhoods already containing doom tokens, they trigger increasingly severe consequences. The mythos cup contains tokens that modify how mythos effects resolve, adding an element of escalating tension as more dangerous tokens are added throughout the game.
+**Action model**: An action is a typed intent (`ActionType`) paired with an optional target
+identifier. The engine validates the action against current state (location adjacency, resource
+availability, turn ownership) and either applies effects or returns a rejection event. Twelve
+action types are supported; see the implementation table above for full coverage.
 
-Investigators accumulate various resources including money, clues, remnants, and focus tokens. Money purchases items and allies from the display, clues advance the scenario objectives, remnants are supernatural currency for powerful effects, and focus tokens improve dice rolls. The game also features a sanity and stamina system where investigators can suffer horror and damage, potentially becoming defeated if either track is fully depleted.
+**Dice resolution**: Actions that require a skill test receive a dice pool determined by the
+action type and any focus tokens the investigator spends. Each die resolves independently to one
+of three outcomes: success, blank, or tentacle. The engine counts successes against a per-action
+threshold and counts tentacle results for doom accumulation, then emits a `diceResult` message
+before the `gameState` broadcast.
 
-The encounter system has been streamlined compared to earlier editions. When investigators engage with encounter tokens on the board, they draw from neighborhood-specific encounter decks that provide thematically appropriate challenges and rewards. Anomalies represent tears in reality that spawn throughout the game, requiring investigators to seal them before they overwhelm the city with doom.
+**Mythos phase**: The engine draws from an event queue, places events on neighborhood nodes
+following placement priority rules, resolves spread interactions, draws a mythos cup token, and
+updates doom totals. Enemy and anomaly spawns are emitted as state deltas before the consolidated
+`gameState` broadcast.
 
-Victory conditions vary by scenario but typically involve collecting a certain number of clues to advance through act cards that tell the story, while simultaneously preventing the agenda deck from advancing too far. The agenda deck functions as a timer, with doom tokens accumulating on locations pushing the Ancient One's plans forward. If the final agenda card is reached, the investigators typically face a climactic confrontation with severely reduced chances of success.
+**Resource model**: Six resource dimensions are tracked per investigator: health, sanity, money,
+clues, remnants, and focus tokens. Each has a defined minimum, maximum, and set of actions that
+produce or consume it. The engine clamps all values at the configured bounds and emits a defeat
+event when health or sanity reaches zero.
 
-The game includes variable player powers through unique investigator abilities and starting equipment, asymmetric starting positions based on the scenario setup, and a personal story system where investigators can complete individual objectives for rewards. The difficulty can be adjusted through various mechanisms including the initial doom placement and the composition of the mythos cup, allowing groups to tailor the challenge to their preference.
+**Encounter resolution**: When an investigator activates an encounter token, the engine selects a
+card from the neighborhood-specific encounter deck, evaluates any embedded skill test, applies
+effects, and discards the token. No encounter card text is stored or transmitted; only typed
+effect payloads are used.
+
+**Win and loss**: Victory is evaluated per-scenario; the default scenario requires act deck
+completion before the agenda deck is exhausted. Loss fires when doom reaches the configured
+maximum (default 12) or when a scenario-specific loss condition triggers. Both conditions emit
+a `gameUpdate` event with the appropriate outcome flag before the final `gameState` broadcast.
+
+**Difficulty**: Three named presets (Easy, Normal, Hard) adjust starting doom placement and the
+composition of the mythos cup token distribution. Presets are applied at scenario start and do
+not change mid-game.
 
 Arkham Horror Third Edition - Game Engine Specification
 Core Game State
