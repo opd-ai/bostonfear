@@ -34,10 +34,10 @@ All 6 core migration slices (S1-S6) have been implemented and wired into the ser
 - **Key Fix**: Convert protocol Location to lowercase before adjacency check
 - **Tests**: All passing
 
-#### S6: Broadcast Adapters (✅ COMPLETE)
+#### S6: Broadcast Adapters (⚠️ PARTIALLY COMPLETE)
 - **Files**: serverengine/arkhamhorror/adapters/broadcast.go
 - **Implementation**: BroadcastPayloadAdapter interface, ActionResultPayload, DiceResultPayload
-- **Status**: Skeleton complete, ready for broadcaster hook-in
+- **Status**: Skeleton interface defined; message shaping currently handled via protocol types (GameUpdateMessage, DiceResultMessage). Adapter pattern reserved for future multi-game-family implementations. Current broadcast flow in serverengine/broadcast.go and game_server.go::broadcastActionResults() generates protocol-conformant payloads without invoking the adapter layer.
 
 #### S2: Mythos Phase (⏭️ DEFERRED)
 - **Note**: 13 functions in mythos.go, scheduled for separate refactor pass
@@ -51,7 +51,7 @@ All 6 core migration slices (S1-S6) have been implemented and wired into the ser
 | S3 | dice.go | rules/dice.go | playerFocusSpender | ✅ Wired |
 | S4 | game_mechanics.go | model/investigator.go | Direct function calls | ✅ Wired |
 | S5 | rules/movement.go | content/map.go | String case conversion | ✅ Wired |
-| S6 | broadcast.go | adapters/broadcast.go | Interface types | ✅ Skeleton only |
+| S6 | broadcast.go | adapters/broadcast.go | Interface types | ⚠️ Partial (skeleton only) |
 
 ### Test Results
 ```

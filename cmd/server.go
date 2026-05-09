@@ -18,9 +18,6 @@ import (
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror"
 	arkhamcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
-	"github.com/opd-ai/bostonfear/serverengine/eldersign"
-	"github.com/opd-ai/bostonfear/serverengine/eldritchhorror"
-	"github.com/opd-ai/bostonfear/serverengine/finalhour"
 	transportws "github.com/opd-ai/bostonfear/transport/ws"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -57,12 +54,8 @@ func runServer(cmd *cobra.Command) error {
 	registry := commonruntime.NewRegistry()
 	registry.MustRegister(arkhamhorror.NewModule())
 
-	// Register placeholder game-family modules only if explicitly enabled via BOSTONFEAR_EXPERIMENTAL
-	if experimental := strings.TrimSpace(os.Getenv("BOSTONFEAR_EXPERIMENTAL")); experimental == "1" || experimental == "true" {
-		registry.MustRegister(eldersign.NewModule())
-		registry.MustRegister(eldritchhorror.NewModule())
-		registry.MustRegister(finalhour.NewModule())
-	}
+	// Non-Arkham game-family modules (eldersign, eldritchhorror, finalhour) are scaffolded
+	// but not yet runnable. They will be registered here once their engines are implemented.
 
 	gameID := strings.ToLower(strings.TrimSpace(viper.GetString("server.game")))
 	if gameID == "" {

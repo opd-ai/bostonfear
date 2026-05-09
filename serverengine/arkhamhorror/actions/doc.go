@@ -1,9 +1,8 @@
-// Package actions provides implementations for all 12 Arkham Horror investigator actions:
-// Move, Gather, Investigate, CastWard, Focus, Research, Trade, Component, Encounter, Attack, Evade, CloseGate.
+// Package actions owns Arkham Horror action dispatch logic used by the serverengine
+// compatibility facade.
 //
-// During the modular rules migration (ROADMAP.md), action handlers from serverengine.performAction*
-// will be moved here. Each action will validate state, apply effects, and return results.
-//
-// NOTE: This package is a scaffold. Implementation is deferred until the Arkham rules
-// decomposition begins. See ROADMAP.md Phase 2 for timeline.
+// The dispatcher in perform.go routes investigator actions (move, gather, investigate,
+// castWard, focus, research, trade, component, encounter, attack, evade, closeGate)
+// through callback interfaces so rule logic can be tested independently from the
+// facade server implementation.
 package actions

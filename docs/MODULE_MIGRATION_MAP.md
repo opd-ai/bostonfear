@@ -28,8 +28,8 @@ Align implementation ownership with documented architecture:
 | S2 | Turn progression and mythos transitions | serverengine/mythos.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/phases | Completed | Module owns advanceTurn, runMythosPhase, event/token resolution orchestration via callbacks; facade keeps existing API |
 | S3 | Dice resolution and doom coupling | serverengine/dice.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/rules | Completed | Core dice logic owned by rules/dice.go and wired through the serverengine facade |
 | S4 | Investigator and resource model rules | serverengine/game_types.go, serverengine/health.go | serverengine/arkhamhorror/model | Completed | Resource bounds and clamping logic owned by arkhamhorror/model; types in protocol |
-| S5 | Scenario setup, decks, constants, adjacency | serverengine/game_constants.go, serverengine/mythos.go | serverengine/arkhamhorror/scenarios, serverengine/arkhamhorror/content | Completed | Map topology and constants in content/map.go; encounter decks remain façade until S2 |
-| S6 | Broadcast payload shaping and mechanic events | serverengine/broadcast.go, serverengine/game_server.go | serverengine/arkhamhorror/adapters | Completed | Broadcast adapter interface and payload shapes defined in adapters/broadcast.go |
+| S5 | Scenario setup, decks, constants, adjacency | serverengine/game_constants.go, serverengine/mythos.go | serverengine/arkhamhorror/content | Completed | Scenario/content ownership consolidated in content package; map topology and constants in content/map.go |
+| S6 | Broadcast payload shaping and mechanic events | serverengine/broadcast.go, serverengine/game_server.go | serverengine/arkhamhorror/adapters | Partially Complete | Adapter interface and payload types defined in adapters/broadcast.go; message shaping currently via protocol types (GameUpdateMessage, DiceResultMessage). Adapter pattern reserved for future multi-family implementations.
 
 ## Execution Template Per Slice
 
@@ -42,12 +42,12 @@ Align implementation ownership with documented architecture:
 ## Tracking
 
 - Last updated: 2026-05-09
-- Current active slice: none (all tracked slices completed)
+- Current active slice: none (all tracked slices completed or partially complete)
 - Completed slices: 
   - S1 ✅ (Action dispatch via perform.go callbacks)
   - S2 ✅ (Turn progression and mythos orchestration in phases/mythos.go)
   - S3 ✅ (Dice logic in rules/dice.go)
   - S4 ✅ (Resource bounds in model/investigator.go)
-  - S5 ✅ (Map topology in content/map.go)
-  - S6 ✅ (Broadcast shapes in adapters/broadcast.go)
-- Next priority: Continue shrinking the compatibility facade where useful; no blocking migration slice remains
+  - S5 ✅ (Scenario/content ownership and map topology in content/map.go)
+  - S6 ⚠️ (Broadcast adapter interface defined; message shaping currently via protocol types)
+- Next priority: Continue shrinking the compatibility facade where useful; S6 wire-in can follow future multi-family runtime work

@@ -4,6 +4,4 @@
 //
 // Pure rule functions accept game state and return validation errors or effect results.
 // This enables offline rule testing and easier debugging.
-//
-// NOTE: This package is a scaffold. Implementation is deferred. See ROADMAP.md.
 package rules

@@ -6,6 +6,4 @@
 //
 // Dependencies: serverengine/common (runtime contracts only).
 // Forbidden: Importing serverengine package (monolith).
-//
-// NOTE: This package is a scaffold. Implementation is deferred. See ROADMAP.md.
 package model
