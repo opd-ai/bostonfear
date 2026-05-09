@@ -42,11 +42,17 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 
 ## Build Targets
 
-| Platform | Entrypoint | Build Command | Status |
-|---|---|---|---|
-| **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Active (alpha — placeholder sprites) |
-| **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Active (alpha — placeholder sprites) |
-| **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/binding.go` | `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile` | Alpha (binding scaffolding; not verified on device) |
+| Platform | Entrypoint | Build Command | Minimum Requirements | Status |
+|---|---|---|---|---|
+| **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Go 1.20+ | Active (alpha — placeholder sprites) |
+| **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Go 1.20+ | Active (alpha — placeholder sprites) |
+| **Mobile** (iOS, Android) | `cmd/mobile/binding.go` | Android: `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile`; iOS: `ebitenmobile bind -target ios -o dist/BostonFear.xcframework ./cmd/mobile` | Go 1.24+, ebitenmobile, Android SDK 29+ / Xcode 15+ | Alpha (touch input parity verified; device runtime not yet tested in automated environment) |
+
+#### Mobile Platform Notes
+- **Android**: Minimum API level 29 (Android 10). Use `ws://10.0.2.2:8080/ws` when connecting from an Android emulator to a server on the host machine.
+- **iOS**: Minimum iOS 16. Use the host machine's local area network (LAN) IP address for the server URL (e.g., `ws://192.168.1.100:8080/ws`).
+- **Touch Input**: All in-game actions are accessible via touch targets. See [docs/MOBILE_VERIFICATION_RUNBOOK.md](docs/MOBILE_VERIFICATION_RUNBOOK.md) for verification checklist and constraints.
+- **Reconnection**: Mobile clients support token-based session reclaim via the `connectionStatus` message; the client automatically stores and restores this token across app restarts.
 
 ## Quick Setup
 
@@ -79,10 +85,16 @@ GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
 # python3 -m http.server 8080 --directory client/wasm/
 ```
 
-**Mobile client** (alpha — binding scaffolding; not verified on device):
+**Mobile client** (alpha — touch input parity verified; set server URL appropriately for your device):
 ```bash
+# Android: ebitenmobile bind creates an AAR library
 ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile
+
+# iOS: ebitenmobile bind creates an XCFramework
 ebitenmobile bind -target ios -o dist/BostonFear.xcframework ./cmd/mobile
+
+# See docs/MOBILE_VERIFICATION_RUNBOOK.md for device-specific server addressing
+# (Android emulator: ws://10.0.2.2:8080/ws; iOS: use host machine LAN IP)
 ```
 
 ## Game Rules

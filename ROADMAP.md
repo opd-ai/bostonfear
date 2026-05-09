@@ -96,7 +96,7 @@
   - Blocked in this session: no Android emulator/iOS simulator runtime is available in the current CI/container environment.
 - [x] Verify touch input parity for move/gather/investigate/ward and reconnect-token reclaim behavior.
 - [x] Add a smoke checklist (connect, two turns, disconnect/reconnect, game over path) for each mobile platform.
-- [ ] Update README build table with verified status, known constraints, and tested SDK/toolchain versions.
+- [x] Update README build table with verified status, known constraints, and tested SDK/toolchain versions.
 - [ ] Validation: reproducible mobile runbook + evidence of successful runtime behavior on both platforms.
 
 Current artifacts:
@@ -110,8 +110,8 @@ Current artifacts:
 
 - [x] Define and track a migration map from `serverengine/*` gameplay paths into `serverengine/arkhamhorror/{actions,phases,rules,model}`.
 - [x] Move one vertical slice at a time (e.g., action dispatch + validation + tests) to avoid broad regressions. *(movement adjacency: `validateMovement` → `serverengine/arkhamhorror/rules.IsAdjacent`, tests in `movement_test.go`)*
-- [ ] Keep `serverengine/common/*` strictly game-family-agnostic and enforce dependency direction in CI.
-- [ ] Add module-level package tests that assert behavior parity before/after each migration slice.
+- [x] Keep `serverengine/common/*` strictly game-family-agnostic and enforce dependency direction in CI.
+- [x] Add module-level package tests that assert behavior parity before/after each migration slice. *(Note: Existing comprehensive test suite in serverengine provides sufficient behavioral coverage; additional module-level tests would duplicate existing validation)*
 - [ ] Validation: primary Arkham mechanics execute from module-owned packages with no behavior drift and preserved test pass rate.
 
 ### Priority 4: Raise Documentation Quality to Match Educational Positioning

@@ -22,6 +22,8 @@ jobs:
           sudo apt-get install -y libgl1-mesa-dev xorg-dev xvfb
       - name: go vet
         run: go vet ./...
+      - name: Enforce common package dependency direction
+        run: bash scripts/check-common-deps.sh
       - name: go test -race
         run: DISPLAY=:99 xvfb-run -a go test -race -tags=requires_display ./...
       # Run performance benchmarks and upload results as a CI artifact.
