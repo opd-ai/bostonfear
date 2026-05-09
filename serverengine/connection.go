@@ -15,6 +15,13 @@ import (
 	"time"
 )
 
+const (
+	// reconnectGracePeriod is the maximum time a disconnected slot can be reclaimed.
+	reconnectGracePeriod = 30 * time.Second
+	// staleSessionPollInterval controls how often zombie sessions are reaped.
+	staleSessionPollInterval = 5 * time.Second
+)
+
 type displayNameProvider interface {
 	DisplayName() string
 }
@@ -82,6 +89,9 @@ func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.
 	if reconnectToken != "" {
 		if restoredID := gs.restorePlayerByToken(reconnectToken, conn, connectionDisplayName(conn)); restoredID != "" {
 			log.Printf("Player %s reconnected via token", restoredID)
+			gs.trackConnection("reconnect", restoredID, 0)
+			gs.trackPlayerSession(restoredID, "reconnect")
+			gs.initializeConnectionQuality(restoredID)
 			gs.sendConnectionStatus(conn, restoredID)
 			gs.broadcastGameState()
 			gs.runMessageLoop(ctx, conn, restoredID)
@@ -326,50 +336,99 @@ func (gs *GameServer) handlePlayerDisconnectCore(playerID, addrStr string) {
 func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn, displayName string) string {
 	gs.mutex.Lock()
 	defer gs.mutex.Unlock()
+	now := time.Now()
 
 	for id, p := range gs.gameState.Players {
-		if p.ReconnectToken == token && !p.Connected {
-			p.Connected = true
-			p.DisconnectedAt = time.Time{}              // clear disconnect timestamp
-			p.ReconnectToken = generateReconnectToken() // rotate token
-			if strings.TrimSpace(p.DisplayName) == "" && strings.TrimSpace(displayName) != "" {
-				p.DisplayName = strings.TrimSpace(displayName)
-			}
-			gs.playerConns[id] = conn
-			return id
+		if !canRestorePlayer(token, p, now) {
+			continue
 		}
+		p.Connected = true
+		p.DisconnectedAt = time.Time{}              // clear disconnect timestamp
+		p.ReconnectToken = generateReconnectToken() // rotate token
+		if strings.TrimSpace(p.DisplayName) == "" && strings.TrimSpace(displayName) != "" {
+			p.DisplayName = strings.TrimSpace(displayName)
+		}
+		gs.playerConns[id] = conn
+		return id
 	}
 	return ""
 }
 
+func canRestorePlayer(token string, p *Player, now time.Time) bool {
+	if p == nil || p.ReconnectToken != token || p.Connected {
+		return false
+	}
+	if p.DisconnectedAt.IsZero() {
+		return false
+	}
+	return now.Sub(p.DisconnectedAt) <= reconnectGracePeriod
+}
+
 // cleanupDisconnectedPlayers removes player entries that have been disconnected
-// longer than the reconnection TTL (5 minutes).
-// Must be called from a goroutine; polls every 30 seconds.
+// longer than the reconnection grace period.
+// Must be called from a goroutine; polls every staleSessionPollInterval.
 func (gs *GameServer) cleanupDisconnectedPlayers() {
-	const ttl = 5 * time.Minute
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(staleSessionPollInterval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-gs.shutdownCh:
 			return
 		case <-ticker.C:
-			now := time.Now()
-			gs.mutex.Lock()
-			for id, p := range gs.gameState.Players {
-				if !p.Connected && !p.DisconnectedAt.IsZero() && now.Sub(p.DisconnectedAt) > ttl {
-					log.Printf("Reaping zombie player %s (disconnected at %v)", id, p.DisconnectedAt)
-					delete(gs.gameState.Players, id)
-					// Remove from TurnOrder.
-					for i, tid := range gs.gameState.TurnOrder {
-						if tid == id {
-							gs.gameState.TurnOrder = append(gs.gameState.TurnOrder[:i], gs.gameState.TurnOrder[i+1:]...)
-							break
-						}
-					}
-				}
-			}
-			gs.mutex.Unlock()
+			reaped := gs.reapDisconnectedPlayers(time.Now())
+			gs.postReapCleanup(reaped)
 		}
+	}
+}
+
+func (gs *GameServer) reapDisconnectedPlayers(now time.Time) []string {
+	reaped := make([]string, 0)
+	gs.mutex.Lock()
+	for id, p := range gs.gameState.Players {
+		if !isStaleDisconnectedPlayer(p, now) {
+			continue
+		}
+		log.Printf("Reaping zombie player %s (disconnected at %v)", id, p.DisconnectedAt)
+		delete(gs.gameState.Players, id)
+		reaped = append(reaped, id)
+		removeFromTurnOrder(&gs.gameState.TurnOrder, id)
+		if gs.gameState.CurrentPlayer == id {
+			gs.gameState.CurrentPlayer = firstTurnPlayer(gs.gameState.TurnOrder)
+		}
+	}
+	gs.mutex.Unlock()
+	return reaped
+}
+
+func isStaleDisconnectedPlayer(p *Player, now time.Time) bool {
+	if p == nil || p.Connected || p.DisconnectedAt.IsZero() {
+		return false
+	}
+	return now.Sub(p.DisconnectedAt) > reconnectGracePeriod
+}
+
+func removeFromTurnOrder(turnOrder *[]string, playerID string) {
+	for i, id := range *turnOrder {
+		if id == playerID {
+			*turnOrder = append((*turnOrder)[:i], (*turnOrder)[i+1:]...)
+			return
+		}
+	}
+}
+
+func firstTurnPlayer(turnOrder []string) string {
+	if len(turnOrder) == 0 {
+		return ""
+	}
+	return turnOrder[0]
+}
+
+func (gs *GameServer) postReapCleanup(reaped []string) {
+	for _, id := range reaped {
+		gs.trackConnection("reap", id, 0)
+		gs.cleanupConnectionQuality(id)
+	}
+	if len(reaped) > 0 {
+		gs.broadcastGameState()
 	}
 }

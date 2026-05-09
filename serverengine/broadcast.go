@@ -3,9 +3,27 @@ package serverengine
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"sync/atomic"
 	"time"
 )
+
+type connectionTarget struct {
+	addr string
+	conn net.Conn
+}
+
+// snapshotConnections returns a stable copy of current connection targets.
+// Taking this snapshot lets broadcast writes happen without holding gs.mutex.
+func (gs *GameServer) snapshotConnections() []connectionTarget {
+	gs.mutex.RLock()
+	targets := make([]connectionTarget, 0, len(gs.connections))
+	for addr, conn := range gs.connections {
+		targets = append(targets, connectionTarget{addr: addr, conn: conn})
+	}
+	gs.mutex.RUnlock()
+	return targets
+}
 
 // broadcastHandler processes broadcast messages to all connected clients.
 func (gs *GameServer) broadcastHandler() {
@@ -13,16 +31,15 @@ func (gs *GameServer) broadcastHandler() {
 		select {
 		case message := <-gs.broadcastCh:
 			writeStart := time.Now()
-			gs.mutex.RLock()
-			for addr, conn := range gs.connections {
-				if err := gs.writeToConn(conn, addr, message); err != nil {
+			targets := gs.snapshotConnections()
+			for _, target := range targets {
+				if err := gs.writeToConn(target.conn, target.addr, message); err != nil {
 					log.Printf("Broadcast error: %v", err)
 					atomic.AddInt64(&gs.errorCount, 1)
 				} else {
 					gs.trackMessage("sent")
 				}
 			}
-			gs.mutex.RUnlock()
 			// Record how long this broadcast round took for latency metrics.
 			gs.recordBroadcastLatency(time.Since(writeStart))
 		case <-gs.shutdownCh:

@@ -761,6 +761,22 @@ func TestSessionReconnection_UnknownTokenReturnsEmpty(t *testing.T) {
 	}
 }
 
+func TestSessionReconnection_ExpiredTokenReturnsEmpty(t *testing.T) {
+	gs, p1ID := newTestServer(t)
+	token := gs.gameState.Players[p1ID].ReconnectToken
+
+	// Simulate disconnect beyond reconnect grace period.
+	gs.gameState.Players[p1ID].Connected = false
+	gs.gameState.Players[p1ID].DisconnectedAt = time.Now().Add(-(reconnectGracePeriod + time.Second))
+
+	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9999}
+	fakeConn := &stubConn{local: addr, remote: addr}
+	result := gs.restorePlayerByToken(token, fakeConn, "Recovered Player")
+	if result != "" {
+		t.Errorf("expired token should return empty string; got %q", result)
+	}
+}
+
 // --- Mythos Token Randomness ---
 
 // TestDrawMythosToken_IsRandom verifies that drawMythosToken returns all four

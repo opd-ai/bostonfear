@@ -12,12 +12,12 @@ Arkham Horror engine with Go server and Go/Ebitengine clients.
 ## Priority 1: Runtime Reliability
 
 ### 1.1 Enhanced Reconnection and Session Resilience
-- Maintain reconnect token reclaim behavior for dropped clients.
-- Improve stale-session cleanup and connection quality telemetry.
-- Preserve deterministic turn order through reconnect/disconnect events.
+- [x] Maintain reconnect token reclaim behavior for dropped clients.
+- [x] Improve stale-session cleanup and connection quality telemetry.
+- [x] Preserve deterministic turn order through reconnect/disconnect events.
 
 ### 1.2 Broadcast and Turn Pipeline Hardening
-- Keep game-state broadcasts race-safe under load.
+- [x] Keep game-state broadcasts race-safe under load.
 - Continue reducing facade ownership where module ownership is proven.
 - Preserve protocol compatibility for gameState, gameUpdate, diceResult, and connectionStatus.
 

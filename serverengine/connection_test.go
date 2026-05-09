@@ -50,6 +50,44 @@ func TestHandleWebSocket_TokenReconnect(t *testing.T) {
 	if reconnectedID != originalID {
 		t.Errorf("expected reconnected player ID %q, got %q", originalID, reconnectedID)
 	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		srv.GameServer.performanceMutex.RLock()
+		session := srv.GameServer.playerSessions[originalID]
+		reconnections := 0
+		if session != nil {
+			reconnections = session.Reconnections
+		}
+		srv.GameServer.performanceMutex.RUnlock()
+
+		srv.GameServer.qualityMutex.RLock()
+		_, qualityTracked := srv.GameServer.connectionQualities[originalID]
+		srv.GameServer.qualityMutex.RUnlock()
+
+		if reconnections >= 1 && qualityTracked {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	srv.GameServer.performanceMutex.RLock()
+	session := srv.GameServer.playerSessions[originalID]
+	gotReconnections := 0
+	if session != nil {
+		gotReconnections = session.Reconnections
+	}
+	srv.GameServer.performanceMutex.RUnlock()
+	if gotReconnections < 1 {
+		t.Errorf("expected reconnect session metric to increment, got %d", gotReconnections)
+	}
+
+	srv.GameServer.qualityMutex.RLock()
+	_, qualityTracked := srv.GameServer.connectionQualities[originalID]
+	srv.GameServer.qualityMutex.RUnlock()
+	if !qualityTracked {
+		t.Error("expected connection quality tracking restored after reconnect")
+	}
 }
 
 // --- TestRescaleActDeck_LateJoin (Step 3 acceptance tests) ---
