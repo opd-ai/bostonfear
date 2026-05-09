@@ -23,6 +23,7 @@ func main() {
 	flag.Parse()
 
 	game := ebapp.NewGame(*serverURL)
+	defer game.Close()
 
 	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Arkham Horror — Ebitengine Client")

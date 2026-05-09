@@ -8,9 +8,9 @@
 package app
 
 import (
-	"fmt"
 	"image/color"
 	"log"
+	"strconv"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -62,6 +62,16 @@ type Game struct {
 	renderer    *render.Compositor
 	shaders     *render.ShaderSet // lazily compiled on first Draw call; nil until then
 	activeScene Scene             // current full-screen scene; managed by updateScene
+	uiCache     uiStringCache
+}
+
+type uiStringCache struct {
+	doomValue  int
+	doomLabel  string
+	phaseValue string
+	phaseLabel string
+	statusKey  string
+	statusText string
 }
 
 // NewGame creates a Game connected to the given server URL.
@@ -79,6 +89,14 @@ func NewGame(serverURL string) *Game {
 	}
 	g.activeScene = &SceneConnect{game: g}
 	return g
+}
+
+// Close releases GPU resources owned by Game.
+func (g *Game) Close() {
+	if g.shaders != nil {
+		g.shaders.Deallocate()
+		g.shaders = nil
+	}
 }
 
 // Update is called every tick (60 TPS by default).
@@ -212,24 +230,25 @@ func (g *Game) drawConnectionBanner(screen *ebiten.Image, connected bool) {
 	if connected {
 		return
 	}
-	ebitenutil.DebugPrintAt(screen, "[ Connecting to server… ]", screenWidth/2-90, 8)
+	drawUIText(screen, "[ Connecting to server... ]", screenWidth/2-90, 8, color.White)
 }
 
 // drawDoomCounter renders the global doom track (0–12) on the right side.
 func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("DOOM: %d / 12", gs.Doom), 420, 60)
+	label := g.doomLabel(gs.Doom)
+	drawUIText(screen, label, rightPanelX(), 60, color.White)
 
 	// Draw a simple bar.
 	barW := 200.0
 	filled := float64(gs.Doom) / 12.0 * barW
-	ebitenutil.DrawRect(screen, 420, 76, barW, 14, color.RGBA{R: 60, G: 60, B: 60, A: 255})
-	ebitenutil.DrawRect(screen, 420, 76, filled, 14, color.RGBA{R: 200, G: 40, B: 40, A: 255})
+	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, barW, 14, color.RGBA{R: 60, G: 60, B: 60, A: 255})
+	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, filled, 14, color.RGBA{R: 200, G: 40, B: 40, A: 255})
 }
 
 // drawPlayerPanel renders resource levels for all players on the right side.
 func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	y := 110
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Phase: %s", gs.GamePhase), 420, y)
+	drawUIText(screen, g.phaseLabel(gs.GamePhase), rightPanelX(), y, color.White)
 	y += 14
 
 	for i, pid := range gs.TurnOrder {
@@ -246,30 +265,31 @@ func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID
 		if pid == myID {
 			me = " (you)"
 		}
-		label := fmt.Sprintf("%s %s%s  HP:%d SN:%d CL:%d ACT:%d",
-			marker, pid, me,
-			p.Resources.Health, p.Resources.Sanity, p.Resources.Clues,
-			p.ActionsRemaining)
+		label := marker + " " + pid + me + "  HP:" + strconv.Itoa(p.Resources.Health) +
+			" SN:" + strconv.Itoa(p.Resources.Sanity) +
+			" CL:" + strconv.Itoa(p.Resources.Clues) +
+			" ACT:" + strconv.Itoa(p.ActionsRemaining)
+		label = trimToWidth(label, 360)
 
 		// Draw background highlight for current player.
 		if pid == gs.CurrentPlayer {
-			ebitenutil.DrawRect(screen, 418, float64(y-1), 370, 13,
+			ebitenutil.DrawRect(screen, float64(rightPanelX()-2), float64(y-1), 370, 13,
 				color.RGBA{R: col.R / 4, G: col.G / 4, B: col.B / 4, A: 255})
 		}
-		ebitenutil.DebugPrintAt(screen, label, 420, y)
+		drawUIText(screen, label, rightPanelX(), y, color.White)
 		y += 14
 	}
 
 	if len(gs.TurnOrder) == 0 {
-		ebitenutil.DebugPrintAt(screen, "Waiting for players…", 420, y)
+		drawUIText(screen, "Waiting for players...", rightPanelX(), y, color.White)
 	}
 }
 
 // drawEventLog renders the last 8 events in the lower-right corner.
 func (g *Game) drawEventLog(screen *ebiten.Image) {
 	entries := g.state.EventLogSnapshot()
-	y := screenHeight - 130
-	ebitenutil.DebugPrintAt(screen, "── Event Log ──", 420, y)
+	y := bottomPanelY()
+	drawUIText(screen, "-- Event Log --", rightPanelX(), y, color.White)
 	y += 12
 
 	// Show the last 8 entries.
@@ -278,28 +298,19 @@ func (g *Game) drawEventLog(screen *ebiten.Image) {
 		start = len(entries) - 8
 	}
 	for _, e := range entries[start:] {
-		ebitenutil.DebugPrintAt(screen, e.Text, 420, y)
+		drawUIText(screen, trimToWidth(e.Text, 360), rightPanelX(), y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 		y += 12
 	}
 }
 
 // drawInputHints renders the keyboard shortcut legend in the lower-left corner.
 func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID string) {
-	y := screenHeight - 130
-	ebitenutil.DebugPrintAt(screen, "── Controls ──", 10, y)
+	y := bottomPanelY()
+	drawUIText(screen, "-- Controls --", 10, y, color.White)
 	y += 12
 
 	isMyTurn := gs.CurrentPlayer == myID && gs.GamePhase == "playing"
-	status := "waiting for your turn"
-	if isMyTurn {
-		status = fmt.Sprintf("YOUR TURN  (%d actions left)", func() int {
-			if p, ok := gs.Players[myID]; ok {
-				return p.ActionsRemaining
-			}
-			return 0
-		}())
-	}
-	ebitenutil.DebugPrintAt(screen, status, 10, y)
+	drawUIText(screen, g.turnStatusLabel(gs, myID, isMyTurn), 10, y, color.White)
 	y += 12
 
 	hints := []string{
@@ -308,16 +319,57 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 		"G Gather  I Investigate  W Ward",
 	}
 	for _, h := range hints {
-		ebitenutil.DebugPrintAt(screen, h, 10, y)
+		drawUIText(screen, h, 10, y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 		y += 12
 	}
 
 	// Win / lose banner.
 	if gs.WinCondition {
-		ebitenutil.DebugPrintAt(screen, "✦ INVESTIGATORS WIN! ✦", 10, screenHeight-20)
+		drawUIText(screen, "* INVESTIGATORS WIN! *", 10, screenHeight-20, color.RGBA{R: 140, G: 255, B: 140, A: 255})
 	} else if gs.LoseCondition {
-		ebitenutil.DebugPrintAt(screen, "✦ ANCIENT ONE AWAKENS — YOU LOSE ✦", 10, screenHeight-20)
+		drawUIText(screen, "* ANCIENT ONE AWAKENS - YOU LOSE *", 10, screenHeight-20, color.RGBA{R: 255, G: 140, B: 140, A: 255})
 	}
+}
+
+func rightPanelX() int {
+	return screenWidth - 380
+}
+
+func bottomPanelY() int {
+	return screenHeight - 130
+}
+
+func (g *Game) doomLabel(doom int) string {
+	if g.uiCache.doomLabel == "" || g.uiCache.doomValue != doom {
+		g.uiCache.doomValue = doom
+		g.uiCache.doomLabel = "DOOM: " + strconv.Itoa(doom) + " / 12"
+	}
+	return g.uiCache.doomLabel
+}
+
+func (g *Game) phaseLabel(phase string) string {
+	if g.uiCache.phaseLabel == "" || g.uiCache.phaseValue != phase {
+		g.uiCache.phaseValue = phase
+		g.uiCache.phaseLabel = "Phase: " + phase
+	}
+	return g.uiCache.phaseLabel
+}
+
+func (g *Game) turnStatusLabel(gs ebclient.GameState, myID string, isMyTurn bool) string {
+	actions := 0
+	if p, ok := gs.Players[myID]; ok {
+		actions = p.ActionsRemaining
+	}
+	key := strconv.FormatBool(isMyTurn) + ":" + strconv.Itoa(actions)
+	if g.uiCache.statusKey != key {
+		g.uiCache.statusKey = key
+		if !isMyTurn {
+			g.uiCache.statusText = "waiting for your turn"
+		} else {
+			g.uiCache.statusText = "YOUR TURN (" + strconv.Itoa(actions) + " actions left)"
+		}
+	}
+	return g.uiCache.statusText
 }
 
 // playerColourIndex returns a stable colour index for pid based on turn order.

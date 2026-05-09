@@ -8,12 +8,11 @@
 package app
 
 import (
-	"fmt"
 	"image/color"
+	"strconv"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/protocol"
@@ -58,20 +57,20 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	dots := "...."[:s.tick/15%5]
-	ebitenutil.DebugPrintAt(screen, "Boston Fear — Arkham Horror", screenWidth/2-120, 120)
+	drawUIText(screen, "Boston Fear - Arkham Horror", screenWidth/2-120, 120, color.White)
 
-	status := fmt.Sprintf("Connecting%s", dots)
+	status := "Connecting" + dots
 	if connected {
 		status = "Connected"
 	}
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Status: %s", status), screenWidth/2-120, 160)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Server: %s", address), screenWidth/2-120, 190)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Display Name: %s", displayName), screenWidth/2-120, 215)
+	drawUIText(screen, "Status: "+status, screenWidth/2-120, 160, color.White)
+	drawUIText(screen, trimToWidth("Server: "+address, 320), screenWidth/2-120, 190, color.White)
+	drawUIText(screen, trimToWidth("Display Name: "+displayName, 320), screenWidth/2-120, 215, color.White)
 
 	connectedPlayers := countConnectedPlayers(gs)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Slots: %d/6", connectedPlayers), screenWidth/2-120, 245)
+	drawUIText(screen, "Slots: "+strconv.Itoa(connectedPlayers)+"/6", screenWidth/2-120, 245, color.White)
 	if connectedPlayers >= 6 {
-		ebitenutil.DebugPrintAt(screen, "Game Full (6/6)", screenWidth/2-120, 260)
+		drawUIText(screen, "Game Full (6/6)", screenWidth/2-120, 260, color.RGBA{R: 255, G: 190, B: 190, A: 255})
 	}
 
 	if token != "" && !connected {
@@ -79,20 +78,20 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 		if remaining < 0 {
 			remaining = 0
 		}
-		ebitenutil.DebugPrintAt(screen,
-			fmt.Sprintf("Reconnecting with saved session... %ds", remaining),
-			screenWidth/2-120, 290)
+		drawUIText(screen,
+			"Reconnecting with saved session... "+strconv.Itoa(remaining)+"s",
+			screenWidth/2-120, 290, color.White)
 	}
 
 	fieldLabel := "address"
 	if s.activeField == connectFieldName {
 		fieldLabel = "display name"
 	}
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Editing: %s (TAB to switch)", fieldLabel), screenWidth/2-120, 330)
-	ebitenutil.DebugPrintAt(screen, "Type to edit fields • BACKSPACE deletes • ENTER confirms", screenWidth/2-120, 350)
+	drawUIText(screen, "Editing: "+fieldLabel+" (TAB to switch)", screenWidth/2-120, 330, color.White)
+	drawUIText(screen, "Type to edit fields - BACKSPACE deletes - ENTER confirms", screenWidth/2-120, 350, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 
 	if playerID != "" {
-		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Player ID: %s", playerID), screenWidth/2-120, 380)
+		drawUIText(screen, trimToWidth("Player ID: "+playerID, 320), screenWidth/2-120, 380, color.White)
 	}
 }
 
@@ -258,17 +257,17 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 	selected, waiting := investigatorSelectionStatus(gs)
 
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
-	ebitenutil.DebugPrintAt(screen, "Select Your Investigator", screenWidth/2-100, screenHeight/2-80)
+	drawUIText(screen, "Select Your Investigator", screenWidth/2-100, screenHeight/2-80, color.White)
 
 	for i, investigator := range s.investigators {
 		yOffset := screenHeight/2 - 50 + i*20
-		keyLabel := fmt.Sprintf("%d", i+1)
-		text := fmt.Sprintf("[%s] %s", keyLabel, investigator.display)
-		ebitenutil.DebugPrintAt(screen, text, screenWidth/2-80, yOffset)
+		keyLabel := strconv.Itoa(i + 1)
+		text := "[" + keyLabel + "] " + investigator.display
+		drawUIText(screen, text, screenWidth/2-80, yOffset, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 	}
 
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Selected: %d  Waiting: %d", selected, waiting), screenWidth/2-100, screenHeight/2+90)
-	ebitenutil.DebugPrintAt(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+110)
+	drawUIText(screen, "Selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-100, screenHeight/2+90, color.White)
+	drawUIText(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+110, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 }
 
 // SceneGameOver is shown when the game reaches a win or lose condition.
@@ -295,14 +294,14 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 
 	if gs.WinCondition {
 		screen.Fill(color.RGBA{R: 10, G: 30, B: 10, A: 255})
-		ebitenutil.DebugPrintAt(screen, "✦ INVESTIGATORS WIN! ✦", screenWidth/2-90, screenHeight/2-10)
-		ebitenutil.DebugPrintAt(screen, "The Ancient One's influence has been sealed.", screenWidth/2-130, screenHeight/2+10)
+		drawUIText(screen, "* INVESTIGATORS WIN! *", screenWidth/2-90, screenHeight/2-10, color.RGBA{R: 140, G: 255, B: 140, A: 255})
+		drawUIText(screen, "The Ancient One's influence has been sealed.", screenWidth/2-130, screenHeight/2+10, color.White)
 	} else {
 		screen.Fill(color.RGBA{R: 30, G: 10, B: 10, A: 255})
-		ebitenutil.DebugPrintAt(screen, "✦ ANCIENT ONE AWAKENS — YOU LOSE ✦", screenWidth/2-140, screenHeight/2-10)
-		ebitenutil.DebugPrintAt(screen, "Doom has consumed Arkham.", screenWidth/2-80, screenHeight/2+10)
+		drawUIText(screen, "* ANCIENT ONE AWAKENS - YOU LOSE *", screenWidth/2-140, screenHeight/2-10, color.RGBA{R: 255, G: 140, B: 140, A: 255})
+		drawUIText(screen, "Doom has consumed Arkham.", screenWidth/2-80, screenHeight/2+10, color.White)
 	}
-	ebitenutil.DebugPrintAt(screen, "Press ENTER to play again • Close window to exit.", screenWidth/2-150, screenHeight/2+30)
+	drawUIText(screen, "Press ENTER to play again - Close window to exit.", screenWidth/2-150, screenHeight/2+30, color.White)
 }
 
 // updateScene evaluates current state and transitions to the appropriate scene.

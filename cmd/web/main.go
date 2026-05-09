@@ -24,6 +24,7 @@ func main() {
 	log.Printf("web: connecting to %s", serverURL)
 
 	game := ebapp.NewGame(serverURL)
+	defer game.Close()
 
 	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Arkham Horror")

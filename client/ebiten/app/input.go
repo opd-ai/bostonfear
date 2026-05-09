@@ -96,6 +96,8 @@ func (h *InputHandler) Update() {
 // handleTouchInput processes touch events and maps them to game actions.
 // Location taps trigger Move actions; HUD tap regions trigger other actions.
 func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) {
+	layout := currentTouchLayout()
+
 	// Get newly pressed touch IDs.
 	touchIDs := inpututil.JustPressedTouchIDs()
 	if len(touchIDs) == 0 {
@@ -105,6 +107,9 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 	// Process each touch.
 	for _, touchID := range touchIDs {
 		x, y := ebiten.TouchPosition(touchID)
+		if x < 0 || y < 0 || x >= screenWidth || y >= screenHeight {
+			continue
+		}
 
 		// Check if the tap is within a location rectangle.
 		for location, rect := range touchLocationRects {
@@ -120,10 +125,10 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 			}
 		}
 
-		// Check HUD tap regions (bottom strip, 550-600px).
-		if y >= 550 {
-			// Divide the HUD into 6 regions for common actions.
-			region := int(float64(x) / float64(screenWidth) * 6)
+		// Check HUD tap regions on the bottom action bar.
+		if y >= layout.actionBarTop && y < layout.actionBarBottom {
+			// Divide the bar into 6 regions. Each target is >=44x44 logical pixels.
+			region := int(float64(x) / float64(layout.width) * float64(layout.actionRegions))
 			actions := []struct {
 				action protocol.ActionType
 				target string
@@ -146,6 +151,22 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 				return
 			}
 		}
+	}
+}
+
+type touchLayout struct {
+	width           int
+	actionBarTop    int
+	actionBarBottom int
+	actionRegions   int
+}
+
+func currentTouchLayout() touchLayout {
+	return touchLayout{
+		width:           screenWidth,
+		actionBarTop:    screenHeight - 50,
+		actionBarBottom: screenHeight,
+		actionRegions:   6,
 	}
 }
 

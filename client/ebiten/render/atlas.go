@@ -72,6 +72,7 @@ var spriteCoords = [spriteCount]spriteRect{
 type Atlas struct {
 	image   *ebiten.Image
 	entries [spriteCount]spriteRect
+	sources [spriteCount]*ebiten.Image
 }
 
 // NewAtlas creates an Atlas by calling generateAtlas to build or load the
@@ -90,9 +91,16 @@ func (a *Atlas) DrawSprite(dst *ebiten.Image, id SpriteID, dx, dy, scaleX, scale
 		return
 	}
 	r := a.entries[id]
+	src := a.sources[id]
+	if src == nil && a.image != nil {
+		src = a.image.SubImage(imageRect(r.x, r.y, r.w, r.h)).(*ebiten.Image)
+		a.sources[id] = src
+	}
+	if src == nil {
+		return
+	}
 
-	src := a.image.SubImage(imageRect(r.x, r.y, r.w, r.h)).(*ebiten.Image)
-	op := &ebiten.DrawImageOptions{}
+	var op ebiten.DrawImageOptions
 	op.GeoM.Scale(scaleX, scaleY)
 	op.GeoM.Translate(dx, dy)
 	if tint != (color.RGBA{}) {
@@ -101,7 +109,7 @@ func (a *Atlas) DrawSprite(dst *ebiten.Image, id SpriteID, dx, dy, scaleX, scale
 		op.ColorScale.SetB(float32(tint.B) / 255)
 		op.ColorScale.SetA(float32(tint.A) / 255)
 	}
-	dst.DrawImage(src, op)
+	dst.DrawImage(src, &op)
 }
 
 // generateAtlas populates the atlas image from the embedded sprites.png sprite
@@ -113,6 +121,7 @@ func (a *Atlas) generateAtlas() {
 	if err == nil {
 		a.image = img
 		a.entries = spriteCoords
+		a.initSources()
 		return
 	}
 	// Log the decode failure so developers can diagnose corrupt or missing embeds.
@@ -161,6 +170,14 @@ func (a *Atlas) generatePlaceholderAtlas() {
 	}
 
 	a.image = img
+	a.initSources()
+}
+
+func (a *Atlas) initSources() {
+	for id := SpriteID(0); id < spriteCount; id++ {
+		r := a.entries[id]
+		a.sources[id] = a.image.SubImage(imageRect(r.x, r.y, r.w, r.h)).(*ebiten.Image)
+	}
 }
 
 // imageRect returns an image.Rectangle for use in SubImage calls.
