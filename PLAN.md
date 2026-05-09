@@ -131,11 +131,11 @@ Tasks:
 7. Add automated layout assertions for key breakpoints.
 
 Completion checklist:
-- [ ] Layout calculator implemented and unit tested.
-- [ ] Target resolutions render without overlap/clipping.
-- [ ] Readability thresholds met for text and icons.
-- [ ] Extreme aspect ratios handled by approved fallback strategy.
-- [ ] Layout assertions run in CI.
+- [x] Layout calculator implemented and unit tested.
+- [x] Target resolutions render without overlap/clipping.
+- [x] Readability thresholds met for text and icons.
+- [x] Extreme aspect ratios handled by approved fallback strategy.
+- [x] Layout assertions run in CI.
 
 Deliverables:
 - Layout engine/module with deterministic sizing logic.
