@@ -19,6 +19,11 @@ import (
 // It returns ErrGameFull when the session cannot register another player,
 // ctx-related errors when startup cancellation has already occurred, or network
 // I/O errors originating from conn.
+//
+// Parameter constraints:
+//   - conn must be a non-nil readable/writable connection.
+//   - reconnectToken may be empty. When non-empty, the server first attempts a
+//     slot restore; if no disconnected slot matches, a new player is registered.
 func (gs *GameServer) HandleConnection(conn net.Conn, reconnectToken string) error {
 	return gs.HandleConnectionWithContext(context.Background(), conn, reconnectToken)
 }
@@ -27,6 +32,11 @@ func (gs *GameServer) HandleConnection(conn net.Conn, reconnectToken string) err
 // is canceled.
 // It returns ErrGameFull when registration exceeds MaxPlayers, ctx.Err() when
 // canceled before startup, or connection I/O errors during session processing.
+//
+// Parameter constraints:
+//   - ctx must be non-nil.
+//   - conn must be a non-nil readable/writable connection.
+//   - reconnectToken semantics are identical to HandleConnection.
 func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.Conn, reconnectToken string) error {
 	if ctx == nil {
 		return fmt.Errorf("context is nil")
