@@ -22,6 +22,8 @@ jobs:
           sudo apt-get install -y libgl1-mesa-dev xorg-dev xvfb
       - name: go vet
         run: go vet ./...
+      - name: Check documentation coverage threshold
+        run: bash scripts/check-doc-coverage.sh
       - name: Enforce common package dependency direction
         run: bash scripts/check-common-deps.sh
       - name: go test -race

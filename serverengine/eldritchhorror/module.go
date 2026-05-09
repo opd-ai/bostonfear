@@ -29,14 +29,19 @@ func NewModule() contracts.GameModule {
 	return Module{}
 }
 
+// Key returns the unique module identifier for this game implementation.
+// Identifiers are lowercase and used in game selection routes.
 func (Module) Key() string {
 	return "eldritchhorror"
 }
 
+// Description returns the human-readable display name of this game module.
 func (Module) Description() string {
 	return "Eldritch Horror game-family placeholder module"
 }
 
+// NewEngine creates a new Eldritch Horror game server instance.
+// Currently returns an unimplemented placeholder; full implementation is pending.
 func (Module) NewEngine() (contracts.Engine, error) {
 	return runtime.NewUnimplementedEngine("eldritchhorror"), nil
 }

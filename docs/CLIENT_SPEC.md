@@ -81,8 +81,8 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 
 ### Reconnection Flow
 
-1. On launch, check `~/.bostonfear/session.json` for a saved reconnection token (source: PLAN.md Step 5 — reconnection token system)
-2. If a token is present, attempt auto-reconnect with a 60-second countdown overlay (source: GAPS.md — "Reconnection Does Not Restore Session State", 60-second grace period)
+1. On launch, check `~/.bostonfear/session.json` for a saved reconnection token (source: README.md "Connection Behaviour" — session persistence)
+2. If a token is present, attempt auto-reconnect with exponential backoff (5s initial, capped at 30s; see README.md "Connection Behaviour")
 3. On success: restore player state (location, health, sanity, clues, turn position) from the server's `gameState` message
 4. On failure or timeout: fall back to new-player flow (clear the saved token)
 
@@ -156,7 +156,7 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
   - **Neutral** (0–8): default styling
   - **Amber pulse** (9–11): warning animation
   - **Red flash** (12): game-ending alert
-- **Win progress bar**: `totalClues / requiredClues` where `requiredClues = playerCount × 4` (source: README.md Win/Lose Conditions — "4 clues per investigator"; `gameState.requiredClues` per PLAN.md Step 2)
+  - **Win progress bar**: `totalClues / requiredClues` where `requiredClues = playerCount × 4` (source: README.md "Win/Lose Conditions" — "4 clues per investigator"; implements act deck scaling per RULES.md)
 
 ### 4.5 Dice Result Overlay
 
@@ -197,7 +197,7 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 ### Disconnect Notice
 
 - "Disconnected" badge on player token when `connected == false` (source: GAPS.md — orphaned player slot stays with `Connected: false`)
-- Show 60-second grace countdown (source: PLAN.md Step 5 — 60-second reconnection grace period)
+  - Show reconnection retry state with exponential backoff indicator (source: README.md "Connection Behaviour")
 
 ---
 

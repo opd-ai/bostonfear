@@ -1,0 +1,25 @@
+name: Dependency Sweep
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: List outdated modules
+        run: |
+          set -euo pipefail
+          go list -m -u all | tee /tmp/dependency-updates.txt
+      - name: Upload dependency report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-updates
+          path: /tmp/dependency-updates.txt

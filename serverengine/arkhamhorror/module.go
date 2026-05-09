@@ -47,14 +47,22 @@ func NewModule() contracts.GameModule {
 	return Module{}
 }
 
+// Key returns the unique module identifier for this game implementation.
+// Identifiers are lowercase and used in game selection routes.
 func (Module) Key() string {
 	return "arkhamhorror"
 }
 
+// Description returns the human-readable display name of this game module.
 func (Module) Description() string {
 	return "Arkham Horror multiplayer rules engine"
 }
 
+// NewEngine creates a new Arkham Horror game server instance.
+// The returned engine manages game state, player connections, action processing,
+// and broadcasting for one active game session.
+// Call engine.Start() to begin accepting player connections.
+// Configure engine.SetAllowedOrigins() before Start() to enable CORS filtering.
 func (Module) NewEngine() (contracts.Engine, error) {
 	return serverengine.NewGameServer(), nil
 }
