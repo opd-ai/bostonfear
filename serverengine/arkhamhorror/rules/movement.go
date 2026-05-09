@@ -1,26 +1,20 @@
 package rules
 
-import "github.com/opd-ai/bostonfear/protocol"
+import (
+"strings"
 
-// locationAdjacency defines legal movement edges in the canonical Arkham board.
-var locationAdjacency = map[protocol.Location][]protocol.Location{
-	protocol.Downtown:   {protocol.University, protocol.Rivertown},
-	protocol.University: {protocol.Downtown, protocol.Northside},
-	protocol.Rivertown:  {protocol.Downtown, protocol.Northside},
-	protocol.Northside:  {protocol.University, protocol.Rivertown},
-}
+"github.com/opd-ai/bostonfear/protocol"
+"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
+)
 
 // IsAdjacent reports whether a move from one location to another is legal.
+// S5: Delegates to arkhamhorror/content module for location topology definitions.
 func IsAdjacent(from, to protocol.Location) bool {
-	adjacentLocations, exists := locationAdjacency[from]
-	if !exists {
-		return false
-	}
+// Convert protocol.Location to lowercase string for arkhamhorror module
+// (which uses lowercase location names for consistency with map adjacency data).
+fromStr := strings.ToLower(string(from))
+toStr := strings.ToLower(string(to))
 
-	for _, location := range adjacentLocations {
-		if location == to {
-			return true
-		}
-	}
-	return false
+// Check adjacency using arkhamhorror/content location rules
+return content.IsAdjacentLocation(fromStr, toStr)
 }

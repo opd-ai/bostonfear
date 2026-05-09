@@ -54,7 +54,7 @@ func (gs *GameServer) performGather(player *Player, playerID string, focusSpend 
 // Returns the dice result, doom increase, and "success"/"fail" result string.
 func (gs *GameServer) performInvestigate(player *Player, playerID string, focusSpend int) (*DiceResultMessage, int, string) {
 	const requiredSuccesses = 2
-	results, successes, tentacles := gs.rollDicePool(3, focusSpend, player)
+	results, successes, tentacles := gs.RollDicePool(3, focusSpend, player)
 	actionResult := "success"
 	if successes >= requiredSuccesses {
 		player.Resources.Clues = min(player.Resources.Clues+1, 5)
@@ -88,7 +88,7 @@ func (gs *GameServer) performCastWard(player *Player, playerID string, focusSpen
 	}
 	player.Resources.Sanity--
 	const requiredSuccesses = 3
-	results, successes, tentacles := gs.rollDicePool(3, focusSpend, player)
+	results, successes, tentacles := gs.RollDicePool(3, focusSpend, player)
 	actionResult := "success"
 	if successes >= requiredSuccesses {
 		gs.GameState().Doom = max(gs.GameState().Doom-2, 0)
@@ -127,7 +127,7 @@ func (gs *GameServer) performFocus(player *Player) {
 // Caller must hold gs.mutex.
 func (gs *GameServer) performResearch(player *Player, playerID string, focusSpend int) (*DiceResultMessage, int, string) {
 	const requiredSuccesses = 2
-	results, successes, tentacles := gs.rollDicePool(3, focusSpend, player)
+	results, successes, tentacles := gs.RollDicePool(3, focusSpend, player)
 	actionResult := "success"
 	if successes >= requiredSuccesses {
 		player.Resources.Clues = min(player.Resources.Clues+2, MaxClues)
@@ -265,12 +265,12 @@ func (gs *GameServer) performComponent(player *Player, playerID string) (string,
 // increments the doom counter. Returns an error if the player is not engaged with any enemy.
 // Caller must hold gs.mutex.
 func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResultMessage, int, string, error) {
-	engaged := gs.findEngagedEnemy(playerID)
+	engaged := gs.FindEngagedEnemy(playerID)
 	if engaged == nil {
 		return nil, 0, "fail", fmt.Errorf("player %s is not engaged with any enemy", playerID)
 	}
 
-	results, successes, tentacles := gs.rollDicePool(2, 0, player)
+	results, successes, tentacles := gs.RollDicePool(2, 0, player)
 	doomIncrease := 0
 	if tentacles > 0 {
 		doomIncrease = tentacles
@@ -308,12 +308,12 @@ func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResul
 // Returns an error when the player is not engaged with any enemy.
 // Caller must hold gs.mutex.
 func (gs *GameServer) performEvade(player *Player, playerID string) (*DiceResultMessage, int, string, error) {
-	engaged := gs.findEngagedEnemy(playerID)
+	engaged := gs.FindEngagedEnemy(playerID)
 	if engaged == nil {
 		return nil, 0, "fail", fmt.Errorf("player %s is not engaged with any enemy", playerID)
 	}
 
-	results, successes, tentacles := gs.rollDicePool(2, 0, player)
+	results, successes, tentacles := gs.RollDicePool(2, 0, player)
 	doomIncrease := 0
 	if tentacles > 0 {
 		doomIncrease = tentacles

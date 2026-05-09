@@ -10,27 +10,21 @@ import (
 	"log"
 
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/actions"
+	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/model"
 )
 
 // ValidateResources ensures resources stay within bounds.
+// S4: Uses arkhamhorror/model clamping functions to enforce resource bounds.
 // Health and Sanity may reach 0 (investigator defeat); callers must call
 // checkInvestigatorDefeat after this to handle that transition.
 func (gs *GameServer) ValidateResources(resources *Resources) {
-	type resourceField struct {
-		ptr      *int
-		min, max int
-	}
-	fields := []resourceField{
-		{&resources.Health, 0, MaxHealth},
-		{&resources.Sanity, 0, MaxSanity},
-		{&resources.Clues, 0, MaxClues},
-		{&resources.Money, 0, MaxMoney},
-		{&resources.Remnants, 0, MaxRemnants},
-		{&resources.Focus, 0, MaxFocus},
-	}
-	for _, f := range fields {
-		*f.ptr = clampInt(*f.ptr, f.min, f.max)
-	}
+	// S4 Migration: Delegate to arkhamhorror module resource bounds
+	resources.Health = model.ClampHealth(resources.Health)
+	resources.Sanity = model.ClampSanity(resources.Sanity)
+	resources.Clues = model.ClampClues(resources.Clues)
+	resources.Money = model.ClampMoney(resources.Money)
+	resources.Focus = model.ClampFocus(resources.Focus)
+	resources.Remnants = model.ClampRemnants(resources.Remnants)
 }
 
 // CheckInvestigatorDefeat transitions a player to the defeated state when their

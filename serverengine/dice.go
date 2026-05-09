@@ -4,78 +4,65 @@
 package serverengine
 
 import (
-	mathrand "math/rand"
+"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/rules"
 )
 
 // rollDice performs dice resolution with configurable difficulty.
-// Returns: dice results, successes, tentacles.
-// Each die face is equally likely: Success (1/3), Blank (1/3), Tentacle (1/3).
+// S3: Delegates to arkhamhorror/rules module for pure dice mechanics.
+// Returns: dice results (converted to serverengine DiceResult type), successes, tentacles.
 func (gs *GameServer) rollDice(numDice int) ([]DiceResult, int, int) {
-	if numDice <= 0 {
-		return []DiceResult{}, 0, 0
-	}
+// Call arkhamhorror module - owned dice logic
+dieResults, successes, tentacles := rules.RollDice(numDice)
 
-	results := make([]DiceResult, numDice)
-	successes := 0
-	tentacles := 0
+// Convert DieResult (rule's string type) to DiceResult (serverengine's string type)
+// Both are string types with identical constant values, so this is a safe cast.
+results := make([]DiceResult, len(dieResults))
+for i, dr := range dieResults {
+results[i] = DiceResult(dr)
+}
 
-	for i := 0; i < numDice; i++ {
-		roll := mathrand.Intn(3) // 0, 1, 2
-		switch roll {
-		case 0:
-			results[i] = DiceSuccess
-			successes++
-		case 1:
-			results[i] = DiceBlank
-		case 2:
-			results[i] = DiceTentacle
-			tentacles++
-		}
-	}
-
-	return results, successes, tentacles
+return results, successes, tentacles
 }
 
 // rollDicePool rolls baseDice dice plus focusSpend additional dice, deducting
 // the spent focus tokens from the player. Each focus token also grants one reroll
 // of a non-success die (AH3e §Dice Resolution — Focus Spend). Returns the final
 // results, successes, and tentacle count.
+// S3: Delegates to arkhamhorror/rules module for focus token logic.
 // Caller must hold gs.mutex; player must not be nil.
 func (gs *GameServer) RollDicePool(baseDice, focusSpend int, player *Player) ([]DiceResult, int, int) {
-	if focusSpend < 0 {
-		focusSpend = 0
-	}
-	// Clamp spend to available focus tokens.
-	if focusSpend > player.Resources.Focus {
-		focusSpend = player.Resources.Focus
-	}
-	player.Resources.Focus -= focusSpend
+// Create a wrapper that implements rules.FocusTokenSpender interface
+spender := &playerFocusSpender{player: player}
 
-	totalDice := baseDice + focusSpend
-	results, successes, tentacles := gs.rollDice(totalDice)
+// Call arkhamhorror module - owned dice logic with focus handling
+// RollDicePoolWithFocus will call spender.SpendFocus to deduct tokens
+dieResults, successes, tentacles := rules.RollDicePoolWithFocus(baseDice, focusSpend, spender)
 
-	// Each focus token spent grants one reroll of a non-success die.
-	rerollsLeft := focusSpend
-	for i := 0; i < len(results) && rerollsLeft > 0; i++ {
-		if results[i] != DiceSuccess {
-			// Reroll this die.
-			if results[i] == DiceTentacle {
-				tentacles--
-			}
-			roll := mathrand.Intn(3)
-			switch roll {
-			case 0:
-				results[i] = DiceSuccess
-				successes++
-			case 1:
-				results[i] = DiceBlank
-			case 2:
-				results[i] = DiceTentacle
-				tentacles++
-			}
-			rerollsLeft--
-		}
-	}
+// Convert DieResult to DiceResult
+results := make([]DiceResult, len(dieResults))
+for i, dr := range dieResults {
+results[i] = DiceResult(dr)
+}
 
-	return results, successes, tentacles
+return results, successes, tentacles
+}
+
+// playerFocusSpender adapts *Player to implement rules.FocusTokenSpender
+type playerFocusSpender struct {
+player *Player
+}
+
+func (pfs *playerFocusSpender) SpendFocus(amount int) int {
+if amount < 0 {
+amount = 0
+}
+if amount > pfs.player.Resources.Focus {
+amount = pfs.player.Resources.Focus
+}
+pfs.player.Resources.Focus -= amount
+return amount
+}
+
+func (pfs *playerFocusSpender) GetFocus() int {
+return pfs.player.Resources.Focus
 }
