@@ -23,25 +23,29 @@ func NewServerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Run the multiplayer game server",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runServer()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runServer(cmd)
 		},
 	}
 
 	cmd.Flags().String("game", "", "Game module key (overrides BOSTONFEAR_GAME)")
-	cmd.Flags().String("listen", ":8080", "TCP listen address")
+	cmd.Flags().String("listen", "", "TCP listen address (overrides --host/--port when set)")
+	cmd.Flags().String("host", "", "TCP listen host (default all interfaces)")
+	cmd.Flags().Int("port", 8080, "TCP listen port")
 	cmd.Flags().String("client-dir", "./client", "Path to browser client assets")
 	cmd.Flags().StringSlice("allowed-origins", nil, "Allowed WebSocket upgrade origins")
 
 	_ = viper.BindPFlag("server.game", cmd.Flags().Lookup("game"))
 	_ = viper.BindPFlag("server.listen", cmd.Flags().Lookup("listen"))
+	_ = viper.BindPFlag("server.host", cmd.Flags().Lookup("host"))
+	_ = viper.BindPFlag("server.port", cmd.Flags().Lookup("port"))
 	_ = viper.BindPFlag("server.client-dir", cmd.Flags().Lookup("client-dir"))
 	_ = viper.BindPFlag("network.allowed-origins", cmd.Flags().Lookup("allowed-origins"))
 
 	return cmd
 }
 
-func runServer() error {
+func runServer(cmd *cobra.Command) error {
 	registry := commonruntime.NewRegistry()
 	registry.MustRegister(arkhamhorror.NewModule())
 	registry.MustRegister(eldersign.NewModule())
@@ -75,9 +79,9 @@ func runServer() error {
 		return fmt.Errorf("failed to start game server: %w", err)
 	}
 
-	listenAddr := strings.TrimSpace(viper.GetString("server.listen"))
+	listenAddr := resolveListenAddress(cmd)
 	if listenAddr == "" {
-		listenAddr = ":8080"
+		return fmt.Errorf("invalid listen configuration")
 	}
 	listener, err := net.Listen("tcp", listenAddr)
 	if err != nil {
@@ -103,4 +107,40 @@ func runServer() error {
 	}
 
 	return nil
+}
+
+func resolveListenAddress(cmd *cobra.Command) string {
+	listenAddr := strings.TrimSpace(viper.GetString("server.listen"))
+	host := strings.TrimSpace(viper.GetString("server.host"))
+	port := viper.GetInt("server.port")
+	if port == 0 {
+		port = 8080
+	}
+
+	listenChanged := false
+	hostOrPortChanged := false
+	if cmd != nil {
+		listenChanged = cmd.Flags().Changed("listen")
+		hostOrPortChanged = cmd.Flags().Changed("host") || cmd.Flags().Changed("port")
+	}
+
+	// CLI precedence:
+	// 1. --listen
+	// 2. --host/--port
+	// 3. config/env server.listen
+	// 4. config/env server.host + server.port
+	if listenChanged {
+		return listenAddr
+	}
+	if !hostOrPortChanged && listenAddr != "" {
+		return listenAddr
+	}
+
+	// net.JoinHostPort with empty host produces ":port" for all interfaces.
+
+	if port <= 0 || port > 65535 {
+		return ""
+	}
+
+	return net.JoinHostPort(host, fmt.Sprintf("%d", port))
 }

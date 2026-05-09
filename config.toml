@@ -11,6 +11,15 @@
 # Options currently registered: arkhamhorror, eldersign, eldritchhorror, finalhour
 game = "arkhamhorror"
 
+# Optional full listen address. If set, it takes precedence over host/port.
+# Example: ":8080" or "127.0.0.1:8080"
+listen = ""
+
+# Optional host/port listener settings used when server.listen is not set.
+# Empty host means all interfaces.
+host = ""
+port = 8080
+
 [desktop]
 # WebSocket server URL used by the desktop client command.
 server = "ws://localhost:8080/ws"
