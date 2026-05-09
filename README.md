@@ -129,7 +129,6 @@ Each player gets 2 actions per turn:
 - Key mappings:
   - `server.game` -> module selection (fallback: `BOSTONFEAR_GAME`, default `arkhamhorror`)
   - `server.listen` -> TCP listen address (default `:8080`)
-  - `server.client-dir` -> static client assets directory (default `./client`)
   - `network.allowed-origins` -> WebSocket origin allow-list
   - `desktop.server` -> desktop client WebSocket URL (default `ws://localhost:8080/ws`)
   - `web.server` -> optional WASM client WebSocket URL override
@@ -204,7 +203,7 @@ bostonfear/
 │   │   └── main.go
 │   └── mobile/             # Mobile entrypoint (Ebitengine, alpha binding scaffolding)
 │       └── binding.go
-├── monitoring/             # HTTP health, metrics, and dashboard handlers
+├── monitoring/             # HTTP health and metrics handlers
 │   └── handlers.go
 ├── monitoringdata/         # Shared monitoring DTOs used by serverengine and monitoring
 │   └── types.go
@@ -303,13 +302,13 @@ DISPLAY=:99 go test -race -tags=requires_display ./client/ebiten/app/... ./clien
 
 ## Monitoring and Observability
 
-### Performance Dashboard
-Access the real-time performance dashboard at `http://localhost:8080/dashboard` to monitor:
-- Server uptime and connection analytics
-- Memory usage and garbage collection metrics
-- Player session tracking and reconnection rates
-- Game state health and doom level progression
-- Error rates and system alerts
+### WASM Launcher
+When running `go run . server`, open `http://localhost:8080/play` to load the WASM host page from `client/wasm/index.html`.
+
+### Monitoring Endpoints
+Use these server endpoints for operational visibility:
+- Health JSON: `http://localhost:8080/health`
+- Prometheus metrics: `http://localhost:8080/metrics`
 
 ### Prometheus Integration
 Export metrics for monitoring tools at `http://localhost:8080/metrics`:
@@ -348,7 +347,7 @@ Comprehensive health checks available at `http://localhost:8080/health`:
 - Verify WebSocket support in browser or Ebitengine client connectivity
 
 ### Game State Sync Issues
-- Refresh browser to re-establish connection (HTML/JS browser client)
+- Reload the WASM page at `/play` to re-establish the browser session
 - Restart desktop client to reconnect (Ebitengine client)
 - Check browser console or client logs for WebSocket errors
 - Verify all players are using same server instance

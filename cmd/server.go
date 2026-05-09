@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 
@@ -90,6 +91,10 @@ func runServer(cmd *cobra.Command) error {
 		WebSocket: transportws.NewWebSocketHandler(gameEngine),
 		Health:    monitoring.HealthHandler(gameEngine),
 		Metrics:   monitoring.MetricsHandler(gameEngine),
+		Play: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "client/wasm/index.html")
+		}),
+		WASMAssets: http.StripPrefix("/wasm/", http.FileServer(http.Dir("client/wasm"))),
 	}
 
 	if err := transportws.SetupServer(listener, handlers); err != nil {

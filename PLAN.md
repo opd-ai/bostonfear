@@ -153,7 +153,7 @@
 7. `ThemeAdapter`: colors, typography profiles, procedural seeds, icon overrides.
 8. Bind adapters per game module key from registry (same keys used by runtime module system).
 9. Preserve protocol compatibility by extending optional fields in shared wire types rather than introducing parallel schemas.
-10. Keep HTML client as compatibility fallback while the Ebitengine UI platform matures; maintain parity on turn clarity and action feedback.
+10. Keep WASM launcher compatibility while the Ebitengine UI platform matures; maintain parity on turn clarity and action feedback.
 11. Test strategy:
 12. Unit tests for layout transforms and adapters.
 13. Golden snapshot tests per scene/profile.

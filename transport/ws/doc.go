@@ -23,8 +23,8 @@
 //		WebSocket: NewWebSocketHandler(gameEngine),
 //		Health:    healthHandler,
 //		Metrics:   metricsHandler,
-//		Dashboard: dashboardHandler,
-//		Static:    fileHandler,
+//		Play:      playHandler,
+//		WASMAssets: wasmAssetsHandler,
 //	}
 //	SetupServer(listener, handlers) // blocks until shutdown
 package ws
