@@ -30,7 +30,7 @@
     const go = new Go();
     WebAssembly.instantiateStreaming(fetch('game.wasm'), go.importObject)
       .then(result => {
-        document.getElementById('status').textContent = 'Connected';
+        document.getElementById('status').textContent = 'Client loaded';
         go.run(result.instance);
       })
       .catch(err => {

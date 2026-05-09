@@ -44,7 +44,7 @@ Primary improvement area: state visibility.
 - [x] Surface human-readable invalid-action errors instead of only retry counts.
 - [x] Add touch parity for the full supported action set.
 - [x] Prevent touch action taps from also rotating or toggling the camera.
-- [ ] Promote player display names into the shared wire-visible UI identity.
+- [x] Promote player display names into the shared wire-visible UI identity.
 - [ ] Correct the WASM host status so it distinguishes client boot from server connectivity.
 - [ ] Upgrade text rendering and wrap long tutorial, event, and result text.
 
@@ -117,9 +117,9 @@ Primary improvement area: state visibility.
 - Fix: Add display names to the shared session/game protocol and prefer them in turn order, event log, and outcome text.
 - Validation: In a 3-player session, all visible turn and event labels should use human-readable names.
 - Remediation Checklist:
-  - [ ] Add display name to the session/join flow.
-  - [ ] Show display name with ID fallback in player panel.
-  - [ ] Use display names in event log and action results.
+  - [x] Add display name to the session/join flow.
+  - [x] Show display name with ID fallback in player panel.
+  - [x] Use display names in event log and action results.
 
 ### [MEDIUM] Browser host claims "Connected" before gameplay connectivity exists
 - File: `client/wasm/index.html`

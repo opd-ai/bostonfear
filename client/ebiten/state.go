@@ -328,6 +328,11 @@ func (s *LocalState) SetConnected(v bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Connected = v
+	if v {
+		updateHostStatus("Connected to server")
+	} else {
+		updateHostStatus("Reconnecting...")
+	}
 }
 
 // SetPlayerID stores the ID assigned to this client by the server.

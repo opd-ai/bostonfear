@@ -78,6 +78,7 @@ func (c *NetClient) SendAction(action PlayerActionMessage) {
 // It returns immediately; reconnection is handled automatically with a 5-second
 // initial delay matching the legacy JS client behaviour.
 func (c *NetClient) Connect() {
+	updateHostStatus("Connecting...")
 	go c.reconnectLoop()
 }
 
