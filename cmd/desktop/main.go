@@ -10,26 +10,14 @@
 package main
 
 import (
-	"flag"
 	"log"
+	"os"
 
-	"github.com/hajimehoshi/ebiten/v2"
-	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
+	rootcmd "github.com/opd-ai/bostonfear/cmd"
 )
 
 func main() {
-	serverURL := flag.String("server", "ws://localhost:8080/ws",
-		"WebSocket server URL (e.g. ws://host:port/ws)")
-	flag.Parse()
-
-	game := ebapp.NewGame(*serverURL)
-	defer game.Close()
-
-	ebiten.SetWindowSize(800, 600)
-	ebiten.SetWindowTitle("Arkham Horror — Ebitengine Client")
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-
-	if err := ebiten.RunGame(game); err != nil {
+	if err := rootcmd.ExecuteWithDefaultSubcommand("desktop", os.Args[1:]); err != nil {
 		log.Fatalf("RunGame: %v", err)
 	}
 }

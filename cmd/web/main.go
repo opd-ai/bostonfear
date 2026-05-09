@@ -11,44 +11,14 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"syscall/js"
+	"os"
 
-	"github.com/hajimehoshi/ebiten/v2"
-	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
+	rootcmd "github.com/opd-ai/bostonfear/cmd"
 )
 
 func main() {
-	serverURL := resolveServerURL()
-	log.Printf("web: connecting to %s", serverURL)
-
-	game := ebapp.NewGame(serverURL)
-	defer game.Close()
-
-	ebiten.SetWindowSize(800, 600)
-	ebiten.SetWindowTitle("Arkham Horror")
-
-	if err := ebiten.RunGame(game); err != nil {
+	if err := rootcmd.ExecuteWithDefaultSubcommand("web", os.Args[1:]); err != nil {
 		log.Fatalf("RunGame: %v", err)
 	}
-}
-
-// resolveServerURL reads the server URL from JavaScript or derives it from
-// the page location so the WASM binary works without a hardcoded address.
-func resolveServerURL() string {
-	// Try the optional page-level override first.
-	global := js.Global()
-	if v := global.Get("__serverURL"); v.Type() == js.TypeString {
-		return v.String()
-	}
-
-	// Derive ws:// or wss:// from window.location.
-	loc := global.Get("window").Get("location")
-	proto := "ws"
-	if loc.Get("protocol").String() == "https:" {
-		proto = "wss"
-	}
-	host := loc.Get("host").String()
-	return fmt.Sprintf("%s://%s/ws", proto, host)
 }

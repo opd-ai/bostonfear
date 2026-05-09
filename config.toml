@@ -1,0 +1,25 @@
+# BostonFear configuration template (TOML)
+# Required fields:
+# - server.game (if omitted defaults to "arkhamhorror")
+# Optional fields:
+# - desktop.server
+# - web.server
+# - network.allowed_origins
+
+[server]
+# Game module key loaded by the server command.
+# Options currently registered: arkhamhorror, eldersign, eldritchhorror, finalhour
+game = "arkhamhorror"
+
+[desktop]
+# WebSocket server URL used by the desktop client command.
+server = "ws://localhost:8080/ws"
+
+[web]
+# Optional override for WASM client command. If empty, browser origin is used.
+server = ""
+
+[network]
+# Optional allow-list used by the server to validate WebSocket upgrade origins.
+# Keep empty to allow any origin for local development.
+allowed_origins = []

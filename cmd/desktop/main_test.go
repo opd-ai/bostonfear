@@ -11,24 +11,23 @@
 package main
 
 import (
-	"flag"
 	"testing"
 
 	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
+	rootcmd "github.com/opd-ai/bostonfear/cmd"
 )
 
 // TestDefaultServerURL verifies that the -server flag defaults to the documented
 // localhost WebSocket address.
 func TestDefaultServerURL(t *testing.T) {
 	const want = "ws://localhost:8080/ws"
-	// Inspect the flag default by registering a fresh flag set.
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	serverURL := fs.String("server", want, "")
-	if err := fs.Parse(nil); err != nil {
-		t.Fatalf("flag parse: %v", err)
+	cmd := rootcmd.NewDesktopCommand()
+	flag := cmd.Flags().Lookup("server")
+	if flag == nil {
+		t.Fatal("expected -server flag to be registered")
 	}
-	if *serverURL != want {
-		t.Errorf("default server URL = %q, want %q", *serverURL, want)
+	if flag.DefValue != want {
+		t.Errorf("default server URL = %q, want %q", flag.DefValue, want)
 	}
 }
 
