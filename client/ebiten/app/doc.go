@@ -22,9 +22,14 @@
 // Input Handling:
 //
 // InputHandler listens for:
-//   - Keyboard: Arrow keys (movement), Space (action confirm), Esc (cancel)
-//   - Mouse: Click on action buttons, drag to select targets
+//   - Keyboard: 1-4 (move), G (gather), I (investigate), W (ward), F (focus),
+//     R (research), T (trade), C (component), A (attack), E (evade), X (close gate)
+//   - Keyboard focus: Tab/Shift+Tab cycles focus; Enter activates focused action
+//   - Mouse: Left click on action/location hitboxes (shared dispatch path)
 //   - Touch: Multi-pointer support on mobile; safe areas for notch/homebaroffsets
+//
+// Keyboard, mouse, and touch all route through the same action dispatcher and
+// debounce window to avoid duplicate submissions.
 //
 // Inputs are translated to PlayerActionMessage and sent via the WebSocket connection
 // (client/ebiten/net.go).

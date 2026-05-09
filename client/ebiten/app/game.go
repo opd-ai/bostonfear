@@ -665,6 +665,13 @@ func (g *Game) drawActionPanelSummary(screen *ebiten.Image, gs ebclient.GameStat
 	drawUIText(screen, trimToWidth(g.invalidActionHint(metrics.LastInvalidReason), 350), panelX, panelY,
 		color.RGBA{R: 255, G: 220, B: 180, A: 255})
 	panelY += 12
+	focusHint := strings.TrimSpace(g.state.FocusedActionHint())
+	if focusHint == "" {
+		focusHint = "none"
+	}
+	drawUIText(screen, "Focus: "+focusHint+" (Tab/Shift+Tab + Enter)", panelX, panelY,
+		color.RGBA{R: 200, G: 220, B: 255, A: 255})
+	panelY += 12
 	drawUIText(screen, g.cameraStatusText(), panelX, panelY, color.RGBA{R: 200, G: 220, B: 255, A: 255})
 }
 

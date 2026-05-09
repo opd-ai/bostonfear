@@ -13,6 +13,7 @@ package app
 import (
 	"testing"
 
+	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/client/ebiten/ui"
 )
 
@@ -123,5 +124,32 @@ func TestBuildTouchInputMapper_AllHitBoxesAccessible(t *testing.T) {
 	inaccessible := mapper.InaccessibleHitBoxes()
 	if len(inaccessible) != 0 {
 		t.Fatalf("found %d inaccessible hitboxes; all touch targets must be >=44px", len(inaccessible))
+	}
+}
+
+func TestInputParity_KeyboardActionsCoveredByTouchOrSpecialCase(t *testing.T) {
+	keyboardActions := make(map[string]bool)
+	for _, kb := range keyBindings {
+		keyboardActions[kb.action] = true
+	}
+
+	for action := range keyboardActions {
+		if action == "move" || action == "trade" {
+			continue
+		}
+		if _, ok := touchActionMap[action]; !ok {
+			t.Fatalf("keyboard action %q has no shared touch/mouse action mapping", action)
+		}
+	}
+}
+
+func TestNewInputHandler_InitializesFocusHint(t *testing.T) {
+	state := ebclient.NewLocalState("ws://localhost:8080/ws")
+	h := NewInputHandler(nil, state)
+	if h == nil {
+		t.Fatal("NewInputHandler returned nil")
+	}
+	if got := state.FocusedActionHint(); got == "" {
+		t.Fatal("expected initial focused action hint to be set")
 	}
 }

@@ -162,6 +162,7 @@ type LocalState struct {
 	validActionsSent     int
 	invalidActionRetries int
 	lastInvalidReason    string
+	focusedActionHint    string
 }
 
 // NewLocalState creates an initialised LocalState ready for use.
@@ -224,6 +225,21 @@ func (s *LocalState) UXMetrics() UXMetricsSnapshot {
 		out.TimeToFirstValidAction = s.firstValidActionAt.Sub(s.sessionStartedAt)
 	}
 	return out
+}
+
+// SetFocusedActionHint stores the currently focused action/location hint.
+func (s *LocalState) SetFocusedActionHint(hint string) {
+	s.mu.Lock()
+	s.focusedActionHint = strings.TrimSpace(hint)
+	s.mu.Unlock()
+}
+
+// FocusedActionHint returns the current focused action/location hint.
+func (s *LocalState) FocusedActionHint() string {
+	s.mu.RLock()
+	hint := s.focusedActionHint
+	s.mu.RUnlock()
+	return hint
 }
 
 // ConnectFormSnapshot returns the address and display-name values for SceneConnect.

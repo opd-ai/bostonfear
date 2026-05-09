@@ -2,6 +2,7 @@ package app
 
 import (
 	"image"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -9,6 +10,20 @@ import (
 	"github.com/opd-ai/bostonfear/client/ebiten/ui"
 	"github.com/opd-ai/bostonfear/protocol"
 )
+
+const actionDebounceWindow = 120 * time.Millisecond
+
+var touchActionMap = map[string]protocol.ActionType{
+	"gather":      protocol.ActionGather,
+	"investigate": protocol.ActionInvestigate,
+	"ward":        protocol.ActionCastWard,
+	"focus":       protocol.ActionFocus,
+	"research":    protocol.ActionResearch,
+	"closegate":   protocol.ActionCloseGate,
+	"component":   protocol.ActionComponent,
+	"attack":      protocol.ActionAttack,
+	"evade":       protocol.ActionEvade,
+}
 
 // actionKey maps a keyboard key to the action string sent to the server.
 type actionKey struct {
@@ -42,19 +57,35 @@ var keyBindings = []actionKey{
 // InputHandler processes keyboard input each frame and sends actions to the server.
 // It is safe for use from the Ebitengine Update loop (single goroutine).
 type InputHandler struct {
-	net   *ebclient.NetClient
-	state *ebclient.LocalState
+	net              *ebclient.NetClient
+	state            *ebclient.LocalState
+	focusOrder       []string
+	focusIndex       int
+	lastActionSentAt time.Time
 }
 
 // NewInputHandler creates an InputHandler wired to the given client and state.
 func NewInputHandler(net *ebclient.NetClient, state *ebclient.LocalState) *InputHandler {
-	return &InputHandler{net: net, state: state}
+	h := &InputHandler{
+		net:   net,
+		state: state,
+		focusOrder: []string{
+			"Downtown", "University", "Rivertown", "Northside",
+			"gather", "investigate", "ward", "focus", "research", "trade", "component", "attack", "evade", "closegate",
+		},
+	}
+	if state != nil && len(h.focusOrder) > 0 {
+		state.SetFocusedActionHint(h.focusOrder[0])
+	}
+	return h
 }
 
 // Update is called once per frame by the game loop.
 // It checks each bound key and, if just pressed, queues the corresponding action.
 // It also checks for touch input on mobile platforms.
 func (h *InputHandler) Update() {
+	h.handleFocusNavigation()
+
 	gs, playerID, connected := h.state.Snapshot()
 	if !connected || gs.CurrentPlayer != playerID {
 		// Count blocked retries when the player attempts input out of turn/disconnected.
@@ -63,6 +94,8 @@ func (h *InputHandler) Update() {
 		}
 		return
 	}
+
+	h.handleFocusedActionActivate(gs, playerID)
 
 	// Handle keyboard input.
 	for _, kb := range keyBindings {
@@ -78,8 +111,7 @@ func (h *InputHandler) Update() {
 				}
 			}
 
-			h.state.RecordValidActionSent()
-			h.net.SendAction(ebclient.PlayerActionMessage{
+			h.sendPlayerAction(ebclient.PlayerActionMessage{
 				Type:     "playerAction",
 				PlayerID: playerID,
 				Action:   protocol.ActionType(kb.action),
@@ -88,8 +120,55 @@ func (h *InputHandler) Update() {
 		}
 	}
 
+	// Handle mouse input on desktop/browser.
+	h.handleMouseInput(gs, playerID)
+
 	// Handle touch input on mobile platforms.
 	h.handleTouchInput(gs, playerID)
+}
+
+func (h *InputHandler) handleFocusNavigation() {
+	if len(h.focusOrder) == 0 || h.state == nil {
+		return
+	}
+	if !inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		return
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyShift) {
+		h.focusIndex = (h.focusIndex - 1 + len(h.focusOrder)) % len(h.focusOrder)
+	} else {
+		h.focusIndex = (h.focusIndex + 1) % len(h.focusOrder)
+	}
+	h.state.SetFocusedActionHint(h.focusOrder[h.focusIndex])
+}
+
+func (h *InputHandler) handleFocusedActionActivate(gs ebclient.GameState, playerID string) {
+	if !inpututil.IsKeyJustPressed(ebiten.KeyEnter) || len(h.focusOrder) == 0 {
+		return
+	}
+	id := h.focusOrder[h.focusIndex]
+	_ = h.dispatchTouchHitBox(gs, playerID, id)
+}
+
+func (h *InputHandler) handleMouseInput(gs ebclient.GameState, playerID string) {
+	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return
+	}
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth,
+		PhysicalHeight: screenHeight,
+		Scale:          1.0,
+		SafeArea:       ui.SafeArea{},
+	}
+	mapper := buildTouchInputMapper(vp)
+	x, y := ebiten.CursorPosition()
+	hitBox := mapper.HitTest(float64(x), float64(y))
+	if hitBox == nil {
+		return
+	}
+	_ = h.dispatchTouchHitBox(gs, playerID, hitBox.ID)
 }
 
 // handleTouchInput processes touch events and maps them to game actions using hit box registry.
@@ -143,8 +222,7 @@ func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id s
 			h.state.RecordInvalidActionRetry("trade-no-colocated-player")
 			return true
 		}
-		h.state.RecordValidActionSent()
-		h.net.SendAction(ebclient.PlayerActionMessage{
+		h.sendPlayerAction(ebclient.PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: playerID,
 			Action:   protocol.ActionTrade,
@@ -155,8 +233,7 @@ func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id s
 
 	switch protocol.Location(id) {
 	case protocol.Downtown, protocol.University, protocol.Rivertown, protocol.Northside:
-		h.state.RecordValidActionSent()
-		h.net.SendAction(ebclient.PlayerActionMessage{
+		h.sendPlayerAction(ebclient.PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: playerID,
 			Action:   protocol.ActionMove,
@@ -165,21 +242,8 @@ func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id s
 		return true
 	}
 
-	actionMap := map[string]protocol.ActionType{
-		"gather":      protocol.ActionGather,
-		"investigate": protocol.ActionInvestigate,
-		"ward":        protocol.ActionCastWard,
-		"focus":       protocol.ActionFocus,
-		"research":    protocol.ActionResearch,
-		"closegate":   protocol.ActionCloseGate,
-		"component":   protocol.ActionComponent,
-		"attack":      protocol.ActionAttack,
-		"evade":       protocol.ActionEvade,
-	}
-
-	if action, exists := actionMap[id]; exists {
-		h.state.RecordValidActionSent()
-		h.net.SendAction(ebclient.PlayerActionMessage{
+	if action, exists := touchActionMap[id]; exists {
+		h.sendPlayerAction(ebclient.PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: playerID,
 			Action:   action,
@@ -188,6 +252,20 @@ func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id s
 		return true
 	}
 	return false
+}
+
+func (h *InputHandler) sendPlayerAction(msg ebclient.PlayerActionMessage) {
+	if h.state == nil || h.net == nil {
+		return
+	}
+	now := time.Now()
+	if !h.lastActionSentAt.IsZero() && now.Sub(h.lastActionSentAt) < actionDebounceWindow {
+		h.state.RecordInvalidActionRetry("input-debounced")
+		return
+	}
+	h.lastActionSentAt = now
+	h.state.RecordValidActionSent()
+	h.net.SendAction(msg)
 }
 
 func buildTouchInputMapper(vp *ui.Viewport) *ui.InputMapper {
@@ -264,6 +342,12 @@ func hasActionInputAttempted() bool {
 		if inpututil.IsKeyJustPressed(kb.key) {
 			return true
 		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		return true
+	}
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return true
 	}
 	return len(inpututil.JustPressedTouchIDs()) > 0
 }
