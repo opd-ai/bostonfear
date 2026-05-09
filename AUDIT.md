@@ -49,7 +49,7 @@
 
 ### CRITICAL
 
-- [ ] **Missing context.Context for I/O-bound operations** — `serverengine.GameServer.Start()` [game_server.go:168], `GameServer.HandleConnection()` [connection.go:24], `transport/ws.SetupServer()` [server.go:13] — Methods that perform network I/O (WebSocket reads, message processing) lack `context.Context` parameter, preventing graceful shutdown, cancellation, and timeout enforcement. — **Consumer Impact:** Operators cannot implement request timeouts, graceful shutdown with deadline, or cancellation propagation from higher-level contexts. — **Remediation:** 
+- [x] **Missing context.Context for I/O-bound operations** — `serverengine.GameServer.Start()` [game_server.go:168], `GameServer.HandleConnection()` [connection.go:24], `transport/ws.SetupServer()` [server.go:13] — Methods that perform network I/O (WebSocket reads, message processing) lack `context.Context` parameter, preventing graceful shutdown, cancellation, and timeout enforcement. — **Consumer Impact:** Operators cannot implement request timeouts, graceful shutdown with deadline, or cancellation propagation from higher-level contexts. — **Remediation:** 
   1. Add `ctx context.Context` as first parameter to `Start()`, `HandleConnection()`, and `SetupServer()`  
   2. In `broadcastHandler()`, respect context cancellation: `select { case <-ctx.Done(): return, case payload := <-gs.broadcastCh: ... }`  
   3. Pass context to `conn.SetReadDeadline()`, `conn.SetWriteDeadline()` derived from `ctx`  

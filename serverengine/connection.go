@@ -3,6 +3,7 @@
 package serverengine
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -16,6 +17,32 @@ import (
 // HandleConnection manages a player session using only net.Conn so transports
 // can adapt websocket, tcp, or in-process connections without engine changes.
 func (gs *GameServer) HandleConnection(conn net.Conn, reconnectToken string) error {
+	return gs.HandleConnectionWithContext(context.Background(), conn, reconnectToken)
+}
+
+// HandleConnectionWithContext manages a player session and exits early when ctx
+// is canceled.
+func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.Conn, reconnectToken string) error {
+	if ctx == nil {
+		return fmt.Errorf("context is nil")
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
+
+	defer close(done)
 	defer func() {
 		if err := conn.Close(); err != nil {
 			log.Printf("Error closing connection: %v", err)
@@ -37,7 +64,7 @@ func (gs *GameServer) HandleConnection(conn net.Conn, reconnectToken string) err
 			log.Printf("Player %s reconnected via token", restoredID)
 			gs.sendConnectionStatus(conn, restoredID)
 			gs.broadcastGameState()
-			gs.runMessageLoop(conn, restoredID)
+			gs.runMessageLoop(ctx, conn, restoredID)
 			gs.handlePlayerDisconnect(restoredID, addrStr)
 			return nil
 		}
@@ -51,7 +78,7 @@ func (gs *GameServer) HandleConnection(conn net.Conn, reconnectToken string) err
 
 	gs.sendConnectionStatus(conn, playerID)
 	gs.broadcastGameState()
-	gs.runMessageLoop(conn, playerID)
+	gs.runMessageLoop(ctx, conn, playerID)
 
 	gs.handlePlayerDisconnect(playerID, addrStr)
 	return nil
@@ -150,15 +177,24 @@ func (gs *GameServer) sendConnectionStatus(conn net.Conn, playerID string) {
 }
 
 // runMessageLoop reads incoming messages until the connection closes or errors.
-func (gs *GameServer) runMessageLoop(conn net.Conn, playerID string) {
+func (gs *GameServer) runMessageLoop(ctx context.Context, conn net.Conn, playerID string) {
 	buf := make([]byte, 64*1024)
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
 			log.Printf("Failed to set read deadline: %v", err)
 		}
 
 		n, err := conn.Read(buf)
 		if err != nil {
+			if ctx.Err() != nil {
+				break
+			}
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				log.Printf("Connection timeout for player %s", playerID)
 				gs.mutex.Lock()
@@ -178,7 +214,7 @@ func (gs *GameServer) runMessageLoop(conn net.Conn, playerID string) {
 		copy(messageData, buf[:n])
 
 		receiveTime := time.Now()
-		if !gs.handleIncomingMessage(messageData, playerID, receiveTime) {
+		if !gs.handleIncomingMessage(ctx, messageData, playerID, receiveTime) {
 			break
 		}
 	}
@@ -186,7 +222,7 @@ func (gs *GameServer) runMessageLoop(conn net.Conn, playerID string) {
 
 // handleIncomingMessage parses and dispatches a single raw WebSocket message.
 // Returns false only when the caller should stop the message loop.
-func (gs *GameServer) handleIncomingMessage(data []byte, playerID string, receiveTime time.Time) bool {
+func (gs *GameServer) handleIncomingMessage(ctx context.Context, data []byte, playerID string, receiveTime time.Time) bool {
 	var actionMsg PlayerActionMessage
 	if err := json.Unmarshal(data, &actionMsg); err != nil {
 		var pingMsg PingMessage
@@ -206,8 +242,14 @@ func (gs *GameServer) handleIncomingMessage(data []byte, playerID string, receiv
 	}
 
 	gs.updateConnectionQuality(playerID, receiveTime)
-	gs.actionCh <- actionMsg
-	return true
+	select {
+	case gs.actionCh <- actionMsg:
+		return true
+	case <-ctx.Done():
+		return false
+	case <-gs.shutdownCh:
+		return false
+	}
 }
 
 // handlePlayerDisconnect routes disconnect processing through the core handler.
