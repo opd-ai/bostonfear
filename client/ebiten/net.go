@@ -24,8 +24,9 @@ type PlayerActionMessage = protocol.PlayerActionMessage
 // It reads incoming messages, routes them to LocalState, and exposes a channel
 // for the game loop to queue outbound player actions.
 type NetClient struct {
-	state     *LocalState
-	actionsCh chan PlayerActionMessage
+	state       *LocalState
+	actionsCh   chan PlayerActionMessage
+	reconnectCh chan struct{} // closed/sent to trigger an immediate redial
 
 	// dialer is the gorilla/websocket dialer used to open connections.
 	dialer *websocket.Dialer
@@ -35,9 +36,20 @@ type NetClient struct {
 // The returned client is not yet connected; call Connect to start.
 func NewNetClient(state *LocalState) *NetClient {
 	return &NetClient{
-		state:     state,
-		actionsCh: make(chan PlayerActionMessage, 16),
-		dialer:    websocket.DefaultDialer,
+		state:       state,
+		actionsCh:   make(chan PlayerActionMessage, 16),
+		reconnectCh: make(chan struct{}, 1),
+		dialer:      websocket.DefaultDialer,
+	}
+}
+
+// Reconnect aborts any in-progress backoff sleep and immediately redials,
+// using whatever ServerURL is currently set on the LocalState.
+// This is called by SceneConnect when the user submits a new server address.
+func (c *NetClient) Reconnect() {
+	select {
+	case c.reconnectCh <- struct{}{}:
+	default: // signal already pending; no-op
 	}
 }
 
@@ -62,11 +74,19 @@ func (c *NetClient) Connect() {
 // Initial delay is 5 seconds; subsequent delays double up to 30 seconds.
 // If a reconnect token is available it is appended as a query parameter so
 // the server can restore the previous player slot.
+// Sending on reconnectCh (via Reconnect()) aborts the current backoff and
+// redials immediately with the current ServerURL.
 func (c *NetClient) reconnectLoop() {
 	delay := 5 * time.Second
 	const maxDelay = 30 * time.Second
 
 	for {
+		// Drain any stale reconnect signal before dialing.
+		select {
+		case <-c.reconnectCh:
+		default:
+		}
+
 		dialURL := c.state.ServerURL
 		if tok := c.state.GetReconnectToken(); tok != "" {
 			dialURL = dialURL + "?token=" + tok
@@ -76,9 +96,15 @@ func (c *NetClient) reconnectLoop() {
 		if err != nil {
 			log.Printf("net: dial %s failed: %v — retrying in %s", c.state.ServerURL, err, delay)
 			c.state.SetConnected(false)
-			time.Sleep(delay)
-			if delay < maxDelay {
+			// Wait for either the backoff timer or an explicit reconnect signal.
+			select {
+			case <-time.After(delay):
 				delay *= 2
+				if delay > maxDelay {
+					delay = maxDelay
+				}
+			case <-c.reconnectCh:
+				delay = 5 * time.Second // reset on manual reconnect
 			}
 			continue
 		}
@@ -92,9 +118,15 @@ func (c *NetClient) reconnectLoop() {
 
 		c.state.SetConnected(false)
 		log.Printf("net: connection lost — retrying in %s", delay)
-		time.Sleep(delay)
-		if delay < maxDelay {
+		// Wait for either the backoff timer or an explicit reconnect signal.
+		select {
+		case <-time.After(delay):
 			delay *= 2
+			if delay > maxDelay {
+				delay = maxDelay
+			}
+		case <-c.reconnectCh:
+			delay = 5 * time.Second
 		}
 	}
 }

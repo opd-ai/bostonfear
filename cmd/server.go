@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"net/http"
@@ -97,7 +98,7 @@ func runServer(cmd *cobra.Command) error {
 		Play: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
 			case "/":
-				http.ServeFile(w, r, wasmDir+"/index.html")
+				serveIndexWithServerURL(w, r, wasmDir)
 			case "/favicon.ico":
 				// Avoid noisy browser 404s when no favicon is bundled.
 				w.WriteHeader(http.StatusNoContent)
@@ -154,6 +155,49 @@ func resolveListenAddress(cmd *cobra.Command) string {
 	}
 
 	return net.JoinHostPort(host, fmt.Sprintf("%d", port))
+}
+
+// serveIndexWithServerURL reads index.html and injects a window.__serverURL global
+// so the WASM client always dials the WebSocket on the same host:port it was served
+// from, preventing the port-mismatch that occurs when a separate file server is used.
+func serveIndexWithServerURL(w http.ResponseWriter, r *http.Request, wasmDir string) {
+	data, err := os.ReadFile(wasmDir + "/index.html")
+	if err != nil {
+		http.Error(w, "index.html not found", http.StatusNotFound)
+		return
+	}
+
+	proto := "ws"
+	if r.TLS != nil {
+		proto = "wss"
+	}
+	// sanitizeHost ensures only valid host:port characters are embedded in the script.
+	host := sanitizeHost(r.Host)
+	injection := fmt.Sprintf(`<script>window.__serverURL="%s://%s/ws";</script>`+"\n  ", proto, host)
+
+	// Inject before the wasm_exec.js <script> tag so __serverURL is defined first.
+	data = bytes.Replace(
+		data,
+		[]byte(`<script src="wasm_exec.js">`),
+		append([]byte(injection), []byte(`<script src="wasm_exec.js">`)...),
+		1,
+	)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(data)
+}
+
+// sanitizeHost strips characters that are not valid in a host:port value
+// to prevent injection into the inline script block.
+func sanitizeHost(host string) string {
+	var b strings.Builder
+	for _, ch := range host {
+		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+			(ch >= '0' && ch <= '9') || ch == '.' || ch == ':' || ch == '-' || ch == '[' || ch == ']' {
+			b.WriteRune(ch)
+		}
+	}
+	return b.String()
 }
 
 func serveWASMExecJS(w http.ResponseWriter, r *http.Request, wasmDir string) {
