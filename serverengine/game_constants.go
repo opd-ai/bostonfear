@@ -169,7 +169,6 @@ func defaultAgendaDeck() []AgendaCard {
 	}
 }
 
-// Moved from: main.go
 var locationAdjacency = map[Location][]Location{
 	Downtown:   {University, Rivertown},
 	University: {Downtown, Northside},

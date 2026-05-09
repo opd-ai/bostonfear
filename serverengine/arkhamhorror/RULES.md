@@ -1,6 +1,6 @@
 # Arkham Horror Rules Ownership
 
-This document defines rules owned by the Arkham Horror module and serves as a migration target for behavior currently implemented in legacy serverengine files.
+This document defines rules owned by the Arkham Horror module and is the canonical source for Arkham-specific runtime behavior.
 
 ## Core Invariants
 

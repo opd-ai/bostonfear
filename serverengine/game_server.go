@@ -185,8 +185,7 @@ func (gs *GameServer) writeToConn(conn net.Conn, addr string, data []byte) error
 	return err
 }
 
-// Start initializes the game server with goroutines for concurrent handling
-// Moved from: main.go
+// Start initializes the game server with goroutines for concurrent handling.
 func (gs *GameServer) Start() error {
 	// Start broadcast goroutine
 	go gs.broadcastHandler()
@@ -199,7 +198,6 @@ func (gs *GameServer) Start() error {
 	return nil
 }
 
-// Moved from: main.go
 func (gs *GameServer) validateMovement(from, to Location) bool {
 	adjacentLocations, exists := locationAdjacency[from]
 	if !exists {

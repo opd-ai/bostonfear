@@ -136,8 +136,8 @@ for local development. For production deployments, restrict upgrades to your
 specific domain(s):
 
 ```go
-// In main.go, after NewGameServer():
-gameServer.SetAllowedOrigins([]string{
+// In cmd/server/main.go, after module.NewEngine():
+gameEngine.SetAllowedOrigins([]string{
     "mygame.example.com",   // production domain
     "localhost:8080",        // keep for local testing
 })

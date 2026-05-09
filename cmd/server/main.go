@@ -20,8 +20,7 @@ import (
 // clientDir is the path to the client assets directory, relative to the repository root.
 const clientDir = "./client"
 
-// Main server setup using net.Listener interface
-// Moved from: main.go (original location)
+// Main server setup using net.Listener interface.
 func main() {
 	if err := run(); err != nil {
 		log.Fatalf("Server startup error: %v", err)
