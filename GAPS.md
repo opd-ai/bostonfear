@@ -267,6 +267,80 @@
 
 ---
 
+## UI/UX Clarity Gaps — May 9, 2026
+
+### Summary
+
+The current browser-playable client has a working scene flow and baseline tutorial, but the live game screen still under-communicates core mechanics. The most important gaps are board readability, action discoverability, dice/result clarity, and touch-input parity.
+
+### Priority Gaps
+
+- **Board Readability Gap**
+   - Issue: The board does not clearly label locations or visualize legal adjacency.
+   - Impact: New players cannot reliably infer where they are or where they can move.
+   - Concise Remediation Checklist:
+      - [ ] Label every location directly on the board.
+      - [ ] Highlight the active player location.
+      - [ ] Show legal adjacent destinations for the active player.
+
+- **Action Discoverability Gap**
+   - Issue: The HUD shows a static, incomplete controls legend rather than current legal actions.
+   - Impact: Players cannot tell what is available now, what costs resources, or why an action is blocked.
+   - Concise Remediation Checklist:
+      - [ ] Replace static hints with a dynamic available-actions panel.
+      - [ ] Show disabled states and disable reasons.
+      - [ ] Show resource costs and remaining actions per turn.
+
+- **Dice and Outcome Feedback Gap**
+   - Issue: Results omit explicit dice faces and success thresholds.
+   - Impact: Investigate and ward outcomes are hard to trust or learn from.
+   - Concise Remediation Checklist:
+      - [ ] Render success, blank, and tentacle outcomes explicitly.
+      - [ ] Show achieved versus required successes.
+      - [ ] Attribute doom changes to tentacle results in the same feedback block.
+
+- **Invalid Action Recovery Gap**
+   - Issue: The client records invalid-action reasons but mostly exposes only a retry counter.
+   - Impact: Players do not know how to recover from local action failures.
+   - Concise Remediation Checklist:
+      - [ ] Show the last invalid reason in player-readable text.
+      - [ ] Pair each invalid message with a recovery hint.
+      - [ ] Distinguish local validation failures from server-side rejection.
+
+- **Touch Parity Gap**
+   - Issue: Touch does not expose the full supported action set and may overlap with camera gestures.
+   - Impact: Touch-first players have an inconsistent and potentially unstable control scheme.
+   - Concise Remediation Checklist:
+      - [ ] Add touch access to all supported actions.
+      - [ ] Prevent action taps from triggering camera gestures.
+      - [ ] Re-verify minimum tap target sizes after expanding the action surface.
+
+- **Player Identity Gap**
+   - Issue: Display names are captured locally but not promoted into shared multiplayer UI.
+   - Impact: Turn order and event history use opaque player IDs.
+   - Concise Remediation Checklist:
+      - [ ] Send display names through the session/game protocol.
+      - [ ] Prefer display names in player panel and event log.
+      - [ ] Keep ID fallback only for debugging and recovery cases.
+
+- **Connection-State Trust Gap**
+   - Issue: The WASM host page reports `Connected` before gameplay connectivity exists.
+   - Impact: Players can misread client boot as game-server readiness.
+   - Concise Remediation Checklist:
+      - [ ] Distinguish `client loaded` from `server connected`.
+      - [ ] Mirror actual connection and reconnect state from the runtime client.
+      - [ ] Keep host-level and in-game status text consistent.
+
+- **Readability Gap**
+   - Issue: Small bitmap text and truncation reduce clarity in onboarding, logs, and results.
+   - Impact: Players can miss or misread important state changes.
+   - Concise Remediation Checklist:
+      - [ ] Replace the small bitmap face for primary HUD text.
+      - [ ] Wrap long strings instead of trimming them.
+      - [ ] Recheck readability at 800×600 and on small touch screens.
+
+---
+
 ## SessionEngine Interface Size & Role Clarity
 
 - **API Element**: `transport/ws.SessionEngine` interface
