@@ -23,158 +23,128 @@
 ## Workstreams
 
 ### Workstream 1: Multi-Resolution and Orientation Support
-- Problem statement:
-- The current clients are effectively fixed-layout (800x600 assumptions in board coordinates, touch regions, and window setup), which limits readability and control quality across device classes.
-- Proposed changes:
-- Introduce a resolution/orientation profile system with named profiles: phone portrait, phone landscape, tablet, desktop 16:9, desktop ultrawide.
-- Replace absolute UI placement with anchor-based layout primitives for HUD, board, and action rail.
-- Add safe-area handling and dynamic typography scaling.
-- Normalize input hit-testing against logical coordinate transforms.
-- Reusable component candidates:
-- `ui/layout`: viewport model, anchors, constraints, safe-area abstraction.
-- `ui/scaling`: device profile resolver and text/icon scale curves.
-- `ui/inputmap`: screen-to-world transform and hitbox registry.
-- Dependencies:
-- Existing scene system in [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go).
-- Input routing in [client/ebiten/app/input.go](client/ebiten/app/input.go).
-- Canvas resize behavior in [client/game.js](client/game.js).
-- Acceptance criteria:
-- Portrait, landscape, and widescreen snapshots show no clipped or overlapping critical UI.
-- All action targets meet minimum touch size.
-- Turn, doom, and resources remain visible at all supported sizes.
-- Effort estimate: M
-- Verification steps:
-- Add screenshot matrix test harness for profile set.
-- Manual pass on desktop + simulated mobile + WASM viewport resize.
-- Track layout fallback warnings and verify zero critical collisions.
+- Remediation checklist:
+- [ ] Problem statement: Current clients are effectively fixed-layout (800x600 assumptions in board coordinates, touch regions, and window setup), which limits readability and control quality across device classes.
+- [ ] Proposed changes: Introduce a resolution/orientation profile system with named profiles (phone portrait, phone landscape, tablet, desktop 16:9, desktop ultrawide).
+- [ ] Proposed changes: Replace absolute UI placement with anchor-based layout primitives for HUD, board, and action rail.
+- [ ] Proposed changes: Add safe-area handling and dynamic typography scaling.
+- [ ] Proposed changes: Normalize input hit-testing against logical coordinate transforms.
+- [ ] Reusable component candidates: `ui/layout` (viewport model, anchors, constraints, safe-area abstraction).
+- [ ] Reusable component candidates: `ui/scaling` (device profile resolver, text/icon scale curves).
+- [ ] Reusable component candidates: `ui/inputmap` (screen-to-world transform, hitbox registry).
+- [ ] Dependencies: Existing scene system in [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go).
+- [ ] Dependencies: Input routing in [client/ebiten/app/input.go](client/ebiten/app/input.go).
+- [ ] Dependencies: Canvas resize behavior in [client/game.js](client/game.js).
+- [ ] Acceptance criteria: Portrait, landscape, and widescreen snapshots show no clipped or overlapping critical UI.
+- [ ] Acceptance criteria: All action targets meet minimum touch size.
+- [ ] Acceptance criteria: Turn, doom, and resources remain visible at all supported sizes.
+- [ ] Effort estimate: M
+- [ ] Verification steps: Add screenshot matrix test harness for profile set.
+- [ ] Verification steps: Manual pass on desktop, simulated mobile, and WASM viewport resize.
+- [ ] Verification steps: Track layout fallback warnings and verify zero critical collisions.
 
 ### Workstream 2: UI Redesign (Readability, Hierarchy, Feedback)
-- Problem statement:
-- Current UI is functional but test-oriented (heavy text overlays, sparse hierarchy, limited visual affordances), reducing playability and confidence.
-- Proposed changes:
-- Introduce a production HUD shell with three fixed zones: top status rail, center board, bottom action rail.
-- Replace text-heavy status blocks with compact cards: turn card, objective card, doom card, player strip.
-- Convert transient updates into a unified notification system with action preview, submitted state, resolved state.
-- Implement animation language for turn transitions, dice outcomes, doom spikes, and invalid actions.
-- Reusable component candidates:
-- `ui/hud`: status rail, player strip, action rail primitives.
-- `ui/feedback`: toasts, confirmations, transient update queue.
-- `ui/components`: badges, pills, counters, segmented bars.
-- Dependencies:
-- Existing event stream from `gameUpdate`, `diceResult`, and `gameState` in [client/game.js](client/game.js) and [client/ebiten/net.go](client/ebiten/net.go).
-- Shared action semantics from [protocol/protocol.go](protocol/protocol.go).
-- Acceptance criteria:
-- Current turn, actions remaining, and available actions are identifiable in under 3 seconds.
-- Every user action gets immediate pending feedback and explicit result feedback.
-- Invalid actions always display reason + recovery guidance.
-- Effort estimate: L
-- Verification steps:
-- First-time-user moderated task tests for one full turn.
-- Instrument time-to-first-valid-action and invalid-action retry count.
-- UX regression checklist against onboarding/clarity states.
+- Remediation checklist:
+- [ ] Problem statement: Current UI is functional but test-oriented (heavy text overlays, sparse hierarchy, limited visual affordances), reducing playability and confidence.
+- [ ] Proposed changes: Introduce a production HUD shell with three fixed zones (top status rail, center board, bottom action rail).
+- [ ] Proposed changes: Replace text-heavy status blocks with compact cards (turn, objective, doom, player strip).
+- [ ] Proposed changes: Convert transient updates into a unified notification system with action preview, submitted state, and resolved state.
+- [ ] Proposed changes: Implement animation language for turn transitions, dice outcomes, doom spikes, and invalid actions.
+- [ ] Reusable component candidates: `ui/hud` (status rail, player strip, action rail primitives).
+- [ ] Reusable component candidates: `ui/feedback` (toasts, confirmations, transient update queue).
+- [ ] Reusable component candidates: `ui/components` (badges, pills, counters, segmented bars).
+- [ ] Dependencies: Event stream from `gameUpdate`, `diceResult`, and `gameState` in [client/game.js](client/game.js) and [client/ebiten/net.go](client/ebiten/net.go).
+- [ ] Dependencies: Shared action semantics in [protocol/protocol.go](protocol/protocol.go).
+- [ ] Acceptance criteria: Current turn, actions remaining, and available actions are identifiable in under 3 seconds.
+- [ ] Acceptance criteria: Every user action gets immediate pending feedback and explicit result feedback.
+- [ ] Acceptance criteria: Invalid actions always display reason and recovery guidance.
+- [ ] Effort estimate: L
+- [ ] Verification steps: First-time-user moderated task tests for one full turn.
+- [ ] Verification steps: Instrument time-to-first-valid-action and invalid-action retry count.
+- [ ] Verification steps: UX regression checklist against onboarding and clarity states.
 
 ### Workstream 3: Procedural Visual Atmosphere
-- Problem statement:
-- Visuals currently rely on placeholders and static primitives; atmosphere is weak and inconsistent across clients.
-- Proposed changes:
-- Add deterministic procedural layers: fog, grain, sigils, and ambient accents with per-scenario seeds.
-- Expand shader pipeline for subtle scene effects (already scaffolded via [client/ebiten/render/shaders.go](client/ebiten/render/shaders.go)).
-- Build style token packs (palette, contrast, glow, line style) to keep visual consistency.
-- Add quality tiers (low/medium/high) with runtime performance throttles.
-- Reusable component candidates:
-- `ui/theme`: token packs and style resolver.
-- `ui/procedural`: seeded background and sigil generator.
-- `ui/effects`: shader/effect orchestration and quality gating.
-- Dependencies:
-- Render compositor in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
-- Atlas content in [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
-- Scenario identity from module-specific content packages.
-- Acceptance criteria:
-- Visual atmosphere is deterministic for a given seed/scenario.
-- Theme consistency score passes design QA checklist.
-- FPS remains within target for each quality tier.
-- Effort estimate: M
-- Verification steps:
-- Seed determinism tests for generated layers.
-- Frame-time and memory benchmarks per quality tier.
-- Snapshot diff review for thematic consistency.
+- Remediation checklist:
+- [ ] Problem statement: Visuals currently rely on placeholders and static primitives; atmosphere is weak and inconsistent across clients.
+- [ ] Proposed changes: Add deterministic procedural layers (fog, grain, sigils, ambient accents) with per-scenario seeds.
+- [ ] Proposed changes: Expand shader pipeline for subtle scene effects via [client/ebiten/render/shaders.go](client/ebiten/render/shaders.go).
+- [ ] Proposed changes: Build style token packs (palette, contrast, glow, line style) for visual consistency.
+- [ ] Proposed changes: Add quality tiers (low/medium/high) with runtime performance throttles.
+- [ ] Reusable component candidates: `ui/theme` (token packs and style resolver).
+- [ ] Reusable component candidates: `ui/procedural` (seeded background and sigil generator).
+- [ ] Reusable component candidates: `ui/effects` (shader/effect orchestration and quality gating).
+- [ ] Dependencies: Render compositor in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
+- [ ] Dependencies: Atlas content in [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
+- [ ] Dependencies: Scenario identity from module-specific content packages.
+- [ ] Acceptance criteria: Visual atmosphere is deterministic for a given seed/scenario.
+- [ ] Acceptance criteria: Theme consistency score passes design QA checklist.
+- [ ] Acceptance criteria: FPS remains within target for each quality tier.
+- [ ] Effort estimate: M
+- [ ] Verification steps: Seed determinism tests for generated layers.
+- [ ] Verification steps: Frame-time and memory benchmarks per quality tier.
+- [ ] Verification steps: Snapshot diff review for thematic consistency.
 
 ### Workstream 4: Pseudo-3D Board Visualization (8 Directions)
-- Problem statement:
-- Current board is strictly top-down 2D; spatial understanding and immersion are limited.
-- Proposed changes:
-- Implement pseudo-3D camera projection over node/edge board representation.
-- Support at least 8 direction presets plus smooth orbit between adjacent presets.
-- Add camera controls for mouse, keyboard, and touch gestures.
-- Add top-down accessibility fallback mode.
-- Reusable component candidates:
-- `ui/camera`: orbit, preset snapping, reset controls.
-- `ui/boardview`: projection mapper for board nodes/edges/tokens.
-- `ui/labels`: occlusion-aware location and token labels.
-- Dependencies:
-- Location graph contract from shared protocol location model in [protocol/protocol.go](protocol/protocol.go).
-- Input abstraction from Workstream 1.
-- Layered renderer integration in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
-- Acceptance criteria:
-- User can rotate across 8 directions without losing action readability.
-- Move/action interactions remain consistent regardless of camera direction.
-- Top-down fallback can be toggled at runtime.
-- Effort estimate: L
-- Verification steps:
-- Camera usability tests across desktop and touch.
-- Hit-test accuracy checks in all camera presets.
-- Comparison of action error rates versus top-down mode.
+- Remediation checklist:
+- [ ] Problem statement: Current board is strictly top-down 2D; spatial understanding and immersion are limited.
+- [ ] Proposed changes: Implement pseudo-3D camera projection over node/edge board representation.
+- [ ] Proposed changes: Support at least 8 direction presets plus smooth orbit between adjacent presets.
+- [ ] Proposed changes: Add camera controls for mouse, keyboard, and touch gestures.
+- [ ] Proposed changes: Add top-down accessibility fallback mode.
+- [ ] Reusable component candidates: `ui/camera` (orbit, preset snapping, reset controls).
+- [ ] Reusable component candidates: `ui/boardview` (projection mapper for board nodes/edges/tokens).
+- [ ] Reusable component candidates: `ui/labels` (occlusion-aware location and token labels).
+- [ ] Dependencies: Location graph contract from [protocol/protocol.go](protocol/protocol.go).
+- [ ] Dependencies: Input abstraction from Workstream 1.
+- [ ] Dependencies: Layered renderer integration in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
+- [ ] Acceptance criteria: User can rotate across 8 directions without losing action readability.
+- [ ] Acceptance criteria: Move/action interactions remain consistent regardless of camera direction.
+- [ ] Acceptance criteria: Top-down fallback can be toggled at runtime.
+- [ ] Effort estimate: L
+- [ ] Verification steps: Camera usability tests across desktop and touch.
+- [ ] Verification steps: Hit-test accuracy checks in all camera presets.
+- [ ] Verification steps: Comparison of action error rates versus top-down mode.
 
 ### Workstream 5: General Visual Upgrades (Typography, Iconography, Motion, Contrast)
-- Problem statement:
-- Typography, spacing, iconography, and contrast are inconsistent across current clients.
-- Proposed changes:
-- Define a design token system: spacing scale, typography scale, semantic colors, motion durations, elevation.
-- Introduce a shared icon system for actions/resources/status outcomes.
-- Standardize contrast-safe palettes and non-color state cues.
-- Refactor critical screens to consume tokens only.
-- Reusable component candidates:
-- `ui/tokens`: centralized design token registry.
-- `ui/icons`: vector/sprite icon map.
-- `ui/motion`: transition presets and easing catalog.
-- Dependencies:
-- Scene and HUD refactor from Workstream 2.
-- Render atlas pipeline from [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
-- Acceptance criteria:
-- Token adoption for all primary game screens.
-- Accessibility baseline met for contrast and scalable text.
-- Critical state changes perceivable without color dependence.
-- Effort estimate: M
-- Verification steps:
-- Automated token usage linting.
-- Accessibility contrast checks.
-- Visual regression snapshots across all core scenes.
+- Remediation checklist:
+- [ ] Problem statement: Typography, spacing, iconography, and contrast are inconsistent across current clients.
+- [ ] Proposed changes: Define a design token system (spacing scale, typography scale, semantic colors, motion durations, elevation).
+- [ ] Proposed changes: Introduce a shared icon system for actions, resources, status, and outcomes.
+- [ ] Proposed changes: Standardize contrast-safe palettes and non-color state cues.
+- [ ] Proposed changes: Refactor critical screens to consume tokens only.
+- [ ] Reusable component candidates: `ui/tokens` (centralized design token registry).
+- [ ] Reusable component candidates: `ui/icons` (vector/sprite icon map).
+- [ ] Reusable component candidates: `ui/motion` (transition presets and easing catalog).
+- [ ] Dependencies: Scene and HUD refactor from Workstream 2.
+- [ ] Dependencies: Render atlas pipeline from [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
+- [ ] Acceptance criteria: Token adoption for all primary game screens.
+- [ ] Acceptance criteria: Accessibility baseline met for contrast and scalable text.
+- [ ] Acceptance criteria: Critical state changes perceivable without color dependence.
+- [ ] Effort estimate: M
+- [ ] Verification steps: Automated token usage linting.
+- [ ] Verification steps: Accessibility contrast checks.
+- [ ] Verification steps: Visual regression snapshots across all core scenes.
 
 ### Workstream 6: General UX Upgrades (Onboarding, Turn Clarity, Action Feedback, State Visibility)
-- Problem statement:
-- New players must infer many mechanics from text or external docs; turn/action feedback is present but still fragmented.
-- Proposed changes:
-- Add first-session guided onboarding with mechanic callouts and optional skip.
-- Add turn-intent flow: actionable highlights, disabled-reason tooltips, and next-best-action hints.
-- Add a state visibility layer for synced/unsynced status, reconnect restoration, and pending action queues.
-- Expand outcome feedback with delta summaries tied to doom/resources/location changes.
-- Reusable component candidates:
-- `ui/onboarding`: scripted hints, checkpoints, replay toggle.
-- `ui/turn`: active-turn and actions-remaining widgets.
-- `ui/state`: sync/reconnect/pending status banner.
-- `ui/results`: structured action outcome panel.
-- Dependencies:
-- Reconnect/session semantics in [client/ebiten/state.go](client/ebiten/state.go) and [client/game.js](client/game.js).
-- Event and protocol messages from [protocol/protocol.go](protocol/protocol.go).
-- Acceptance criteria:
-- New player completes first full turn without external docs.
-- Every action displays pending + resolved feedback with deltas.
-- Reconnect flow clearly communicates restoration status.
-- Effort estimate: M
-- Verification steps:
-- Onboarding completion funnel and dropout metrics.
-- Forced disconnect/reconnect drills.
-- Turn comprehension and outcome comprehension user tests.
+- Remediation checklist:
+- [ ] Problem statement: New players must infer many mechanics from text or external docs; turn/action feedback is present but still fragmented.
+- [ ] Proposed changes: Add first-session guided onboarding with mechanic callouts and optional skip.
+- [ ] Proposed changes: Add turn-intent flow (actionable highlights, disabled-reason tooltips, next-best-action hints).
+- [ ] Proposed changes: Add a state visibility layer for synced/unsynced status, reconnect restoration, and pending action queues.
+- [ ] Proposed changes: Expand outcome feedback with delta summaries tied to doom, resources, and location changes.
+- [ ] Reusable component candidates: `ui/onboarding` (scripted hints, checkpoints, replay toggle).
+- [ ] Reusable component candidates: `ui/turn` (active-turn and actions-remaining widgets).
+- [ ] Reusable component candidates: `ui/state` (sync/reconnect/pending status banner).
+- [ ] Reusable component candidates: `ui/results` (structured action outcome panel).
+- [ ] Dependencies: Reconnect/session semantics in [client/ebiten/state.go](client/ebiten/state.go) and [client/game.js](client/game.js).
+- [ ] Dependencies: Event and protocol messages from [protocol/protocol.go](protocol/protocol.go).
+- [ ] Acceptance criteria: New player completes first full turn without external docs.
+- [ ] Acceptance criteria: Every action displays pending and resolved feedback with deltas.
+- [ ] Acceptance criteria: Reconnect flow clearly communicates restoration status.
+- [ ] Effort estimate: M
+- [ ] Verification steps: Onboarding completion funnel and dropout metrics.
+- [ ] Verification steps: Forced disconnect/reconnect drills.
+- [ ] Verification steps: Turn comprehension and outcome comprehension user tests.
 
 ## Architecture Notes for Go Codebase Integration
 1. Create a shared GUI platform package under `client/ebiten/ui` with strict interfaces.
