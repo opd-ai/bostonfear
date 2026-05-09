@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/opd-ai/bostonfear/monitoring"
@@ -93,11 +95,17 @@ func runServer(cmd *cobra.Command) error {
 		Health:    monitoring.HealthHandler(gameEngine),
 		Metrics:   monitoring.MetricsHandler(gameEngine),
 		Play: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != "/" {
+			switch r.URL.Path {
+			case "/":
+				http.ServeFile(w, r, wasmDir+"/index.html")
+			case "/wasm_exec.js":
+				serveWASMExecJS(w, r, wasmDir)
+			case "/game.wasm":
+				w.Header().Set("Content-Type", "application/wasm")
+				http.ServeFile(w, r, wasmDir+"/game.wasm")
+			default:
 				http.NotFound(w, r)
-				return
 			}
-			http.ServeFile(w, r, wasmDir+"/index.html")
 		}),
 		WASMAssets: http.StripPrefix("/wasm/", http.FileServer(http.Dir(wasmDir))),
 	}
@@ -143,4 +151,30 @@ func resolveListenAddress(cmd *cobra.Command) string {
 	}
 
 	return net.JoinHostPort(host, fmt.Sprintf("%d", port))
+}
+
+func serveWASMExecJS(w http.ResponseWriter, r *http.Request, wasmDir string) {
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+
+	localPath := filepath.Join(wasmDir, "wasm_exec.js")
+	if _, err := os.Stat(localPath); err == nil {
+		http.ServeFile(w, r, localPath)
+		return
+	}
+
+	// Go 1.22+ ships wasm_exec.js in GOROOT/lib/wasm, older versions used misc/wasm.
+	goRoot := runtime.GOROOT()
+	fallbacks := []string{
+		filepath.Join(goRoot, "lib", "wasm", "wasm_exec.js"),
+		filepath.Join(goRoot, "misc", "wasm", "wasm_exec.js"),
+	}
+
+	for _, path := range fallbacks {
+		if _, err := os.Stat(path); err == nil {
+			http.ServeFile(w, r, path)
+			return
+		}
+	}
+
+	http.NotFound(w, r)
 }

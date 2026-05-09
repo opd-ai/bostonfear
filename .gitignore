@@ -57,3 +57,5 @@ pre-cleanup-with-tests.json
 *-post.json
 diff-report*.json
 tmp
+*_test
+*_server
