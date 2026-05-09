@@ -31,6 +31,8 @@ class ArkhamHorrorClient {
         this.uiMessage = document.getElementById('uiMessage');
         this.turnOrder = document.getElementById('turnOrder');
         this.doomExplanation = document.getElementById('doomExplanation');
+        this.clueProgressValue = document.getElementById('clueProgressValue');
+        this.clueProgressHint = document.getElementById('clueProgressHint');
 
         this.logicalCanvasWidth = 800;
         this.logicalCanvasHeight = 600;
@@ -70,9 +72,8 @@ class ArkhamHorrorClient {
         this.setupResponsiveCanvas();
         this.resizeCanvas();
         
-        // Set up canvas rendering loop
+        // Initial paint; subsequent draws occur on state/resize updates.
         this.render();
-        setInterval(() => this.render(), 100); // Render at 10 FPS
     }
     
     // WebSocket connection management with automatic reconnection
@@ -252,8 +253,8 @@ class ArkhamHorrorClient {
             return;
         }
 
-        if (action === 'ward' && myPlayer.resources.sanity <= 1) {
-            this.showMessage('warning', 'Cast Ward requires more than 1 Sanity.');
+        if (action === 'ward' && myPlayer.resources.sanity <= 0) {
+            this.showMessage('warning', 'Cast Ward requires at least 1 Sanity.');
             return;
         }
         
@@ -280,7 +281,9 @@ class ArkhamHorrorClient {
         this.updatePlayersList();
         this.updateTurnOrder();
         this.updateActionButtons();
+        this.updateObjectiveProgress();
         this.checkGameEndConditions();
+        this.render();
 
         if (this.gameState.gamePhase === 'playing') {
             const isMyTurn = this.gameState.currentPlayer === this.playerId;
@@ -345,9 +348,18 @@ class ArkhamHorrorClient {
     
     // Update players list with resources and status
     updatePlayersList() {
+        if (!this.playersList || !this.gameState || !this.gameState.players) {
+            return;
+        }
+
         this.playersList.innerHTML = '';
-        
-        Object.values(this.gameState.players).forEach(player => {
+
+        this.getOrderedPlayerIDs().forEach(playerID => {
+            const player = this.gameState.players[playerID];
+            if (!player) {
+                return;
+            }
+
             const playerDiv = document.createElement('div');
             playerDiv.className = 'player-info';
             
@@ -392,20 +404,24 @@ class ArkhamHorrorClient {
     
     // Update action button availability
     updateActionButtons() {
+        if (!this.gameState || !this.gameState.players) {
+            return;
+        }
+
         const isMyTurn = this.gameState.currentPlayer === this.playerId;
         const myPlayer = this.gameState.players[this.playerId];
         const hasActions = myPlayer && myPlayer.actionsRemaining > 0;
         const gameActive = this.gameState.gamePhase === 'playing';
         
         // Enable buttons only if it's player's turn, they have actions, and game is active
-        const buttonsEnabled = isMyTurn && hasActions && gameActive;
+        const buttonsEnabled = isMyTurn && hasActions && gameActive && !this.pendingAction;
         
         Object.values(this.actionButtons).forEach(button => {
             button.disabled = !buttonsEnabled;
         });
         
         // Special validation for Cast Ward (requires sanity > 1)
-        if (myPlayer && myPlayer.resources.sanity <= 1) {
+        if (myPlayer && myPlayer.resources.sanity <= 0) {
             this.actionButtons.ward.disabled = true;
         }
 
@@ -447,18 +463,23 @@ class ArkhamHorrorClient {
         
         const successText = diceMessage.success ? 'Success!' : 'Failed';
         const doomText = diceMessage.doomIncrease > 0 ? `Doom +${diceMessage.doomIncrease}` : '';
+        const requiredSuccesses = this.getRequiredSuccessesForAction(diceMessage);
+        const requiredText = requiredSuccesses > 0 ? ` | Needed: ${requiredSuccesses}` : '';
         
         resultDiv.innerHTML = `
             <div><strong>${diceMessage.playerId}</strong> - ${diceMessage.action}</div>
             <div class="dice-roll">${diceHtml}</div>
-            <div>Successes: ${diceMessage.successes} | Tentacles: ${diceMessage.tentacles}</div>
+            <div>Successes: ${diceMessage.successes}${requiredText} | Tentacles: ${diceMessage.tentacles}</div>
             <div style="font-weight: bold; color: ${diceMessage.success ? '#90EE90' : '#FF6347'}">
                 ${successText}
             </div>
             ${doomText ? `<div style="color: #FF0000">${doomText}</div>` : ''}
         `;
 
-        const summary = `${diceMessage.action}: ${successText}. ${diceMessage.successes} successes, ${diceMessage.tentacles} tentacles.`;
+        const thresholdSummary = requiredSuccesses > 0
+            ? ` Needed ${requiredSuccesses}.`
+            : '';
+        const summary = `${diceMessage.action}: ${successText}. ${diceMessage.successes} successes, ${diceMessage.tentacles} tentacles.${thresholdSummary}`;
         this.showMessage(diceMessage.success ? 'success' : 'warning', summary);
     }
     
@@ -516,10 +537,13 @@ class ArkhamHorrorClient {
             return;
         }
 
-        const players = Object.values(this.gameState.players);
         this.turnOrder.innerHTML = '';
 
-        players.forEach(player => {
+        this.getOrderedPlayerIDs().forEach(playerID => {
+            const player = this.gameState.players[playerID];
+            if (!player) {
+                return;
+            }
             const chip = document.createElement('span');
             chip.className = 'turn-chip';
             if (player.id === this.gameState.currentPlayer) {
@@ -540,6 +564,83 @@ class ArkhamHorrorClient {
         this.canvas.height = Math.floor(this.logicalCanvasHeight * dpr);
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         this.ctx.imageSmoothingEnabled = true;
+        this.render();
+    }
+
+    getOrderedPlayerIDs() {
+        if (!this.gameState || !this.gameState.players) {
+            return [];
+        }
+
+        const players = this.gameState.players;
+        const turnOrder = Array.isArray(this.gameState.turnOrder)
+            ? this.gameState.turnOrder.filter(playerID => players[playerID])
+            : [];
+
+        if (turnOrder.length > 0) {
+            return turnOrder;
+        }
+
+        return Object.keys(players).sort((a, b) => a.localeCompare(b, undefined, {
+            numeric: true,
+            sensitivity: 'base'
+        }));
+    }
+
+    getRequiredClues() {
+        if (!this.gameState || !this.gameState.players) {
+            return 0;
+        }
+
+        const explicit = Number(this.gameState.requiredClues);
+        if (Number.isFinite(explicit) && explicit > 0) {
+            return explicit;
+        }
+
+        return Object.keys(this.gameState.players).length * 4;
+    }
+
+    getTeamClues() {
+        if (!this.gameState || !this.gameState.players) {
+            return 0;
+        }
+
+        return Object.values(this.gameState.players).reduce((total, player) => {
+            if (!player || !player.resources) {
+                return total;
+            }
+            return total + (Number(player.resources.clues) || 0);
+        }, 0);
+    }
+
+    updateObjectiveProgress() {
+        if (!this.clueProgressValue || !this.clueProgressHint || !this.gameState) {
+            return;
+        }
+
+        const currentClues = this.getTeamClues();
+        const requiredClues = this.getRequiredClues();
+        const playerCount = this.getOrderedPlayerIDs().length;
+        this.clueProgressValue.textContent = `Team Clues: ${currentClues} / ${requiredClues}`;
+        this.clueProgressHint.textContent = `Goal: 4 clues each (${playerCount} investigators).`;
+    }
+
+    getRequiredSuccessesForAction(diceMessage) {
+        const explicit = Number(diceMessage.requiredSuccesses);
+        if (Number.isFinite(explicit) && explicit > 0) {
+            return explicit;
+        }
+
+        switch (diceMessage.action) {
+            case 'investigate':
+                return 2;
+            case 'ward':
+                return 3;
+            case 'gather':
+                return 1;
+            default:
+                return 0;
+        }
     }
 
     render() {
