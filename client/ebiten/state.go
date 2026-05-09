@@ -249,3 +249,21 @@ func (s *LocalState) appendEventLocked(e EventLogEntry) {
 		s.EventLog = s.EventLog[len(s.EventLog)-20:]
 	}
 }
+
+// Reset clears the game state for a fresh game, preserving the server URL
+// and reconnect token for session persistence.
+func (s *LocalState) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.PlayerID = ""
+	s.Game = GameState{
+		Players:   make(map[string]*Player),
+		TurnOrder: []string{},
+	}
+	s.LastDiceResult = nil
+	s.LastGameUpdate = nil
+	s.ConnectionRating = ""
+	s.EventLog = make([]EventLogEntry, 0, 20)
+	s.Connected = false
+	// ReconnectToken is intentionally preserved for session recovery.
+}
