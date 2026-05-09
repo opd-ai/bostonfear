@@ -29,7 +29,7 @@
 ### Directory and File Layout Proposal
 
 ```text
-content/
+serverengine/arkhamhorror/content/nightglass/
   manifest.yaml
   enums.yaml
   base-set/
@@ -124,29 +124,29 @@ content/
 - If no enabled scenario remains, startup must fail with explicit validation error.
 
 ### Content Dependency Map
-- `content/manifest.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/manifest.yaml`:
   - Declares pack-level required files and optional localization files.
   - Declares pack-level `defaultScenarioId`.
-- `content/scenarios/index.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml`:
   - Declares enabled scenario records and scenario-level default pointer.
-- `content/scenarios/nightglass-harbor-signal.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-harbor-signal.yaml`:
   - Requires resources, locations, threats, and key encounter IDs.
   - References action IDs and objective IDs used by runtime flow.
-- `content/base-set/investigators.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/base-set/investigators.yaml`:
   - Depends on `locations`, `abilities`, and optional `conditions`.
-- `content/base-set/items.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/base-set/items.yaml`:
   - Depends on `resources` for costs and runtime action IDs for grants.
-- `content/base-set/abilities.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/base-set/abilities.yaml`:
   - Depends on `resources`, `conditions`, and action identifiers.
-- `content/base-set/threats.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/base-set/threats.yaml`:
   - Depends on behavior script IDs and optional condition/resource effects.
-- `content/base-set/encounters.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/base-set/encounters.yaml`:
   - Depends on `threats`, `conditions`, and `resources`.
-- `content/base-set/locations.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/base-set/locations.yaml`:
   - Depends on valid location self-references for adjacency and encounter deck IDs.
-- `content/base-set/conditions.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/base-set/conditions.yaml`:
   - Depends on valid effect payload schema and referenced resource/stat/action IDs.
-- `content/text/en-US.yaml`:
+- `serverengine/arkhamhorror/content/nightglass/text/en-US.yaml`:
   - Optional; depends on stable UI key IDs only.
 
 ## 4. Base Set Inventory Table
@@ -167,9 +167,9 @@ content/
 ### Scenario ID and Default Flag/Config Location
 - Canonical scenario ID: `scn.nightglass.harbor-signal`
 - Content metadata default declaration:
-  - `content/manifest.yaml` -> `defaultScenarioId`
-  - `content/scenarios/index.yaml` -> `defaultScenarioId`
-  - `content/scenarios/nightglass-harbor-signal.yaml` -> record-level `default: true`
+  - `serverengine/arkhamhorror/content/nightglass/manifest.yaml` -> `defaultScenarioId`
+  - `serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml` -> `defaultScenarioId`
+  - `serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-harbor-signal.yaml` -> record-level `default: true`
 - Runtime config declaration:
   - `config.toml` -> `[scenario] default_id = "scn.nightglass.harbor-signal"`
 
@@ -212,7 +212,7 @@ A deepwater beacon sends impossible tones that drag living shadows toward Brindl
 
 ### Fallback Behavior
 1. Use `[scenario].default_id` if valid and enabled.
-2. Else use `content/scenarios/index.yaml` defaultScenarioId.
+2. Else use `serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml` defaultScenarioId.
 3. Else use first enabled scenario sorted by ID and log warning.
 4. If none available, abort startup with content validation error.
 

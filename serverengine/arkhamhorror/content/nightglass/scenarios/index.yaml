@@ -9,4 +9,4 @@ records:
     summary: "Stabilize resonance anchors and sever the deepwater signal."
     enabled: true
     version: 1
-    file: "content/scenarios/nightglass-harbor-signal.yaml"
+    file: "serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-harbor-signal.yaml"

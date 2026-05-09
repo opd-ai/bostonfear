@@ -142,7 +142,7 @@ records:
         - {flag: "allInvestigatorsIncapacitated", equals: true, reason: "No investigator remains active."}
         - {flag: "resonanceBreach", gte: 3, reason: "Critical anchor failures collapse the ward network."}
     fallbackBehavior:
-      ifMissingScenarioId: "load content/scenarios/index.yaml defaultScenarioId"
-      ifInvalidScenarioId: "log warning and load content/scenarios/index.yaml defaultScenarioId"
+      ifMissingScenarioId: "load serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml defaultScenarioId"
+      ifInvalidScenarioId: "log warning and load serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml defaultScenarioId"
       ifIndexDefaultMissing: "load first enabled scenario sorted by ID"
       ifNoEnabledScenarios: "abort startup with content validation error"

@@ -6,5 +6,7 @@
 // Each scenario can define its own starting content (which investigators are available,
 // which mythos deck, etc.).
 //
-// NOTE: This package is a scaffold. Implementation is deferred. See ROADMAP.md.
+// Module-scoped content packs live under this package tree (for example,
+// serverengine/arkhamhorror/content/nightglass) so game-family data does not
+// leak into repository-level global paths.
 package content

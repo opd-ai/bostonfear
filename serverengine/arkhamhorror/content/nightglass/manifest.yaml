@@ -1,0 +1,43 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+defaultScenarioId: "scn.nightglass.harbor-signal"
+dependencies: []
+files:
+  - path: "serverengine/arkhamhorror/content/nightglass/enums.yaml"
+    kind: "enum-index"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/resources.yaml"
+    kind: "resources"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/locations.yaml"
+    kind: "locations"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/investigators.yaml"
+    kind: "investigators"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/items.yaml"
+    kind: "items"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/abilities.yaml"
+    kind: "abilities"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/threats.yaml"
+    kind: "threats"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/encounters.yaml"
+    kind: "encounters"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/base-set/conditions.yaml"
+    kind: "conditions"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml"
+    kind: "scenario-index"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-harbor-signal.yaml"
+    kind: "scenario"
+    required: true
+  - path: "serverengine/arkhamhorror/content/nightglass/text/en-US.yaml"
+    kind: "localization"
+    required: false

@@ -39,7 +39,7 @@ allowed_origins = []
 # Canonical demo default: scn.nightglass.harbor-signal
 # Fallback behavior (for content loaders):
 # 1) Use scenario.default_id when valid and enabled
-# 2) Else use content/scenarios/index.yaml defaultScenarioId
+# 2) Else use serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml defaultScenarioId
 # 3) Else use first enabled scenario sorted by ID
 # 4) Else fail startup with a content validation error
 default_id = "scn.nightglass.harbor-signal"
