@@ -3,6 +3,7 @@ package ebiten
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -101,17 +102,30 @@ func (c *NetClient) reconnectLoop() {
 // runConnection drives read and write loops for an established connection.
 // It blocks until the connection is closed or fails.
 func (c *NetClient) runConnection(conn *websocket.Conn) {
+	stop := make(chan struct{})
 	done := make(chan struct{})
-	go c.writeLoop(conn, done)
-	c.readLoop(conn, done)
+	var stopOnce sync.Once
+	signalStop := func() {
+		stopOnce.Do(func() {
+			close(stop)
+		})
+	}
+
+	go c.writeLoop(conn, stop, done)
+	c.readLoop(conn, stop, signalStop)
+	signalStop()
+	<-done
+	_ = conn.Close()
 }
 
 // writeLoop forwards queued actions to the server until the connection fails.
 // It signals completion by closing done.
-func (c *NetClient) writeLoop(conn *websocket.Conn, done chan struct{}) {
+func (c *NetClient) writeLoop(conn *websocket.Conn, stop <-chan struct{}, done chan struct{}) {
 	defer close(done)
 	for {
 		select {
+		case <-stop:
+			return
 		case action := <-c.actionsCh:
 			data, err := json.Marshal(action)
 			if err != nil {
@@ -127,10 +141,10 @@ func (c *NetClient) writeLoop(conn *websocket.Conn, done chan struct{}) {
 }
 
 // readLoop reads and routes incoming messages until the connection closes or done is signalled.
-func (c *NetClient) readLoop(conn *websocket.Conn, done chan struct{}) {
+func (c *NetClient) readLoop(conn *websocket.Conn, stop <-chan struct{}, signalStop func()) {
 	for {
 		select {
-		case <-done:
+		case <-stop:
 			return
 		default:
 		}
@@ -138,8 +152,7 @@ func (c *NetClient) readLoop(conn *websocket.Conn, done chan struct{}) {
 		_, data, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("net: read: %v", err)
-			conn.Close()
-			<-done
+			signalStop()
 			return
 		}
 

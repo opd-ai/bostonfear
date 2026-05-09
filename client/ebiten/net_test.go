@@ -2,10 +2,13 @@ package ebiten
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/opd-ai/bostonfear/serverengine"
 )
 
@@ -447,5 +450,44 @@ func TestSendAction_DropWhenFull(t *testing.T) {
 		// Expected: dropped without blocking.
 	case <-time.After(time.Second):
 		t.Error("SendAction blocked when channel was full")
+	}
+}
+
+// TestRunConnection_ReturnsOnReadErrorWithoutPendingActions verifies that
+// runConnection exits promptly when the read side fails while no outbound
+// actions are queued. This prevents reconnect deadlock when the server drops
+// an otherwise idle connection.
+func TestRunConnection_ReturnsOnReadErrorWithoutPendingActions(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	state := NewLocalState("ws://localhost:8080/ws")
+	client := NewNetClient(state)
+
+	upgrader := websocket.Upgrader{CheckOrigin: func(_ *http.Request) bool { return true }}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Errorf("upgrade: %v", err)
+			return
+		}
+		_ = conn.Close()
+	}))
+	defer srv.Close()
+
+	dialURL := "ws" + strings.TrimPrefix(srv.URL, "http")
+	conn, _, err := websocket.DefaultDialer.Dial(dialURL, nil)
+	if err != nil {
+		t.Fatalf("dial test server: %v", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		client.runConnection(conn)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("runConnection blocked after read-side disconnect with empty actions channel")
 	}
 }

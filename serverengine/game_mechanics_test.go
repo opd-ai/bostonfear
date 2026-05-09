@@ -343,6 +343,37 @@ func TestAdvanceTurn_AllDisconnected(t *testing.T) {
 	_ = before
 }
 
+func TestAdvanceTurn_AllConnectedDefeated_TriggersRecovery(t *testing.T) {
+	gs, _ := newTestServer(t)
+	addPlayer(gs, "p2", true)
+
+	gs.gameState.CurrentPlayer = "p1"
+	gs.gameState.Players["p1"].Connected = true
+	gs.gameState.Players["p2"].Connected = true
+
+	gs.gameState.Players["p1"].Defeated = true
+	gs.gameState.Players["p2"].Defeated = true
+	gs.gameState.Players["p1"].LostInTimeAndSpace = true
+	gs.gameState.Players["p2"].LostInTimeAndSpace = true
+	gs.gameState.Players["p1"].ActionsRemaining = 0
+	gs.gameState.Players["p2"].ActionsRemaining = 0
+
+	gs.advanceTurn()
+
+	if gs.gameState.CurrentPlayer != "p2" {
+		t.Errorf("expected turn to advance to recovered p2, got %s", gs.gameState.CurrentPlayer)
+	}
+	if gs.gameState.GamePhase != "playing" {
+		t.Errorf("expected game phase to return to playing, got %s", gs.gameState.GamePhase)
+	}
+	if gs.gameState.Players["p1"].Defeated || gs.gameState.Players["p2"].Defeated {
+		t.Error("expected connected defeated investigators to recover during fallback mythos phase")
+	}
+	if gs.gameState.Players["p2"].ActionsRemaining != 2 {
+		t.Errorf("expected recovered p2 to receive 2 actions, got %d", gs.gameState.Players["p2"].ActionsRemaining)
+	}
+}
+
 // --- checkGameEndConditions ---
 
 func TestCheckGameEndConditions_DoomLose(t *testing.T) {

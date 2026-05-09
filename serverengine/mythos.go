@@ -46,6 +46,41 @@ func (gs *GameServer) advanceTurn() {
 			return
 		}
 	}
+
+	// If there are still connected players but none can act, attempt Mythos
+	// recovery and retry once before parking in a waiting phase.
+	hasConnected := false
+	hasConnectedDefeated := false
+	for _, playerID := range gs.gameState.TurnOrder {
+		player, exists := gs.gameState.Players[playerID]
+		if !exists || !player.Connected {
+			continue
+		}
+		hasConnected = true
+		if player.Defeated {
+			hasConnectedDefeated = true
+		}
+	}
+
+	if !hasConnected {
+		return
+	}
+	if hasConnectedDefeated {
+		gs.runMythosPhase()
+	}
+
+	for i := 1; i <= total; i++ {
+		nextIndex := (currentIndex + i) % total
+		candidateID := gs.gameState.TurnOrder[nextIndex]
+		candidate, exists := gs.gameState.Players[candidateID]
+		if exists && candidate.Connected && !candidate.Defeated {
+			gs.gameState.CurrentPlayer = candidateID
+			candidate.ActionsRemaining = 2
+			return
+		}
+	}
+
+	gs.gameState.GamePhase = "waiting"
 }
 
 // runMythosPhase executes the AH3e Mythos Phase after all investigators complete
