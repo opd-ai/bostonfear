@@ -420,7 +420,7 @@ class ArkhamHorrorClient {
             button.disabled = !buttonsEnabled;
         });
         
-        // Special validation for Cast Ward (requires sanity > 1)
+        // Special validation for Cast Ward (requires at least 1 sanity)
         if (myPlayer && myPlayer.resources.sanity <= 0) {
             this.actionButtons.ward.disabled = true;
         }
