@@ -10,6 +10,7 @@ package app
 import (
 	"image/color"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/client/ebiten/render"
+	"github.com/opd-ai/bostonfear/client/ebiten/ui"
 )
 
 // screenWidth and screenHeight define the logical resolution (800×600 minimum).
@@ -62,7 +64,16 @@ type Game struct {
 	input       *InputHandler
 	renderer    *render.Compositor
 	shaders     *render.ShaderSet // lazily compiled on first Draw call; nil until then
-	activeScene Scene             // current full-screen scene; managed by updateScene
+	quality     ui.QualityTier
+	effects     ui.EffectProfile
+	theme       ui.ThemePack
+	procedural  *ui.ProceduralGenerator
+	procSeed    uint64
+	procFrame   ui.ProceduralFrame
+	procAtFrame int64
+	startedAt   time.Time
+	frameCount  int64
+	activeScene Scene // current full-screen scene; managed by updateScene
 	uiCache     uiStringCache
 }
 
@@ -82,11 +93,16 @@ func NewGame(serverURL string) *Game {
 	net := ebclient.NewNetClient(state)
 	input := NewInputHandler(net, state)
 	net.Connect()
+	quality := ui.ParseQualityTier(os.Getenv("BOSTONFEAR_RENDER_QUALITY"))
 	g := &Game{
-		state:    state,
-		net:      net,
-		input:    input,
-		renderer: render.NewCompositor(),
+		state:     state,
+		net:       net,
+		input:     input,
+		renderer:  render.NewCompositor(),
+		quality:   quality,
+		effects:   ui.EffectProfileForTier(quality),
+		theme:     ui.ResolveThemePack(ui.NewDefaultArkhamTheme()),
+		startedAt: time.Now(),
 	}
 	g.activeScene = &SceneConnect{game: g}
 	return g
@@ -132,6 +148,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 // drawGameContent renders the in-game view. Called from SceneGame.Draw and
 // from the Draw fallback path when no active scene is set.
 func (g *Game) drawGameContent(screen *ebiten.Image) {
+	g.frameCount++
+
 	// Lazily compile Kage shaders on first draw. Errors are logged but non-fatal:
 	// the game renders correctly without shader effects, just without the doom vignette.
 	if g.shaders == nil {
@@ -144,9 +162,11 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 		}
 	}
 
-	screen.Fill(color.RGBA{R: 20, G: 20, B: 30, A: 255})
+	screen.Fill(g.theme.Background)
 
 	gs, playerID, connected := g.state.Snapshot()
+	g.ensureProceduralSeed(gs)
+	g.drawProceduralAtmosphere(screen)
 
 	// Layer 0 — Board: location tiles.
 	g.enqueueBoard(gs)
@@ -167,9 +187,57 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
 
+	if g.effects.EnableFog {
+		render.DrawFogOverlay(screen, g.shaders, g.effects.FogOpacity)
+	}
+	if g.effects.EnableGlow {
+		render.DrawGlowOverlay(screen, g.shaders, g.effects.GlowIntensity, float32(time.Since(g.startedAt).Seconds()))
+	}
+
 	// Post-process: doom vignette shader composited over the fully rendered frame.
 	if gs.Doom > 0 {
 		render.DrawDoomVignette(screen, g.shaders, float32(gs.Doom)/12)
+	}
+}
+
+func (g *Game) ensureProceduralSeed(gs ebclient.GameState) {
+	seed := ui.SeedFromGameState(gs)
+	if g.procedural == nil || g.procSeed != seed {
+		g.procSeed = seed
+		g.procedural = ui.NewProceduralGenerator(seed)
+		g.procFrame = ui.ProceduralFrame{}
+		g.procAtFrame = -1
+	}
+}
+
+func (g *Game) drawProceduralAtmosphere(screen *ebiten.Image) {
+	if !g.effects.EnableAmbient || g.procedural == nil {
+		return
+	}
+	step := g.effects.ProceduralStep
+	if step < 1 {
+		step = 1
+	}
+	if len(g.procFrame.Rects) == 0 || g.frameCount%int64(step) == 0 {
+		g.procFrame = g.procedural.Generate(g.effects, screenWidth, screenHeight, g.frameCount)
+		g.procAtFrame = g.frameCount
+	}
+	for _, r := range g.procFrame.Rects {
+		col := g.theme.Ambient
+		switch r.Layer {
+		case ui.LayerFog:
+			col = g.theme.FogTint
+		case ui.LayerGrain:
+			col = g.theme.GrainTint
+		case ui.LayerSigil:
+			col = g.theme.SigilTint
+		}
+		if col.A == 0 {
+			col.A = r.Alpha
+		} else {
+			col.A = min8(col.A, r.Alpha)
+		}
+		ebitenutil.DrawRect(screen, r.X, r.Y, r.W, r.H, col)
 	}
 }
 

@@ -72,3 +72,34 @@ func DrawDoomVignette(dst *ebiten.Image, shaders *ShaderSet, doomFraction float3
 	op.Images[0] = dst
 	dst.DrawRectShader(w, h, shaders.Doom, op)
 }
+
+// DrawFogOverlay composites a subtle full-screen fog effect over dst.
+// opacity should be in the range [0.0, 1.0].
+func DrawFogOverlay(dst *ebiten.Image, shaders *ShaderSet, opacity float32) {
+	if shaders == nil || shaders.Fog == nil || opacity <= 0 {
+		return
+	}
+	w, h := dst.Bounds().Dx(), dst.Bounds().Dy()
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Uniforms = map[string]interface{}{
+		"Opacity": opacity,
+	}
+	op.Images[0] = dst
+	dst.DrawRectShader(w, h, shaders.Fog, op)
+}
+
+// DrawGlowOverlay composites a soft pulse used for atmosphere and interaction highlights.
+// intensity should be in [0.0, 1.0], timeSeconds is elapsed real time in seconds.
+func DrawGlowOverlay(dst *ebiten.Image, shaders *ShaderSet, intensity, timeSeconds float32) {
+	if shaders == nil || shaders.Glow == nil || intensity <= 0 {
+		return
+	}
+	w, h := dst.Bounds().Dx(), dst.Bounds().Dy()
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Uniforms = map[string]interface{}{
+		"Intensity": intensity,
+		"Time":      timeSeconds,
+	}
+	op.Images[0] = dst
+	dst.DrawRectShader(w, h, shaders.Glow, op)
+}

@@ -62,24 +62,24 @@
 
 ### Workstream 3: Procedural Visual Atmosphere
 - Remediation checklist:
-- [ ] Problem statement: Visuals currently rely on placeholders and static primitives; atmosphere is weak and inconsistent across clients.
-- [ ] Proposed changes: Add deterministic procedural layers (fog, grain, sigils, ambient accents) with per-scenario seeds.
-- [ ] Proposed changes: Expand shader pipeline for subtle scene effects via [client/ebiten/render/shaders.go](client/ebiten/render/shaders.go).
-- [ ] Proposed changes: Build style token packs (palette, contrast, glow, line style) for visual consistency.
-- [ ] Proposed changes: Add quality tiers (low/medium/high) with runtime performance throttles.
-- [ ] Reusable component candidates: `ui/theme` (token packs and style resolver).
-- [ ] Reusable component candidates: `ui/procedural` (seeded background and sigil generator).
-- [ ] Reusable component candidates: `ui/effects` (shader/effect orchestration and quality gating).
-- [ ] Dependencies: Render compositor in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
-- [ ] Dependencies: Atlas content in [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
-- [ ] Dependencies: Scenario identity from module-specific content packages.
-- [ ] Acceptance criteria: Visual atmosphere is deterministic for a given seed/scenario.
-- [ ] Acceptance criteria: Theme consistency score passes design QA checklist.
-- [ ] Acceptance criteria: FPS remains within target for each quality tier.
-- [ ] Effort estimate: M
-- [ ] Verification steps: Seed determinism tests for generated layers.
-- [ ] Verification steps: Frame-time and memory benchmarks per quality tier.
-- [ ] Verification steps: Snapshot diff review for thematic consistency.
+- [x] Problem statement: Visuals currently rely on placeholders and static primitives; atmosphere is weak and inconsistent across clients.
+- [x] Proposed changes: Add deterministic procedural layers (fog, grain, sigils, ambient accents) with per-scenario seeds.
+- [x] Proposed changes: Expand shader pipeline for subtle scene effects via [client/ebiten/render/shaders.go](client/ebiten/render/shaders.go).
+- [x] Proposed changes: Build style token packs (palette, contrast, glow, line style) for visual consistency.
+- [x] Proposed changes: Add quality tiers (low/medium/high) with runtime performance throttles.
+- [x] Reusable component candidates: `ui/theme` (token packs and style resolver).
+- [x] Reusable component candidates: `ui/procedural` (seeded background and sigil generator).
+- [x] Reusable component candidates: `ui/effects` (shader/effect orchestration and quality gating).
+- [x] Dependencies: Render compositor in [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
+- [x] Dependencies: Atlas content in [client/ebiten/render/atlas.go](client/ebiten/render/atlas.go).
+- [x] Dependencies: Scenario identity from module-specific content packages.
+- [x] Acceptance criteria: Visual atmosphere is deterministic for a given seed/scenario.
+- [x] Acceptance criteria: Theme consistency score passes design QA checklist.
+- [x] Acceptance criteria: FPS remains within target for each quality tier.
+- [x] Effort estimate: M
+- [x] Verification steps: Seed determinism tests for generated layers.
+- [x] Verification steps: Frame-time and memory benchmarks per quality tier.
+- [x] Verification steps: Snapshot diff review for thematic consistency (documented in [docs/PROCEDURAL_VISUAL_ATMOSPHERE_VERIFICATION.md](docs/PROCEDURAL_VISUAL_ATMOSPHERE_VERIFICATION.md)).
 
 ### Workstream 4: Pseudo-3D Board Visualization (8 Directions)
 - Remediation checklist:

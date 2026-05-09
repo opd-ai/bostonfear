@@ -17,6 +17,18 @@
 // - InputMapper: efficient hit testing with z-order support
 // - CoordinateTransformer: physical ↔ logical coordinate conversion
 //
+// Theme: Resolved style token packs for atmospheric rendering.
+// - ThemePack: concrete color bundle used by render-time effects
+// - ResolveThemePack: maps DesignTokenRegistry values into draw-ready RGBA colors
+//
+// Effects: Quality-tiered orchestration profile.
+// - QualityTier: low, medium, high
+// - EffectProfile: controls fog/glow toggles and procedural recompute throttles
+//
+// Procedural: Deterministic atmosphere primitives.
+// - ProceduralGenerator: seeded generator for fog/grain/sigil/ambient overlays
+// - SeedFromGameState: derives a stable seed from scenario-identifying state
+//
 // Example:
 //
 //	profile := ui.ResolveProfile(width, height)
