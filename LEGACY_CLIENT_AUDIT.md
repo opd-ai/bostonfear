@@ -401,28 +401,28 @@ No Go tests directly test legacy client serving (coverage gap). After removal:
 
 ## 10. Removal Checklist
 
-- [ ] Delete `client/index.html`
-- [ ] Delete `client/game.js`
-- [ ] Delete `client/dashboard.html`
-- [ ] Delete or archive `client/connection_quality_smoke_test.js`
-- [ ] Delete or archive `client/responsive_canvas_smoke_test.js`
-- [ ] Remove `--client-dir` flag from `cmd/server.go` (line 35)
-- [ ] Remove viper binding in `cmd/server.go` (line 40)
-- [ ] Update `runServer()` in `cmd/server.go` (lines 90-102)
-- [ ] Remove `Dashboard` from `RouteHandlers` struct in `transport/ws/server.go`
-- [ ] Remove `Static` from `RouteHandlers` struct in `transport/ws/server.go`
-- [ ] Remove `/dashboard` route handler registration
-- [ ] Remove `/` route handler registration
-- [ ] Delete `DashboardHandler()` function from `monitoring/handlers.go`
-- [ ] Update `monitoring/doc.go` documentation
-- [ ] Remove `test-browser` Makefile target
-- [ ] Update README.md (Build Targets table, Quick Setup, Technical Implementation)
-- [ ] Update PLAN.md (remove game.js and index.html references)
-- [ ] Create `/play` or WASM-serving route if continuing to serve from Go
-- [ ] Run tests: `go test -race ./...`
-- [ ] Verify: `go run . server` starts without errors
-- [ ] Verify: `curl http://localhost:8080/` returns 404 (expected)
-- [ ] Verify: Ebiten desktop/WASM clients still connect properly
+- [x] Delete `client/index.html`
+- [x] Delete `client/game.js`
+- [x] Delete `client/dashboard.html`
+- [x] Delete or archive `client/connection_quality_smoke_test.js`
+- [x] Delete or archive `client/responsive_canvas_smoke_test.js`
+- [x] Remove `--client-dir` flag from `cmd/server.go` (line 35)
+- [x] Remove viper binding in `cmd/server.go` (line 40)
+- [x] Update `runServer()` in `cmd/server.go` (lines 90-102)
+- [x] Remove `Dashboard` from `RouteHandlers` struct in `transport/ws/server.go`
+- [x] Remove `Static` from `RouteHandlers` struct in `transport/ws/server.go`
+- [x] Remove `/dashboard` route handler registration
+- [x] Remove `/` route handler registration
+- [x] Delete `DashboardHandler()` function from `monitoring/handlers.go`
+- [x] Update `monitoring/doc.go` documentation
+- [x] Remove `test-browser` Makefile target
+- [x] Update README.md (Build Targets table, Quick Setup, Technical Implementation)
+- [x] Update PLAN.md (remove game.js and index.html references)
+- [x] Create `/play` or WASM-serving route if continuing to serve from Go
+- [x] Run tests: `go test -race ./...`
+- [x] Verify: `go run . server` starts without errors
+- [x] Verify: `curl http://localhost:8080/` returns 404 (expected)
+- [x] Verify: Ebiten desktop/WASM clients still connect properly
 
 ---
 
