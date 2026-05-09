@@ -381,8 +381,9 @@ type SceneCharacterSelect struct {
 	// investigators holds the list of available investigator archetypes.
 	// They are indexed 0-5 and map to keys 1-6.
 	investigators []struct {
-		name    string // "researcher", "detective", etc.
-		display string // "Researcher", "Detective", etc.
+		name        string // "researcher", "detective", etc.
+		display     string // "Researcher", "Detective", etc.
+		description string // "Gathers clues and unravels mysteries" etc.
 	}
 }
 
@@ -391,15 +392,16 @@ func NewSceneCharacterSelect(g *Game) *SceneCharacterSelect {
 	return &SceneCharacterSelect{
 		game: g,
 		investigators: []struct {
-			name    string
-			display string
+			name        string
+			display     string
+			description string
 		}{
-			{"researcher", "Researcher"},
-			{"detective", "Detective"},
-			{"occultist", "Occultist"},
-			{"soldier", "Soldier"},
-			{"mystic", "Mystic"},
-			{"survivor", "Survivor"},
+			{"researcher", "Researcher", "Gathers clues steadily; excels at investigation"},
+			{"detective", "Detective", "Questions suspects and finds hidden motives"},
+			{"occultist", "Occultist", "Masters eldritch lore and ancient secrets"},
+			{"soldier", "Soldier", "Stands firm against horrors and physical threats"},
+			{"mystic", "Mystic", "Channels arcane power through ritual and will"},
+			{"survivor", "Survivor", "Adapts to adversity and learns from hardship"},
 		},
 	}
 }
@@ -440,17 +442,40 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 	selected, waiting := investigatorSelectionStatus(gs)
 
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
-	drawUIText(screen, "Select Your Investigator", screenWidth/2-100, screenHeight/2-80, color.White)
+	drawUIText(screen, "Select Your Investigator", screenWidth/2-100, screenHeight/2-110, color.White)
+	drawUIText(screen, "Press [1-6] to choose", screenWidth/2-90, screenHeight/2-95, color.RGBA{R: 180, G: 180, B: 180, A: 255})
 
 	for i, investigator := range s.investigators {
-		yOffset := screenHeight/2 - 50 + i*20
+		yOffset := screenHeight/2 - 60 + i*32
 		keyLabel := strconv.Itoa(i + 1)
+
+		// Fetch the player's current investigator selection to highlight if matched.
+		playerID := gs.CurrentPlayer
+		isSelected := false
+		if player, exists := gs.Players[playerID]; exists {
+			isSelected = player.InvestigatorType == protocol.InvestigatorType(investigator.name) && player.InvestigatorType != ""
+		}
+
+		// Choose color based on selection state.
+		titleColor := color.RGBA{R: 220, G: 220, B: 220, A: 255}
+		descColor := color.RGBA{R: 160, G: 160, B: 160, A: 255}
+		if isSelected {
+			titleColor = color.RGBA{R: 255, G: 215, B: 100, A: 255} // Gold highlight
+			descColor = color.RGBA{R: 200, G: 180, B: 100, A: 255}
+		}
+
+		// Draw the key, name, and description.
 		text := "[" + keyLabel + "] " + investigator.display
-		drawUIText(screen, text, screenWidth/2-80, yOffset, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+		if isSelected {
+			text += " ✓"
+		}
+		drawUIText(screen, text, screenWidth/2-120, yOffset, titleColor)
+		drawUIText(screen, "    "+investigator.description, screenWidth/2-120, yOffset+14, descColor)
 	}
 
-	drawUIText(screen, "Selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-100, screenHeight/2+90, color.White)
-	drawUIText(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+110, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+	drawUIText(screen, "", screenWidth/2-100, screenHeight/2+130, color.White) // Spacing
+	drawUIText(screen, "Selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-100, screenHeight/2+145, color.White)
+	drawUIText(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+160, color.RGBA{R: 180, G: 180, B: 180, A: 255})
 }
 
 // SceneGameOver is shown when the game reaches a win or lose condition.

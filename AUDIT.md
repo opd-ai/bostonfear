@@ -131,9 +131,9 @@ Primary improvement area: state visibility.
 - Fix: Distinguish client boot from server connection, or bind the label to actual client connection state.
 - Validation: With the server offline, the host should never claim a connected game session.
 - Remediation Checklist:
-  - [ ] Change initial success text to `Client loaded` or similar.
-  - [ ] Reflect actual game connection state from the Ebitengine client.
-  - [ ] Show retry/reconnect state in the host when applicable.
+  - [x] Change initial success text to `Client loaded` or similar.
+  - [x] Reflect actual game connection state from the Ebitengine client.
+  - [x] Show retry/reconnect state in the host when applicable.
 
 ### [MEDIUM] Invalid actions produce little actionable recovery guidance
 - File: `client/ebiten/state.go`, `client/ebiten/app/game.go`
@@ -173,9 +173,9 @@ Primary improvement area: state visibility.
 - Fix: Add short archetype summaries and a selected-state preview.
 - Validation: A new player should be able to explain the difference between at least two archetypes using the UI alone.
 - Remediation Checklist:
-  - [ ] Add one-line descriptions for each investigator archetype.
-  - [ ] Highlight the currently selected choice.
-  - [ ] Explain when the scene advances and what selection changes in play.
+  - [x] Add one-line descriptions for each investigator archetype.
+  - [x] Highlight the currently selected choice.
+  - [x] Explain when the scene advances and what selection changes in play.
 
 ### [LOW] Text readability is constrained by small bitmap text and truncation
 - File: `client/ebiten/app/text_ui.go`, `client/ebiten/app/game.go`
