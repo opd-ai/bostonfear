@@ -4,6 +4,7 @@
 package serverengine
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -192,6 +193,27 @@ func (gs *GameServer) writeToConn(conn net.Conn, addr string, data []byte) error
 
 // Start initializes the game server with goroutines for concurrent handling.
 func (gs *GameServer) Start() error {
+	return gs.StartWithContext(context.Background())
+}
+
+// StartWithContext initializes the game server with goroutines for concurrent
+// handling and links shutdown to context cancellation.
+func (gs *GameServer) StartWithContext(ctx context.Context) error {
+	if ctx == nil {
+		return fmt.Errorf("context is nil")
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	go func() {
+		<-ctx.Done()
+		gs.signalShutdown()
+	}()
+
 	// Start broadcast goroutine
 	go gs.broadcastHandler()
 	// Start action processing goroutine
@@ -201,6 +223,15 @@ func (gs *GameServer) Start() error {
 
 	log.Printf("Game server started with broadcast and action handlers")
 	return nil
+}
+
+// signalShutdown closes the shutdown channel once and ignores repeated close
+// attempts so multiple shutdown signals cannot crash the server.
+func (gs *GameServer) signalShutdown() {
+	defer func() {
+		_ = recover()
+	}()
+	close(gs.shutdownCh)
 }
 
 func (gs *GameServer) validateMovement(from, to Location) bool {
