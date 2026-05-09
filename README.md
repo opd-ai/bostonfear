@@ -10,12 +10,11 @@
 > independent, fan-made rules engine and is not affiliated with or endorsed by
 > Fantasy Flight Games or Asmodee.
 
-A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and an HTML/JS canvas client with 1-6 concurrent players. Players can join a game already in progress. A Go/Ebitengine client supporting desktop, web (WASM), and mobile platforms is implemented and compilable — see `ROADMAP.md` for ongoing improvements.
+A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and Go/Ebitengine clients supporting desktop, web (WASM), and mobile platforms with 1-6 concurrent players. Players can join a game already in progress. See `ROADMAP.md` for development roadmap and upcoming improvements.
 
-> **Active migration:** The client is being migrated from HTML/JS canvas to
-> Go/Ebitengine. Desktop and WASM builds compile successfully (alpha — placeholder
-> sprites). See `ROADMAP.md` for the phased plan. The WebSocket server and its
-> protocol remain stable.
+> **Client:** The game client is exclusively implemented in Go/Ebitengine. Desktop
+> and WASM builds compile successfully (alpha — placeholder sprites). Mobile
+> bindings are scaffolded. The WebSocket server and protocol remain stable.
 
 ## Features
 
@@ -35,7 +34,6 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 - WebSocket-based communication
 
 ### Performance Monitoring
-- **Real-time Dashboard**: Live performance metrics at `/dashboard`
 - **Prometheus Metrics**: Export endpoint at `/metrics` for monitoring tools
 - **Health Checks**: Comprehensive health status at `/health`
 - **Connection Analytics**: Player session tracking and connection insights
@@ -49,7 +47,6 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 | **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Active (alpha — placeholder sprites) |
 | **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Active (alpha — placeholder sprites) |
 | **Mobile** (iOS 16+, Android 10+) | `cmd/mobile/binding.go` | `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile` | Alpha (binding scaffolding; not verified on device) |
-| **HTML/JS browser** (current) | `client/index.html` | N/A — served by Go server | Active (migration in progress) |
 
 ## Quick Setup
 
@@ -70,14 +67,6 @@ go run ./cmd/server
 
 ### Step 3: Access Client
 
-**HTML/JS browser client** (migration path to Ebitengine client):
-```
-http://localhost:8080                # Game client
-http://localhost:8080/dashboard      # Performance monitoring dashboard
-http://localhost:8080/health         # Health check endpoint
-http://localhost:8080/metrics        # Prometheus metrics
-```
-
 **Desktop client** (alpha — builds and runs; placeholder sprites):
 ```bash
 go run ./cmd/desktop -server ws://localhost:8080/ws
@@ -86,7 +75,7 @@ go run ./cmd/desktop -server ws://localhost:8080/ws
 **Web WASM client** (alpha — builds successfully; placeholder sprites):
 ```bash
 GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
-# Serve via the Go server at /play, or use any static HTTP server:
+# Serve via any static HTTP server; Go server also supports WASM serving:
 # python3 -m http.server 8080 --directory client/wasm/
 ```
 
@@ -120,7 +109,7 @@ Each player gets 2 actions per turn:
 ### Connection Behaviour
 - The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap). Example: first retry after 5 s, second after 10 s, third after 20 s, all subsequent retries after 30 s. There is no upper limit on attempts.
 - The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the doom counter is incremented and the connection is closed. This is an idle/inactivity deadline, not a reconnection window.
-- **Session Persistence**: The JS browser client reclaims its player slot automatically using a server-issued reconnect token (stored in `localStorage`). The Ebitengine desktop/WASM client also supports token-based slot reclaim — the token received in a `connectionStatus` message is stored and re-sent as a `?token=` query parameter on the next dial attempt. All clients now support full session persistence on reconnect.
+- **Session Persistence**: The Ebitengine desktop/WASM client supports token-based slot reclaim — the token received in a `connectionStatus` message is stored and re-sent as a `?token=` query parameter on the next dial attempt for full session persistence.
 
 ## Technical Implementation
 
@@ -129,7 +118,7 @@ Each player gets 2 actions per turn:
 - **Module-based Runtime Selection**: Server startup now resolves a game module registry (`arkhamhorror` default) via `BOSTONFEAR_GAME` to support multiple Fantasy Flight-style engines
 - **Concurrent Connection Handling**: Goroutines with channel-based communication
 - **State Management**: Centralized game state with mutex protection
-- **Package Separation**: `serverengine/common` owns reusable runtime contracts/primitives, `serverengine/arkhamhorror` owns Arkham rules binding, and game-family roots (`serverengine/eldersign`, `serverengine/eldritchhorror`, `serverengine/finalhour`) are scaffolded for future engines; `transport/ws` owns HTTP/WebSocket upgrade and route registration, and `monitoring` owns health/metrics/dashboard handlers
+- **Package Separation**: `serverengine/common` owns reusable runtime contracts/primitives, `serverengine/arkhamhorror` owns Arkham rules binding, and game-family roots (`serverengine/eldersign`, `serverengine/eldritchhorror`, `serverengine/finalhour`) are scaffolded for future engines; `transport/ws` owns HTTP/WebSocket upgrade and route registration, and `monitoring` owns health/metrics handlers
 - **Error Handling**: Explicit Go-style error checking and propagation
 - **WebSocket Origin Validation**: Configurable `allowedOrigins` list (empty = accept any origin for local dev; set to specific hosts for production)
 
@@ -182,11 +171,6 @@ BOSTONFEAR_GAME=finalhour go run ./cmd/server
 - **Shader Effects**: Kage shaders for fog-of-war, doom vignette, and interactive highlights
 - **WASM Compatibility**: Same Go codebase compiled to WebAssembly for browser play
 - **WebSocket Connection**: Automatic reconnection with exponential backoff (5 s initial, doubles per attempt, 30 s cap)
-
-### HTML/JS Browser Client (Migration Mode)
-> The HTML5 Canvas / JavaScript client (`client/index.html`, `client/game.js`) is
-> in migration toward the Ebitengine client described in `CLIENT_SPEC.md`.
-> `CLIENT_SPEC.md` remains the source of truth for target UI/UX requirements.
 
 ### JSON Message Protocol
 ```json
@@ -255,11 +239,8 @@ bostonfear/
 │   │       ├── atlas.go
 │   │       ├── layers.go
 │   │       └── shaders/
-│   ├── wasm/               # WASM host files
-│   │   └── index.html
-│   ├── index.html          # HTML/JS browser game interface (migration mode)
-│   ├── game.js             # HTML/JS browser client logic (migration mode)
-│   └── dashboard.html      # Performance monitoring dashboard
+│   └── wasm/               # WASM host and compiled output
+│       └── index.html
 ├── go.mod                  # Go module dependencies
 ├── go.sum
 ├── ROADMAP.md              # Phased migration plan, AH3e compliance, and future priorities
@@ -272,15 +253,14 @@ bostonfear/
 - **Server**: Go 1.24+ with `github.com/gorilla/websocket`
 - **Ebitengine Client** (alpha): `github.com/hajimehoshi/ebiten/v2` (v2.7+)
 - **Mobile Build** (alpha): `ebitenmobile` CLI, `gomobile`, Android SDK (API 29+), Xcode 15+
-- **HTML/JS Browser Client** (migration mode): Modern web browser with HTML5 Canvas and WebSocket support
 
 ### Shared Go Protocol
 - The Go server engine and Go/Ebitengine client compile against the shared wire schema in `protocol/`, which owns the JSON payload structs and protocol enums used on the WebSocket boundary.
 
 ### Testing Multi-player
-1. Start the server
-2. Open multiple browser tabs/windows to `http://localhost:8080`
-3. Each tab represents a different player
+1. Build desktop client: `go build ./cmd/desktop`
+2. Start the server: `go run . server` (or build it)
+3. Launch multiple desktop client instances connecting to `ws://localhost:8080/ws`
 4. Game starts automatically when the first player connects; additional players may join at any time
 
 ### Running Tests

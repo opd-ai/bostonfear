@@ -1,11 +1,9 @@
-// Package monitoring provides HTTP handlers that expose game server health, performance metrics,
-// system diagnostics, and an interactive performance dashboard.
+// Package monitoring provides HTTP handlers that expose game server health and performance metrics.
 //
 // Endpoints:
 //
 // - GET /health: JSON snapshot of game health, state corruption history, and alerts
 // - GET /metrics: Prometheus-compatible metrics for scraping by monitoring systems
-// - GET /dashboard: Interactive HTML5 dashboard displaying real-time performance and player state
 //
 // Handler Signatures:
 //
@@ -25,14 +23,6 @@
 //   - throughput (messages per second)
 //   - memory and GC statistics
 //   - game statistics (turns played, average session length)
-//
-// DashboardHandler serves an HTML5 single-page app that polls /health and /metrics periodically,
-// rendering:
-//   - Real-time doom counter and game phase indicator
-//   - Per-player resource graphs (health, sanity, clues) with color-coded status
-//   - Connection quality heatmap (latency, packet loss per player)
-//   - Broadcast latency trend (rolling 100-sample window)
-//   - Alert panel with system warnings and corruption history
 //
 // Design Notes:
 //

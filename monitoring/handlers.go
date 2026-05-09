@@ -88,16 +88,6 @@ func MetricsHandler(provider Provider) http.Handler {
 	})
 }
 
-// DashboardHandler serves the static monitoring dashboard HTML.
-func DashboardHandler(clientDir string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		http.ServeFile(w, r, clientDir+"/dashboard.html")
-	})
-}
-
 func buildGameMetrics(perf monitoringdata.PerformanceMetrics, conn monitoringdata.ConnectionAnalyticsSimplified, throughput monitoringdata.MessageThroughputMetrics, doom int) string {
 	lines := []string{
 		"# HELP arkham_horror_uptime_seconds Total uptime of the server in seconds",

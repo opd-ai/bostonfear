@@ -1,6 +1,6 @@
 # Makefile — build, test, and lint targets for the bostonfear project.
 
-.PHONY: all build test test-browser test-display vet clean
+.PHONY: all build test test-display vet clean
 
 ## all: build the server and all clients.
 all: build
@@ -12,10 +12,6 @@ build:
 ## test: run the standard test suite (no display required; CI-safe).
 test:
 	go test -race ./...
-
-## test-browser: smoke-check browser client JavaScript syntax.
-test-browser:
-	node --check client/game.js
 
 ## test-display: run Ebitengine tests that require a local or virtual display.
 ## Set DISPLAY before calling if no physical display is available:

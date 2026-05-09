@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"strings"
 
@@ -32,14 +31,12 @@ func NewServerCommand() *cobra.Command {
 	cmd.Flags().String("listen", "", "TCP listen address (overrides --host/--port when set)")
 	cmd.Flags().String("host", "", "TCP listen host (default all interfaces)")
 	cmd.Flags().Int("port", 8080, "TCP listen port")
-	cmd.Flags().String("client-dir", "./client", "Path to browser client assets")
 	cmd.Flags().StringSlice("allowed-origins", nil, "Allowed WebSocket upgrade origins")
 
 	_ = viper.BindPFlag("server.game", cmd.Flags().Lookup("game"))
 	_ = viper.BindPFlag("server.listen", cmd.Flags().Lookup("listen"))
 	_ = viper.BindPFlag("server.host", cmd.Flags().Lookup("host"))
 	_ = viper.BindPFlag("server.port", cmd.Flags().Lookup("port"))
-	_ = viper.BindPFlag("server.client-dir", cmd.Flags().Lookup("client-dir"))
 	_ = viper.BindPFlag("network.allowed-origins", cmd.Flags().Lookup("allowed-origins"))
 
 	return cmd
@@ -89,17 +86,10 @@ func runServer(cmd *cobra.Command) error {
 	}
 	defer listener.Close()
 
-	clientDir := strings.TrimSpace(viper.GetString("server.client-dir"))
-	if clientDir == "" {
-		clientDir = "./client"
-	}
-
 	handlers := transportws.RouteHandlers{
 		WebSocket: transportws.NewWebSocketHandler(gameEngine),
 		Health:    monitoring.HealthHandler(gameEngine),
 		Metrics:   monitoring.MetricsHandler(gameEngine),
-		Dashboard: monitoring.DashboardHandler(clientDir),
-		Static:    http.FileServer(http.Dir(clientDir + "/")),
 	}
 
 	if err := transportws.SetupServer(listener, handlers); err != nil {
