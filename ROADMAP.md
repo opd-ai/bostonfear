@@ -122,7 +122,7 @@
 
 **Why this is fifth**: Not a functional blocker, but improves maintainability and contributor confidence.
 
-- [ ] Add a minimal `SECURITY.md` with reporting/contact policy.
+- [x] Add a minimal `SECURITY.md` with reporting/contact policy.
 - [ ] Schedule periodic dependency update sweeps (especially indirect `golang.org/x/*` and ebitengine-adjacent modules).
 - [ ] Keep changelog/release notes concise for compatibility-impacting updates.
 - [ ] Validation: security policy visible in repository and regular dependency refresh cadence established.
