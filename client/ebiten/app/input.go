@@ -57,7 +57,10 @@ func NewInputHandler(net *ebclient.NetClient, state *ebclient.LocalState) *Input
 func (h *InputHandler) Update() {
 	gs, playerID, connected := h.state.Snapshot()
 	if !connected || gs.CurrentPlayer != playerID {
-		// Only process input when connected and it is this player's turn.
+		// Count blocked retries when the player attempts input out of turn/disconnected.
+		if hasActionInputAttempted() {
+			h.state.RecordInvalidActionRetry("out-of-turn-or-disconnected")
+		}
 		return
 	}
 
@@ -69,11 +72,13 @@ func (h *InputHandler) Update() {
 			if kb.action == "trade" {
 				target = h.findColocatedPlayer(gs, playerID)
 				if target == "" {
-					// No co-located player; skip the action.
+					// No co-located player; treat as invalid retry.
+					h.state.RecordInvalidActionRetry("trade-no-colocated-player")
 					continue
 				}
 			}
 
+			h.state.RecordValidActionSent()
 			h.net.SendAction(ebclient.PlayerActionMessage{
 				Type:     "playerAction",
 				PlayerID: playerID,
@@ -190,6 +195,7 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 		// Check if it's a location (move action).
 		switch protocol.Location(id) {
 		case protocol.Downtown, protocol.University, protocol.Rivertown, protocol.Northside:
+			h.state.RecordValidActionSent()
 			h.net.SendAction(ebclient.PlayerActionMessage{
 				Type:     "playerAction",
 				PlayerID: playerID,
@@ -210,6 +216,7 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 			}
 
 			if action, exists := actionMap[id]; exists {
+				h.state.RecordValidActionSent()
 				h.net.SendAction(ebclient.PlayerActionMessage{
 					Type:     "playerAction",
 					PlayerID: playerID,
@@ -220,6 +227,15 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 			}
 		}
 	}
+}
+
+func hasActionInputAttempted() bool {
+	for _, kb := range keyBindings {
+		if inpututil.IsKeyJustPressed(kb.key) {
+			return true
+		}
+	}
+	return len(inpututil.JustPressedTouchIDs()) > 0
 }
 
 type touchLayout struct {

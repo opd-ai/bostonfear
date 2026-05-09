@@ -264,3 +264,46 @@ func TestSetConnectAddress_NormalizesURL(t *testing.T) {
 		t.Errorf("ServerURL = %q, want %q", ls.ServerURL, "wss://example.org/socket/ws")
 	}
 }
+
+// TestUXMetrics_FirstValidAction ensures the first valid action timestamp is
+// captured once and time-to-first-valid-action is derived from session start.
+func TestUXMetrics_FirstValidAction(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	ls := NewLocalState("ws://localhost:8080/ws")
+
+	base := time.Unix(1000, 0)
+	ls.mu.Lock()
+	ls.sessionStartedAt = base
+	ls.mu.Unlock()
+
+	ls.recordValidActionSentAt(base.Add(3 * time.Second))
+	ls.recordValidActionSentAt(base.Add(5 * time.Second))
+
+	metrics := ls.UXMetrics()
+	if !metrics.HasFirstValidAction {
+		t.Fatal("expected HasFirstValidAction = true")
+	}
+	if metrics.ValidActionsSent != 2 {
+		t.Fatalf("ValidActionsSent = %d, want 2", metrics.ValidActionsSent)
+	}
+	if got, want := metrics.TimeToFirstValidAction, 3*time.Second; got != want {
+		t.Fatalf("TimeToFirstValidAction = %v, want %v", got, want)
+	}
+}
+
+// TestUXMetrics_InvalidRetryCounter verifies invalid retries and last reason are tracked.
+func TestUXMetrics_InvalidRetryCounter(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	ls := NewLocalState("ws://localhost:8080/ws")
+
+	ls.RecordInvalidActionRetry("out-of-turn")
+	ls.RecordInvalidActionRetry("trade-no-colocated-player")
+
+	metrics := ls.UXMetrics()
+	if got, want := metrics.InvalidActionRetries, 2; got != want {
+		t.Fatalf("InvalidActionRetries = %d, want %d", got, want)
+	}
+	if got, want := metrics.LastInvalidReason, "trade-no-colocated-player"; got != want {
+		t.Fatalf("LastInvalidReason = %q, want %q", got, want)
+	}
+}

@@ -87,14 +87,19 @@ func runServer(cmd *cobra.Command) error {
 	}
 	defer listener.Close()
 
+	wasmDir := "./client/wasm"
 	handlers := transportws.RouteHandlers{
 		WebSocket: transportws.NewWebSocketHandler(gameEngine),
 		Health:    monitoring.HealthHandler(gameEngine),
 		Metrics:   monitoring.MetricsHandler(gameEngine),
 		Play: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "client/wasm/index.html")
+			if r.URL.Path != "/" {
+				http.NotFound(w, r)
+				return
+			}
+			http.ServeFile(w, r, wasmDir+"/index.html")
 		}),
-		WASMAssets: http.StripPrefix("/wasm/", http.FileServer(http.Dir("client/wasm"))),
+		WASMAssets: http.StripPrefix("/wasm/", http.FileServer(http.Dir(wasmDir))),
 	}
 
 	if err := transportws.SetupServer(listener, handlers); err != nil {

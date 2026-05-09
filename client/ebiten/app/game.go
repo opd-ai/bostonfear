@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -322,6 +323,17 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 		drawUIText(screen, h, 10, y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 		y += 12
 	}
+
+	metrics := g.state.UXMetrics()
+	if metrics.HasFirstValidAction {
+		drawUIText(screen, "First valid action: "+metrics.TimeToFirstValidAction.Round(time.Millisecond).String(), 10, y,
+			color.RGBA{R: 180, G: 220, B: 255, A: 255})
+	} else {
+		drawUIText(screen, "First valid action: pending", 10, y, color.RGBA{R: 180, G: 220, B: 255, A: 255})
+	}
+	y += 12
+	drawUIText(screen, "Invalid retries: "+strconv.Itoa(metrics.InvalidActionRetries), 10, y,
+		color.RGBA{R: 255, G: 200, B: 170, A: 255})
 
 	// Win / lose banner.
 	if gs.WinCondition {

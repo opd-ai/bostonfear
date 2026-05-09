@@ -104,6 +104,17 @@ type EventLogEntry struct {
 	Text      string
 }
 
+// UXMetricsSnapshot exposes client-side action usability counters for UI and tests.
+type UXMetricsSnapshot struct {
+	SessionStartedAt       time.Time
+	FirstValidActionAt     time.Time
+	TimeToFirstValidAction time.Duration
+	HasFirstValidAction    bool
+	ValidActionsSent       int
+	InvalidActionRetries   int
+	LastInvalidReason      string
+}
+
 // LocalState holds the client-side mirror of the server game state.
 // All fields are protected by mu; callers must hold mu before reading or writing.
 type LocalState struct {
@@ -143,6 +154,13 @@ type LocalState struct {
 	// DisplayName is the local player display name captured in SceneConnect.
 	// The current wire contract does not send this field to the server yet.
 	DisplayName string
+
+	// UX instrumentation for plan-level usability verification.
+	sessionStartedAt     time.Time
+	firstValidActionAt   time.Time
+	validActionsSent     int
+	invalidActionRetries int
+	lastInvalidReason    string
 }
 
 // NewLocalState creates an initialised LocalState ready for use.
@@ -150,8 +168,9 @@ type LocalState struct {
 // ~/.bostonfear/session.json; missing or unreadable files are silently ignored.
 func NewLocalState(serverURL string) *LocalState {
 	ls := &LocalState{
-		ServerURL:      serverURL,
-		ConnectAddress: hostPortFromURL(serverURL),
+		ServerURL:        serverURL,
+		ConnectAddress:   hostPortFromURL(serverURL),
+		sessionStartedAt: time.Now(),
 		Game: GameState{
 			Players:   make(map[string]*Player),
 			TurnOrder: []string{},
@@ -161,6 +180,49 @@ func NewLocalState(serverURL string) *LocalState {
 	// Restore persisted token; ignore missing-file errors.
 	_ = ls.LoadTokenFromFile()
 	return ls
+}
+
+// RecordValidActionSent tracks a successfully queued player action.
+func (s *LocalState) RecordValidActionSent() {
+	s.recordValidActionSentAt(time.Now())
+}
+
+func (s *LocalState) recordValidActionSentAt(now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.validActionsSent++
+	if s.firstValidActionAt.IsZero() {
+		s.firstValidActionAt = now
+	}
+}
+
+// RecordInvalidActionRetry tracks a local action attempt that could not be sent.
+func (s *LocalState) RecordInvalidActionRetry(reason string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.invalidActionRetries++
+	s.lastInvalidReason = strings.TrimSpace(reason)
+}
+
+// UXMetrics returns a point-in-time snapshot of local UX instrumentation values.
+func (s *LocalState) UXMetrics() UXMetricsSnapshot {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	out := UXMetricsSnapshot{
+		SessionStartedAt:     s.sessionStartedAt,
+		FirstValidActionAt:   s.firstValidActionAt,
+		HasFirstValidAction:  !s.firstValidActionAt.IsZero(),
+		ValidActionsSent:     s.validActionsSent,
+		InvalidActionRetries: s.invalidActionRetries,
+		LastInvalidReason:    s.lastInvalidReason,
+	}
+	if !s.firstValidActionAt.IsZero() {
+		out.TimeToFirstValidAction = s.firstValidActionAt.Sub(s.sessionStartedAt)
+	}
+	return out
 }
 
 // ConnectFormSnapshot returns the address and display-name values for SceneConnect.
@@ -328,5 +390,10 @@ func (s *LocalState) Reset() {
 	s.ConnectionRating = ""
 	s.EventLog = make([]EventLogEntry, 0, 20)
 	s.Connected = false
+	s.sessionStartedAt = time.Now()
+	s.firstValidActionAt = time.Time{}
+	s.validActionsSent = 0
+	s.invalidActionRetries = 0
+	s.lastInvalidReason = ""
 	// ReconnectToken is intentionally preserved for session recovery.
 }
