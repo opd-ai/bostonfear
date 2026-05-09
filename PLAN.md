@@ -24,14 +24,14 @@
 
 ### Workstream 1: Multi-Resolution and Orientation Support
 - Remediation checklist:
-- [ ] Problem statement: Current clients are effectively fixed-layout (800x600 assumptions in board coordinates, touch regions, and window setup), which limits readability and control quality across device classes.
-- [ ] Proposed changes: Introduce a resolution/orientation profile system with named profiles (phone portrait, phone landscape, tablet, desktop 16:9, desktop ultrawide).
-- [ ] Proposed changes: Replace absolute UI placement with anchor-based layout primitives for HUD, board, and action rail.
-- [ ] Proposed changes: Add safe-area handling and dynamic typography scaling.
-- [ ] Proposed changes: Normalize input hit-testing against logical coordinate transforms.
-- [ ] Reusable component candidates: `ui/layout` (viewport model, anchors, constraints, safe-area abstraction).
-- [ ] Reusable component candidates: `ui/scaling` (device profile resolver, text/icon scale curves).
-- [ ] Reusable component candidates: `ui/inputmap` (screen-to-world transform, hitbox registry).
+- [x] Problem statement: Current clients are effectively fixed-layout (800x600 assumptions in board coordinates, touch regions, and window setup), which limits readability and control quality across device classes.
+- [x] Proposed changes: Introduce a resolution/orientation profile system with named profiles (phone portrait, phone landscape, tablet, desktop 16:9, desktop ultrawide).
+- [x] Proposed changes: Replace absolute UI placement with anchor-based layout primitives for HUD, board, and action rail.
+- [x] Proposed changes: Add safe-area handling and dynamic typography scaling.
+- [x] Proposed changes: Normalize input hit-testing against logical coordinate transforms.
+- [x] Reusable component candidates: `ui/layout` (viewport model, anchors, constraints, safe-area abstraction).
+- [x] Reusable component candidates: `ui/scaling` (device profile resolver, text/icon scale curves).
+- [x] Reusable component candidates: `ui/inputmap` (screen-to-world transform, hitbox registry).
 - [ ] Dependencies: Existing scene system in [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go).
 - [ ] Dependencies: Input routing in [client/ebiten/app/input.go](client/ebiten/app/input.go).
 - [ ] Dependencies: Canvas resize behavior in [client/game.js](client/game.js).
@@ -46,13 +46,13 @@
 ### Workstream 2: UI Redesign (Readability, Hierarchy, Feedback)
 - Remediation checklist:
 - [ ] Problem statement: Current UI is functional but test-oriented (heavy text overlays, sparse hierarchy, limited visual affordances), reducing playability and confidence.
-- [ ] Proposed changes: Introduce a production HUD shell with three fixed zones (top status rail, center board, bottom action rail).
-- [ ] Proposed changes: Replace text-heavy status blocks with compact cards (turn, objective, doom, player strip).
-- [ ] Proposed changes: Convert transient updates into a unified notification system with action preview, submitted state, and resolved state.
+- [x] Proposed changes: Introduce a production HUD shell with three fixed zones (top status rail, center board, bottom action rail).
+- [x] Proposed changes: Replace text-heavy status blocks with compact cards (turn, objective, doom, player strip).
+- [x] Proposed changes: Convert transient updates into a unified notification system with action preview, submitted state, and resolved state.
 - [ ] Proposed changes: Implement animation language for turn transitions, dice outcomes, doom spikes, and invalid actions.
-- [ ] Reusable component candidates: `ui/hud` (status rail, player strip, action rail primitives).
-- [ ] Reusable component candidates: `ui/feedback` (toasts, confirmations, transient update queue).
-- [ ] Reusable component candidates: `ui/components` (badges, pills, counters, segmented bars).
+- [x] Reusable component candidates: `ui/hud` (status rail, player strip, action rail primitives).
+- [x] Reusable component candidates: `ui/feedback` (toasts, confirmations, transient update queue).
+- [x] Reusable component candidates: `ui/components` (badges, pills, counters, segmented bars).
 - [ ] Dependencies: Event stream from `gameUpdate`, `diceResult`, and `gameState` in [client/game.js](client/game.js) and [client/ebiten/net.go](client/ebiten/net.go).
 - [ ] Dependencies: Shared action semantics in [protocol/protocol.go](protocol/protocol.go).
 - [ ] Acceptance criteria: Current turn, actions remaining, and available actions are identifiable in under 3 seconds.
