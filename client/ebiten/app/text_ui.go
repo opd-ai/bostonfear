@@ -72,7 +72,7 @@ func wrapText(value string, maxWidth int) []string {
 
 // drawWrappedText renders multi-line text starting at (x, y), advancing
 // y by line height for each line. Returns the final y position.
-func drawWrappedText(dst *ebiten.Image, value string, maxWidth int, x, y int, clr color.Color) int {
+func drawWrappedText(dst *ebiten.Image, value string, maxWidth, x, y int, clr color.Color) int {
 	lines := wrapText(value, maxWidth)
 	metrics := uiTextFace.Metrics()
 	lineHeight := metrics.Height.Ceil()

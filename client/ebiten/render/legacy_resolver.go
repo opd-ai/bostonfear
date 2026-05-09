@@ -43,56 +43,63 @@ func (r *LegacyAtlasResolver) SpriteCoordinates() [spriteCount]spriteRect {
 
 func (r *LegacyAtlasResolver) build() {
 	r.coords = spriteCoords
-
-	// Determine atlas dimensions from the hardcoded table.
-	totalW := 0
-	maxH := 0
-	for i := SpriteID(0); i < spriteCount; i++ {
-		rc := spriteCoords[i]
-		right := rc.x + rc.w
-		if right > totalW {
-			totalW = right
-		}
-		bottom := rc.y + rc.h
-		if bottom > maxH {
-			maxH = bottom
-		}
-	}
+	totalW, maxH := legacyAtlasDimensions()
 	if totalW <= 0 || maxH <= 0 {
 		r.resolveErr = fmt.Errorf("legacy resolver: invalid sprite coord dimensions")
 		return
 	}
-
-	atlas := image.NewRGBA(image.Rect(0, 0, totalW, maxH))
-
-	// Paint each sprite region with a distinct placeholder colour.
-	placeholderColors := [spriteCount]color.RGBA{
-		{R: 60, G: 60, B: 80, A: 255},    // Background — dark blue-grey
-		{R: 40, G: 100, B: 160, A: 255},  // Downtown — blue
-		{R: 60, G: 140, B: 60, A: 255},   // University — green
-		{R: 160, G: 80, B: 40, A: 255},   // Rivertown — brown
-		{R: 100, G: 60, B: 140, A: 255},  // Northside — purple
-		{R: 220, G: 180, B: 60, A: 255},  // PlayerToken — gold
-		{R: 200, G: 40, B: 40, A: 255},   // DoomMarker — red
-		{R: 180, G: 180, B: 180, A: 128}, // ActionOverlay — translucent grey
-	}
-
-	for id := SpriteID(0); id < spriteCount; id++ {
-		rc := spriteCoords[id]
-		rect := image.Rect(rc.x, rc.y, rc.x+rc.w, rc.y+rc.h)
-		var col color.RGBA
-		if int(id) < len(placeholderColors) {
-			col = placeholderColors[id]
-		} else {
-			col = color.RGBA{R: 128, G: 128, B: 128, A: 255}
-		}
-		draw.Draw(atlas, rect, &image.Uniform{C: col}, image.Point{}, draw.Src)
-	}
-
+	atlas := legacyPaintAtlas(totalW, maxH)
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, atlas); err != nil {
 		r.resolveErr = fmt.Errorf("legacy resolver: encode atlas png: %w", err)
 		return
 	}
 	r.sheetPNG = buf.Bytes()
+}
+
+// legacyAtlasDimensions returns the total width and max height required to
+// hold all sprites defined in spriteCoords.
+func legacyAtlasDimensions() (totalW, maxH int) {
+	for i := SpriteID(0); i < spriteCount; i++ {
+		rc := spriteCoords[i]
+		if right := rc.x + rc.w; right > totalW {
+			totalW = right
+		}
+		if bottom := rc.y + rc.h; bottom > maxH {
+			maxH = bottom
+		}
+	}
+	return totalW, maxH
+}
+
+// legacyPlaceholderColors defines a distinct placeholder colour for each sprite ID.
+var legacyPlaceholderColors = [spriteCount]color.RGBA{
+	{R: 60, G: 60, B: 80, A: 255},    // Background — dark blue-grey
+	{R: 40, G: 100, B: 160, A: 255},  // Downtown — blue
+	{R: 60, G: 140, B: 60, A: 255},   // University — green
+	{R: 160, G: 80, B: 40, A: 255},   // Rivertown — brown
+	{R: 100, G: 60, B: 140, A: 255},  // Northside — purple
+	{R: 220, G: 180, B: 60, A: 255},  // PlayerToken — gold
+	{R: 200, G: 40, B: 40, A: 255},   // DoomMarker — red
+	{R: 180, G: 180, B: 180, A: 128}, // ActionOverlay — translucent grey
+}
+
+// legacyPaintAtlas creates an RGBA image of size totalW×maxH and fills each
+// sprite region with its corresponding placeholder colour.
+func legacyPaintAtlas(totalW, maxH int) *image.RGBA {
+	atlas := image.NewRGBA(image.Rect(0, 0, totalW, maxH))
+	for id := SpriteID(0); id < spriteCount; id++ {
+		rc := spriteCoords[id]
+		rect := image.Rect(rc.x, rc.y, rc.x+rc.w, rc.y+rc.h)
+		col := legacySpriteColor(id)
+		draw.Draw(atlas, rect, &image.Uniform{C: col}, image.Point{}, draw.Src)
+	}
+	return atlas
+}
+
+func legacySpriteColor(id SpriteID) color.RGBA {
+	if int(id) < len(legacyPlaceholderColors) {
+		return legacyPlaceholderColors[id]
+	}
+	return color.RGBA{R: 128, G: 128, B: 128, A: 255}
 }
