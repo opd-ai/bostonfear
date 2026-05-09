@@ -58,6 +58,18 @@ const (
 )
 
 // Resources represents player resource tracking with bounds validation.
+// Resources represents investigator personal resources (health, sanity, clues, money, etc).
+// Valid ranges are enforced by game mechanics:
+//   - Health: [1, 10]; value ≤ 0 indicates investigator defeated
+//   - Sanity: [1, 10]; value ≤ 0 indicates investigator defeated
+//   - Clues: [0, 5]; used to advance Act deck
+//   - Money: [0, unbounded]; used to purchase assets
+//   - Remnants: [0, unbounded]; Elder Sign-specific resource (unused in Arkham Horror 3e)
+//   - Focus: [0, unbounded]; Arkham Horror 3e focus tokens for ability use
+//
+// Consumers should validate these ranges before constructing Player objects or
+// submitting actions that modify resources. Violations are detected during action
+// processing and will trigger validation errors.
 type Resources struct {
 	Health   int `json:"health"`
 	Sanity   int `json:"sanity"`
@@ -95,6 +107,21 @@ type DiceResultMessage struct {
 }
 
 // Player is the shared wire representation of an investigator.
+// Valid field values:
+//   - ID: non-empty string; server-generated unique identifier
+//   - Location: one of [Downtown, University, Rivertown, Northside]; default is Downtown
+//   - Resources: subject to constraints in Resources type; read comment there
+//   - ActionsRemaining: [0, 2]; number of unexecuted actions available this turn
+//   - Connected: boolean; true if the WebSocket connection is active
+//   - Defeated: boolean; true if Sanity ≤ 0 or Health ≤ 0
+//   - LostInTimeAndSpace: boolean; true if investigator is in lost-and-separated state
+//   - ReconnectToken: may be empty (transient) or non-empty (used to restore session)
+//   - DisconnectedAt: zero-valued if connected; set to disconnection timestamp when not connected
+//   - InvestigatorType: one of Researcher, Detective, Occultist, Soldier, Mystic, Survivor
+//
+// Consumers should not mutate Player fields directly; use action submissions instead.
+// The server enforces field bounds during action processing and returns ValidationError
+// with severity details if invariants are violated.
 type Player struct {
 	ID                 string           `json:"id"`
 	Location           Location         `json:"location"`
@@ -162,6 +189,32 @@ type Anomaly struct {
 }
 
 // GameState is the shared full-snapshot payload sent to Go clients.
+// GameState is the shared wire representation of the game's global state.
+// Valid field values:
+//   - Players: map of player ID to Player struct; all players referenced in TurnOrder must exist here
+//   - CurrentPlayer: ID of the player whose turn it is; must be in Players or GameStarted is false
+//   - Doom: [0, 12]; value > 12 indicates game loss
+//   - GamePhase: one of [waiting, pregame, playing, mythos, mythos_resolution, game_over]
+//   - TurnOrder: list of player IDs; length in [0, 6]; all IDs must exist in Players
+//   - GameStarted: true after first player action; false during pregame setup
+//   - WinCondition: true if investigators achieved victory goal (scenario-specific)
+//   - LoseCondition: true if doom reached 12 or all players defeated
+//   - RequiredClues: number of clues needed to advance Act deck (scales with player count)
+//   - Difficulty: one of [easy, normal, hard]
+//   - ActDeck: ordered list of unresolved Act cards; first card is current
+//   - AgendaDeck: list of unresolved Agenda cards; consumed at mythos phase
+//   - MythosEventDeck: deck of possible location/gate events shuffled at game start
+//   - LocationDoomTokens: map of location ID to doom count at that location
+//   - MythosToken: doom/blessing/curse indicator for this mythos phase
+//   - MythosEvents: active location events currently in effect
+//   - Anomalies: active anomalies and their locations
+//   - OpenGates: list of open gates; limit typically 3 or 4
+//   - Enemies: map of enemy ID to enemy state; creatures in play
+//   - ActiveEvents: IDs of ongoing mythos events
+//   - EncounterDecks: map of location ID to encounter card list for that location
+//
+// All integer bounds are validated during action processing. Consumers should not
+// construct GameState manually; use server-provided state snapshots instead.
 type GameState struct {
 	Players            map[string]*Player         `json:"players"`
 	CurrentPlayer      string                     `json:"currentPlayer"`

@@ -20,6 +20,21 @@ import (
 // Concurrency safety: exported methods on GameServer are safe for concurrent use
 // by multiple goroutines. Internal state mutations are synchronized with mutexes
 // and atomics, so callers do not need additional external locking.
+//
+// Session Recovery and Late Joiners:
+//
+// Use HandleConnection(conn, reconnectToken) to manage player sessions:
+//   - If reconnectToken is empty: a new player is registered and given a slot in turn order
+//   - If reconnectToken is non-empty: the server attempts to restore the disconnected player's slot.
+//     If no disconnected player with that token exists, a new player is registered instead.
+//
+// Late joiners always spawn at Downtown (the default location). When a player reconnects,
+// their previous location, resources, and game state are restored automatically. This allows
+// players to join mid-game and receive the current game state on connection.
+//
+// A disconnected player's slot remains reserved for 30 seconds. After 30 seconds of inactivity,
+// the slot may be reassigned to a new player or the game may end if required player count
+// is not met (scenario-dependent).
 type GameServer struct {
 	gameState   *GameState
 	scenario    Scenario            // scenario configuration for this session
