@@ -45,7 +45,7 @@
 
 ### Workstream 2: UI Redesign (Readability, Hierarchy, Feedback)
 - Remediation checklist:
-- [ ] Problem statement: Current UI is functional but test-oriented (heavy text overlays, sparse hierarchy, limited visual affordances), reducing playability and confidence.
+- [x] Problem statement: Current UI is functional but test-oriented (heavy text overlays, sparse hierarchy, limited visual affordances), reducing playability and confidence.
 - [x] Proposed changes: Introduce a production HUD shell with three fixed zones (top status rail, center board, bottom action rail).
 - [x] Proposed changes: Replace text-heavy status blocks with compact cards (turn, objective, doom, player strip).
 - [x] Proposed changes: Convert transient updates into a unified notification system with action preview, submitted state, and resolved state.
@@ -53,12 +53,12 @@
 - [x] Reusable component candidates: `ui/hud` (status rail, player strip, action rail primitives).
 - [x] Reusable component candidates: `ui/feedback` (toasts, confirmations, transient update queue).
 - [x] Reusable component candidates: `ui/components` (badges, pills, counters, segmented bars).
-- [ ] Dependencies: Event stream from `gameUpdate`, `diceResult`, and `gameState` in [client/game.js](client/game.js) and [client/ebiten/net.go](client/ebiten/net.go).
-- [ ] Dependencies: Shared action semantics in [protocol/protocol.go](protocol/protocol.go).
-- [ ] Acceptance criteria: Current turn, actions remaining, and available actions are identifiable in under 3 seconds.
-- [ ] Acceptance criteria: Every user action gets immediate pending feedback and explicit result feedback.
-- [ ] Acceptance criteria: Invalid actions always display reason and recovery guidance.
-- [ ] Effort estimate: L
+- [x] Dependencies: Event stream from `gameUpdate`, `diceResult`, and `gameState` in [client/game.js](client/game.js) and [client/ebiten/net.go](client/ebiten/net.go).
+- [x] Dependencies: Shared action semantics in [protocol/protocol.go](protocol/protocol.go).
+- [x] Acceptance criteria: Current turn, actions remaining, and available actions are identifiable in under 3 seconds.
+- [x] Acceptance criteria: Every user action gets immediate pending feedback and explicit result feedback.
+- [x] Acceptance criteria: Invalid actions always display reason and recovery guidance.
+- [x] Effort estimate: L
 - [ ] Verification steps: First-time-user moderated task tests for one full turn.
 - [ ] Verification steps: Instrument time-to-first-valid-action and invalid-action retry count.
 - [ ] Verification steps: UX regression checklist against onboarding and clarity states.

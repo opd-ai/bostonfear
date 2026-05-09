@@ -33,6 +33,7 @@ class ArkhamHorrorClient {
         this.doomExplanation = document.getElementById('doomExplanation');
         this.clueProgressValue = document.getElementById('clueProgressValue');
         this.clueProgressHint = document.getElementById('clueProgressHint');
+        this.notificationStack = document.getElementById('notificationStack');
 
         this.logicalCanvasWidth = 800;
         this.logicalCanvasHeight = 600;
@@ -269,6 +270,7 @@ class ArkhamHorrorClient {
         this.ws.send(JSON.stringify(actionMessage));
         this.pendingAction = true;
         this.updateActionButtons();
+        this.pushNotification('pending', 'Action submitted', `${action}${target ? ` -> ${target}` : ''}`);
         this.showMessage('info', `Submitted action: ${action}${target ? ` -> ${target}` : ''}.`);
         console.log('Action sent:', actionMessage);
     }
@@ -481,6 +483,7 @@ class ArkhamHorrorClient {
             ? ` Needed ${requiredSuccesses}.`
             : '';
         const summary = `${diceMessage.action}: ${successText}. ${diceMessage.successes} successes, ${diceMessage.tentacles} tentacles.${thresholdSummary}`;
+        this.pushNotification(diceMessage.success ? 'success' : 'warning', 'Dice resolved', summary);
         this.showMessage(diceMessage.success ? 'success' : 'warning', summary);
     }
     
@@ -500,19 +503,12 @@ class ArkhamHorrorClient {
             if (update.resourceDelta.clues !== 0)
                 deltaLines.push(`Clues ${update.resourceDelta.clues > 0 ? '+' : ''}${update.resourceDelta.clues}`);
         }
-        const deltaHtml = deltaLines.length > 0
-            ? `<div>${deltaLines.join(' | ')}</div>` : '';
-        const notification = document.createElement('div');
-        notification.style.cssText = 'position:fixed;top:10px;right:10px;background:#1a1a2e;' +
-            'border:1px solid #4a4a8a;padding:10px;border-radius:4px;z-index:1000;max-width:250px;';
-        notification.innerHTML = `
-            <div><strong>${update.playerId}</strong>: ${update.event}</div>
-            <div style="color:${resultColor};font-weight:bold">${update.result.toUpperCase()}</div>
-            ${deltaHtml}${doomLine}
-        `;
-        document.body.appendChild(notification);
-        // Auto-dismiss after 3 seconds
-        setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 3000);
+        const deltaText = deltaLines.length > 0 ? deltaLines.join(' | ') : 'No resource change';
+        this.pushNotification(
+            update.result === 'success' ? 'success' : 'warning',
+            `${update.playerId} used ${update.event}`,
+            `${update.result.toUpperCase()}${deltaLines.length > 0 ? ` · ${deltaText}` : ''}${update.doomDelta > 0 ? ` · Doom +${update.doomDelta}` : ''}`
+        );
 
         const messageBits = [`${update.playerId} used ${update.event}: ${update.result}.`];
         if (deltaLines.length > 0) {
@@ -530,6 +526,7 @@ class ArkhamHorrorClient {
     handleActionErrorMessage(message) {
         const reason = message.reason || message.message || 'Action rejected by server.';
         const action = message.action ? ` (${message.action})` : '';
+        this.pushNotification('error', 'Action rejected', `${reason}${action}`);
         this.showMessage('error', `Action rejected${action}: ${reason}`);
     }
 
@@ -789,6 +786,33 @@ class ArkhamHorrorClient {
 
         this.uiMessage.className = `ui-message ${type}`;
         this.uiMessage.textContent = text;
+    }
+
+    pushNotification(type, title, body, timeoutMs = 4000) {
+        if (!this.notificationStack) {
+            return;
+        }
+
+        const notification = document.createElement('div');
+        notification.className = `notification-card ${type} entering`;
+        notification.innerHTML = `
+            <div class="notification-title">${title}</div>
+            <div class="notification-body">${body}</div>
+        `;
+        this.notificationStack.appendChild(notification);
+
+        requestAnimationFrame(() => {
+            notification.classList.remove('entering');
+        });
+
+        setTimeout(() => {
+            notification.classList.add('exiting');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 250);
+        }, timeoutMs);
     }
     
     // Handle ping messages and respond with pong
