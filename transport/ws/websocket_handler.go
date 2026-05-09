@@ -73,7 +73,7 @@ func ValidateOrigin(r *http.Request, allowedHosts []string) bool {
 
 	hostLower := strings.ToLower(u.Host)
 	for _, a := range allowedHosts {
-		if a == hostLower {
+		if strings.ToLower(a) == hostLower {
 			return true
 		}
 	}

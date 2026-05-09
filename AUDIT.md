@@ -35,13 +35,13 @@
 - [ ] None.
 
 ### HIGH
-- [ ] Reverse package coupling from domain engine to monitoring policy — `serverengine/health.go:11`, `serverengine/health.go:188-194` — `serverengine` imports `monitoring` only to compute alerts, which inverts the intended dependency direction where monitoring should consume engine state, not be required by engine internals. This increases substitution cost for alternate hosts and makes the core engine less transport/adapter-neutral. — **Remediation:** Move alert policy composition out of `serverengine` by (1) deleting `getSystemAlerts` from `serverengine`, (2) keeping alert construction exclusively in `monitoring` using existing provider snapshots, and (3) if shared threshold logic is needed, place pure data helpers in `monitoringdata` (no handler imports). Validate with: `go build ./...`, `go test -race ./...`, `go-stats-generator analyze . --skip-tests --sections packages,interfaces,structs`.
+- [x] Reverse package coupling from domain engine to monitoring policy — COMPLETED: Removed `import monitoring` from `serverengine/health.go` and deleted `getSystemAlerts()` method. Monitoring package no longer depends on serverengine internals.
 
 ### MEDIUM
-- [ ] Filesystem/serving concern owned by engine package — `serverengine/game_constants.go:8-13`, consumed at `cmd/server/main.go:44-45` — `serverengine.ClientDir()` exposes a repo-layout-specific asset path used by HTTP handlers, mixing runtime integration configuration into the rules/orchestration package. This reduces library portability (embedding engine into another binary requires inherited path assumptions). — **Remediation:** Move client asset path ownership to server bootstrap (`cmd/server`) or transport adapter configuration (`transport/ws` route setup args), and keep `serverengine` free of filesystem path constants. Validate with: `go build ./...`, `go test -race ./...`, `go-stats-generator analyze . --skip-tests --sections packages,patterns`.
+- [x] Filesystem/serving concern owned by engine package — COMPLETED: Moved `clientDir` constant from `serverengine/game_constants.go` to `cmd/server/main.go` as deployment configuration, not core engine concern.
 
 ### LOW
-- [ ] Origin validation logic duplicated across engine and transport — `serverengine/game_server.go:166-200` and `transport/ws/websocket_handler.go:48-83` — the same policy logic exists in two packages, while only transport path is exercised at upgrade time. This creates maintenance drift risk and unclear ownership for security policy behavior. — **Remediation:** Keep a single authoritative origin validator in `transport/ws`; reduce `serverengine` responsibility to normalized origin config (`AllowedOrigins` state) only, or extract a tiny shared pure function package consumed by transport and tests. Validate with: `go test -race ./...`, `go-stats-generator analyze . --skip-tests --sections duplication,packages`.
+- [x] Origin validation logic duplicated across engine and transport — COMPLETED: Deleted `checkOrigin()` from serverengine, consolidated validation to `ValidateOrigin()` in `transport/ws/websocket_handler.go`, moved all tests to `transport/ws/websocket_handler_test.go`.
 
 ## False Positives Considered and Rejected
 | Candidate Finding | Reason Rejected |

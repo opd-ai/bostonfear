@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -161,42 +159,6 @@ func (gs *GameServer) AllowedOrigins() []string {
 	allowed := append([]string(nil), gs.allowedOrigins...)
 	gs.mutex.RUnlock()
 	return allowed
-}
-
-// checkOrigin evaluates whether an incoming request origin should be accepted.
-// It is kept package-local for origin-policy unit tests and transport reuse.
-func (gs *GameServer) checkOrigin(r *http.Request) bool {
-	allowed := gs.AllowedOrigins()
-	if len(allowed) == 0 {
-		return true
-	}
-
-	origin := r.Header.Get("Origin")
-	if origin == "" {
-		return true
-	}
-
-	u, err := url.Parse(origin)
-	if err != nil || u.Host == "" {
-		log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
-		return false
-	}
-
-	switch strings.ToLower(u.Scheme) {
-	case "http", "https", "ws", "wss":
-	default:
-		log.Printf("WebSocket upgrade rejected: unsupported scheme in origin %q", origin)
-		return false
-	}
-
-	hostLower := strings.ToLower(u.Host)
-	for _, a := range allowed {
-		if a == hostLower {
-			return true
-		}
-	}
-	log.Printf("WebSocket upgrade rejected: origin %q not in allowed list", origin)
-	return false
 }
 
 // connWriteLock returns the per-connection write mutex for addr, creating it if needed.
