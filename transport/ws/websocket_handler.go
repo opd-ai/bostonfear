@@ -45,39 +45,45 @@ func NewWebSocketHandler(engine SessionEngine) http.Handler {
 	})
 }
 
+// ValidateOrigin determines whether a request's origin should be accepted
+// for WebSocket upgrade. It returns true if the origin is allowed or if the
+// allowedHosts list is empty (permissive mode).
+func ValidateOrigin(r *http.Request, allowedHosts []string) bool {
+	if len(allowedHosts) == 0 {
+		return true
+	}
+
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true
+	}
+
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
+		return false
+	}
+
+	switch strings.ToLower(u.Scheme) {
+	case "http", "https", "ws", "wss":
+	default:
+		log.Printf("WebSocket upgrade rejected: unsupported scheme in origin %q", origin)
+		return false
+	}
+
+	hostLower := strings.ToLower(u.Host)
+	for _, a := range allowedHosts {
+		if a == hostLower {
+			return true
+		}
+	}
+
+	log.Printf("WebSocket upgrade rejected: origin %q not in allowed list", origin)
+	return false
+}
+
 func makeCheckOrigin(engine SessionEngine) func(*http.Request) bool {
 	return func(r *http.Request) bool {
-		allowed := engine.AllowedOrigins()
-		if len(allowed) == 0 {
-			return true
-		}
-
-		origin := r.Header.Get("Origin")
-		if origin == "" {
-			return true
-		}
-
-		u, err := url.Parse(origin)
-		if err != nil || u.Host == "" {
-			log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
-			return false
-		}
-
-		switch strings.ToLower(u.Scheme) {
-		case "http", "https", "ws", "wss":
-		default:
-			log.Printf("WebSocket upgrade rejected: unsupported scheme in origin %q", origin)
-			return false
-		}
-
-		hostLower := strings.ToLower(u.Host)
-		for _, a := range allowed {
-			if a == hostLower {
-				return true
-			}
-		}
-
-		log.Printf("WebSocket upgrade rejected: origin %q not in allowed list", origin)
-		return false
+		return ValidateOrigin(r, engine.AllowedOrigins())
 	}
 }
