@@ -98,6 +98,9 @@ func runServer(cmd *cobra.Command) error {
 			switch r.URL.Path {
 			case "/":
 				http.ServeFile(w, r, wasmDir+"/index.html")
+			case "/favicon.ico":
+				// Avoid noisy browser 404s when no favicon is bundled.
+				w.WriteHeader(http.StatusNoContent)
 			case "/wasm_exec.js":
 				serveWASMExecJS(w, r, wasmDir)
 			case "/game.wasm":
