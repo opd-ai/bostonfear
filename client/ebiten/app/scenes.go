@@ -243,6 +243,8 @@ func (s *SceneConnect) confirmConnectForm() {
 	if strings.TrimSpace(name) == "" {
 		s.game.state.SetDisplayName("Investigator")
 	}
+	// Abort the current backoff sleep and redial immediately with the new address.
+	s.game.net.Reconnect()
 }
 
 func (s *SceneConnect) appendRune(r rune) {
