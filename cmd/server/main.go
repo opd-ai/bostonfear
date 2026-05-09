@@ -5,9 +5,15 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/opd-ai/bostonfear/monitoring"
-	"github.com/opd-ai/bostonfear/serverengine"
+	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror"
+	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
+	"github.com/opd-ai/bostonfear/serverengine/eldersign"
+	"github.com/opd-ai/bostonfear/serverengine/eldritchhorror"
+	"github.com/opd-ai/bostonfear/serverengine/finalhour"
 	transportws "github.com/opd-ai/bostonfear/transport/ws"
 )
 
@@ -23,11 +29,28 @@ func main() {
 }
 
 func run() error {
-	// Initialize random number generator (Go 1.20+ compatible)
-	// No need to call rand.Seed in modern Go versions
+	registry := commonruntime.NewRegistry()
+	registry.MustRegister(arkhamhorror.NewModule())
+	registry.MustRegister(eldersign.NewModule())
+	registry.MustRegister(eldritchhorror.NewModule())
+	registry.MustRegister(finalhour.NewModule())
 
-	// Create game server
-	var gameEngine serverengine.GameEngine = serverengine.NewGameServer()
+	gameID := strings.ToLower(strings.TrimSpace(os.Getenv("BOSTONFEAR_GAME")))
+	if gameID == "" {
+		gameID = "arkhamhorror"
+	}
+
+	module, ok := registry.Get(gameID)
+	if !ok {
+		return fmt.Errorf("unknown game module %q (available: %v)", gameID, registry.Keys())
+	}
+
+	gameEngine, err := module.NewEngine()
+	if err != nil {
+		return fmt.Errorf("failed to initialize %s engine: %w", module.Key(), err)
+	}
+
+	log.Printf("Loaded game module: %s (%s)", module.Key(), module.Description())
 	if err := gameEngine.Start(); err != nil {
 		return fmt.Errorf("failed to start game server: %w", err)
 	}

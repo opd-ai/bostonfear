@@ -123,6 +123,7 @@ Each player gets 2 actions per turn:
 
 ### Go Server Architecture
 - **Interface-based Design**: Uses `net.Conn`, `net.Listener`, and `net.Addr` interfaces
+- **Module-based Runtime Selection**: Server startup now resolves a game module registry (`arkhamhorror` default) via `BOSTONFEAR_GAME` to support multiple Fantasy Flight-style engines
 - **Concurrent Connection Handling**: Goroutines with channel-based communication
 - **State Management**: Centralized game state with mutex protection
 - **Package Separation**: `serverengine` owns rules/state and transport-neutral session orchestration, `transport/ws` owns HTTP/WebSocket upgrade and route registration, and `monitoring` owns health/metrics/dashboard handlers
@@ -143,6 +144,21 @@ gameServer.SetAllowedOrigins([]string{
 ```
 
 Requests from origins not in the list receive HTTP 403 Forbidden.
+
+#### Selecting Game Module at Startup
+Use `BOSTONFEAR_GAME` to select which rules engine module the server loads:
+
+```bash
+# Default (if unset): arkhamhorror
+BOSTONFEAR_GAME=arkhamhorror go run ./cmd/server
+
+# Placeholder modules (registered for scaffolding)
+BOSTONFEAR_GAME=eldersign go run ./cmd/server
+BOSTONFEAR_GAME=eldritchhorror go run ./cmd/server
+BOSTONFEAR_GAME=finalhour go run ./cmd/server
+```
+
+`eldersign`, `eldritchhorror`, and `finalhour` are currently scaffolding modules and intentionally return a not-implemented runtime error on startup.
 
 ### Ebitengine Client Features (Active — alpha; placeholder sprites)
 - **Sprite/Layer Rendering**: Board, tokens, UI overlays, and animations via Ebitengine draw layers
