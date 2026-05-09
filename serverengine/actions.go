@@ -54,7 +54,7 @@ func (gs *GameServer) performGather(player *Player, playerID string, focusSpend 
 // Returns the dice result, doom increase, and "success"/"fail" result string.
 func (gs *GameServer) performInvestigate(player *Player, playerID string, focusSpend int) (*DiceResultMessage, int, string) {
 	const requiredSuccesses = 2
-	results, successes, tentacles := gs.RollDicePool(3, focusSpend, player)
+	results, successes, tentacles := gs.rollDicePool(3, focusSpend, player)
 	actionResult := "success"
 	if successes >= requiredSuccesses {
 		player.Resources.Clues = min(player.Resources.Clues+1, 5)
@@ -88,12 +88,12 @@ func (gs *GameServer) performCastWard(player *Player, playerID string, focusSpen
 	}
 	player.Resources.Sanity--
 	const requiredSuccesses = 3
-	results, successes, tentacles := gs.RollDicePool(3, focusSpend, player)
+	results, successes, tentacles := gs.rollDicePool(3, focusSpend, player)
 	actionResult := "success"
 	if successes >= requiredSuccesses {
-	gs.GameState().Doom = max(gs.GameState().Doom-2, 0)
-	// Seal any anomaly at the player's current location.
-	gs.SealAnomalyAtLocation(string(player.Location))
+		gs.GameState().Doom = max(gs.GameState().Doom-2, 0)
+		// Seal any anomaly at the player's current location.
+		gs.SealAnomalyAtLocation(string(player.Location))
 	} else {
 		actionResult = "fail"
 	}
@@ -127,7 +127,7 @@ func (gs *GameServer) performFocus(player *Player) {
 // Caller must hold gs.mutex.
 func (gs *GameServer) performResearch(player *Player, playerID string, focusSpend int) (*DiceResultMessage, int, string) {
 	const requiredSuccesses = 2
-	results, successes, tentacles := gs.RollDicePool(3, focusSpend, player)
+	results, successes, tentacles := gs.rollDicePool(3, focusSpend, player)
 	actionResult := "success"
 	if successes >= requiredSuccesses {
 		player.Resources.Clues = min(player.Resources.Clues+2, MaxClues)
@@ -154,11 +154,11 @@ func (gs *GameServer) performResearch(player *Player, playerID string, focusSpen
 // (AH3e §Trade Action: investigators at the same location may exchange resources).
 // Caller must hold gs.mutex.
 func (gs *GameServer) performTrade(fromID, toID string) error {
-	from, ok := gs.GameState().Players[fromID]
+	from, ok := gs.gameState.Players[fromID]
 	if !ok {
 		return fmt.Errorf("trade: player %s not found", fromID)
 	}
-	to, ok := gs.GameState().Players[toID]
+	to, ok := gs.gameState.Players[toID]
 	if !ok {
 		return fmt.Errorf("trade: target player %s not found", toID)
 	}
@@ -179,7 +179,7 @@ func (gs *GameServer) performTrade(fromID, toID string) error {
 // Caller must hold gs.mutex.
 func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 	loc := string(player.Location)
-	deck := gs.GameState().EncounterDecks[loc]
+	deck := gs.gameState.EncounterDecks[loc]
 	if len(deck) == 0 {
 		defaults := defaultEncounterDecks()
 		deck = defaults[loc]
@@ -188,7 +188,7 @@ func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 		}
 	}
 	card := deck[0]
-	gs.GameState().EncounterDecks[loc] = deck[1:]
+	gs.gameState.EncounterDecks[loc] = deck[1:]
 
 	switch card.EffectType {
 	case "health_loss":
@@ -202,7 +202,7 @@ func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 	case "clue_gain":
 		player.Resources.Clues = min(player.Resources.Clues+card.Magnitude, MaxClues)
 	case "doom_inc":
-		gs.GameState().Doom = min(gs.GameState().Doom+card.Magnitude, 12)
+		gs.gameState.Doom = min(gs.gameState.Doom+card.Magnitude, 12)
 	}
 	log.Printf("Encounter at %s for %s: %s (%s %+d)", loc, playerID, card.FlavorText, card.EffectType, card.Magnitude)
 	return nil
@@ -243,7 +243,7 @@ func (gs *GameServer) performComponent(player *Player, playerID string) (string,
 
 	// Doom reduction (Occultist dark bargain).
 	if ability.DoomReduct > 0 {
-		gs.GameState().Doom = max(gs.GameState().Doom-ability.DoomReduct, 0)
+		gs.gameState.Doom = max(gs.gameState.Doom-ability.DoomReduct, 0)
 	}
 
 	// Free encounter draw (Detective street contacts).
@@ -265,16 +265,16 @@ func (gs *GameServer) performComponent(player *Player, playerID string) (string,
 // increments the doom counter. Returns an error if the player is not engaged with any enemy.
 // Caller must hold gs.mutex.
 func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResultMessage, int, string, error) {
-	engaged := gs.FindEngagedEnemy(playerID)
+	engaged := gs.findEngagedEnemy(playerID)
 	if engaged == nil {
 		return nil, 0, "fail", fmt.Errorf("player %s is not engaged with any enemy", playerID)
 	}
 
-	results, successes, tentacles := gs.RollDicePool(2, 0, player)
+	results, successes, tentacles := gs.rollDicePool(2, 0, player)
 	doomIncrease := 0
 	if tentacles > 0 {
 		doomIncrease = tentacles
-		gs.GameState().Doom = min(gs.GameState().Doom+tentacles, 12)
+		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
 	}
 
 	engaged.Health -= successes
@@ -285,7 +285,7 @@ func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResul
 
 	if engaged.Health <= 0 {
 		// Enemy defeated — remove it and award a clue.
-		delete(gs.GameState().Enemies, engaged.ID)
+		delete(gs.gameState.Enemies, engaged.ID)
 		player.Resources.Clues = min(player.Resources.Clues+1, MaxClues)
 		log.Printf("Enemy %s defeated by %s; clue awarded", engaged.Name, playerID)
 	}
@@ -308,16 +308,16 @@ func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResul
 // Returns an error when the player is not engaged with any enemy.
 // Caller must hold gs.mutex.
 func (gs *GameServer) performEvade(player *Player, playerID string) (*DiceResultMessage, int, string, error) {
-	engaged := gs.FindEngagedEnemy(playerID)
+	engaged := gs.findEngagedEnemy(playerID)
 	if engaged == nil {
 		return nil, 0, "fail", fmt.Errorf("player %s is not engaged with any enemy", playerID)
 	}
 
-	results, successes, tentacles := gs.RollDicePool(2, 0, player)
+	results, successes, tentacles := gs.rollDicePool(2, 0, player)
 	doomIncrease := 0
 	if tentacles > 0 {
 		doomIncrease = tentacles
-		gs.GameState().Doom = min(gs.GameState().Doom+tentacles, 12)
+		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
 	}
 
 	actionResult := "fail"
@@ -349,7 +349,7 @@ func (gs *GameServer) performEvade(player *Player, playerID string) (*DiceResult
 // or nil when the player is not engaged with any enemy.
 // Caller must hold gs.mutex.
 func (gs *GameServer) FindEngagedEnemy(playerID string) *Enemy {
-	for _, e := range gs.GameState().Enemies {
+	for _, e := range gs.gameState.Enemies {
 		for _, id := range e.Engaged {
 			if id == playerID {
 				return e
@@ -369,12 +369,12 @@ func (gs *GameServer) performCloseGate(player *Player, playerID string) (string,
 		return "fail", fmt.Errorf("closing a gate requires %d clues (have %d)", clueCost, player.Resources.Clues)
 	}
 	loc := player.Location
-	for i, g := range gs.GameState().OpenGates {
+	for i, g := range gs.gameState.OpenGates {
 		if g.Location == loc {
-			gs.GameState().OpenGates = append(gs.GameState().OpenGates[:i], gs.GameState().OpenGates[i+1:]...)
+			gs.gameState.OpenGates = append(gs.gameState.OpenGates[:i], gs.gameState.OpenGates[i+1:]...)
 			player.Resources.Clues -= clueCost
-			gs.GameState().Doom = max(gs.GameState().Doom-1, 0)
-			log.Printf("Gate closed at %s by %s (doom=%d)", loc, playerID, gs.GameState().Doom)
+			gs.gameState.Doom = max(gs.gameState.Doom-1, 0)
+			log.Printf("Gate closed at %s by %s (doom=%d)", loc, playerID, gs.gameState.Doom)
 			return "success", nil
 		}
 	}
@@ -385,10 +385,10 @@ func (gs *GameServer) performCloseGate(player *Player, playerID string) (string,
 // (investigator selection and difficulty setting) are currently allowed.
 // Caller must hold gs.mutex.
 func (gs *GameServer) pregameActionsAllowedLocked() bool {
-	if gs.GameState().GamePhase == "waiting" {
+	if gs.gameState.GamePhase == "waiting" {
 		return true
 	}
-	if gs.GameState().GamePhase != "playing" {
+	if gs.gameState.GamePhase != "playing" {
 		return false
 	}
 	return !gs.pregameLocked
