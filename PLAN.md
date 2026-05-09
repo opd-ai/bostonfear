@@ -82,7 +82,7 @@ Completion checklist:
 - [x] Loader package compiles with explicit validation errors.
 - [x] Resolver interface introduced and used by rendering layer.
 - [x] Missing asset fallback works deterministically.
-- [ ] Unit tests cover happy path and failure modes.
+- [x] Unit tests cover happy path and failure modes.
 
 Deliverables:
 - YAML schema specification.
