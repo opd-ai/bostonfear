@@ -22,6 +22,12 @@
             gap: 20px;
         }
 
+        @media (max-width: 1100px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .game-board {
             background: rgba(0, 0, 0, 0.7);
             border: 2px solid #8B4513;
@@ -43,6 +49,9 @@
             background: #2F4F4F;
             display: block;
             margin: 0 auto;
+            width: 100%;
+            max-width: 800px;
+            height: auto;
         }
 
         .sidebar {
@@ -130,6 +139,15 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
+            min-height: 44px;
+        }
+
+        .action-rule {
+            display: block;
+            font-size: 11px;
+            color: #f0d8b0;
+            margin-top: 4px;
+            line-height: 1.2;
         }
 
         .action-btn:hover:not(:disabled) {
@@ -174,6 +192,63 @@
         .status-ended {
             color: #FF6347;
             font-weight: bold;
+        }
+
+        .ui-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #8B4513;
+            background: rgba(20, 20, 20, 0.8);
+            font-size: 13px;
+            line-height: 1.4;
+            min-height: 18px;
+        }
+
+        .ui-message.error {
+            border-color: #dc143c;
+            color: #ffb3be;
+        }
+
+        .ui-message.success {
+            border-color: #228b22;
+            color: #b7f0b7;
+        }
+
+        .ui-message.info {
+            border-color: #4682b4;
+            color: #c9e5ff;
+        }
+
+        .ui-message.warning {
+            border-color: #daa520;
+            color: #ffe7a6;
+        }
+
+        .help-text {
+            font-size: 13px;
+            line-height: 1.35;
+            color: #d5d5d5;
+        }
+
+        .turn-order {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .turn-chip {
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid #8b4513;
+            background: rgba(139, 69, 19, 0.2);
+            font-size: 12px;
+        }
+
+        .turn-chip.current {
+            border-color: #daa520;
+            box-shadow: 0 0 6px rgba(218, 165, 32, 0.5);
+            background: rgba(218, 165, 32, 0.2);
         }
 
         .dice-result {
@@ -300,6 +375,15 @@
                 <div class="status-display" id="gameStatus">
                     <span id="gamePhase">Waiting for players...</span>
                 </div>
+                <div id="uiMessage" class="ui-message info">Connect to begin. When it is your turn, take 2 actions.</div>
+            </div>
+
+            <div class="section">
+                <h3>Quick Rules</h3>
+                <div class="help-text">
+                    Health keeps you alive, Sanity fuels mystical actions, and Clues win the game.<br>
+                    Tentacle dice results raise Doom. Reach team clue target before Doom reaches 12.
+                </div>
             </div>
 
             <div class="section">
@@ -307,7 +391,13 @@
                     <h3>Doom Counter</h3>
                     <div style="font-size: 2em; font-weight: bold;" id="doomValue">0</div>
                     <div style="font-size: 0.9em;">/ 12</div>
+                    <div style="font-size: 0.85em; margin-top: 6px;" id="doomExplanation">Tentacles and timeouts raise Doom.</div>
                 </div>
+            </div>
+
+            <div class="section" id="turnOrderSection">
+                <h3>Turn Order</h3>
+                <div id="turnOrder" class="turn-order"></div>
             </div>
 
             <div class="section" id="playersSection">
@@ -318,10 +408,10 @@
             <div class="section" id="actionsSection">
                 <h3>Actions</h3>
                 <div class="actions">
-                    <button class="action-btn" id="moveBtn" onclick="selectMoveAction()">Move</button>
-                    <button class="action-btn" id="gatherBtn" onclick="performAction('gather')">Gather</button>
-                    <button class="action-btn" id="investigateBtn" onclick="performAction('investigate')">Investigate</button>
-                    <button class="action-btn" id="wardBtn" onclick="performAction('ward')">Cast Ward</button>
+                    <button class="action-btn" id="moveBtn" onclick="selectMoveAction()">Move<span class="action-rule">Adjacent location only</span></button>
+                    <button class="action-btn" id="gatherBtn" onclick="performAction('gather')">Gather<span class="action-rule">Roll 2 dice for gains</span></button>
+                    <button class="action-btn" id="investigateBtn" onclick="performAction('investigate')">Investigate<span class="action-rule">Roll 3 dice, need 2+</span></button>
+                    <button class="action-btn" id="wardBtn" onclick="performAction('ward')">Cast Ward<span class="action-rule">Costs 1 Sanity, need 3+</span></button>
                 </div>
                 
                 <select class="location-select" id="locationSelect" style="display: none;">

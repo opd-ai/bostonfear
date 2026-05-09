@@ -10,7 +10,10 @@ class ArkhamHorrorClient {
         this.gameState = null;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = Infinity;
-        this.reconnectDelay = 5000; // 5 seconds
+        this.baseReconnectDelay = 5000;
+        this.reconnectDelay = this.baseReconnectDelay; // 5 seconds
+        this.pendingAction = false;
+        this.lastKnownDoom = 0;
         
         // Canvas and rendering
         this.canvas = document.getElementById('gameCanvas');
@@ -25,6 +28,12 @@ class ArkhamHorrorClient {
         this.diceResult = document.getElementById('diceResult');
         this.locationSelect = document.getElementById('locationSelect');
         this.confirmMoveBtn = document.getElementById('confirmMoveBtn');
+        this.uiMessage = document.getElementById('uiMessage');
+        this.turnOrder = document.getElementById('turnOrder');
+        this.doomExplanation = document.getElementById('doomExplanation');
+
+        this.logicalCanvasWidth = 800;
+        this.logicalCanvasHeight = 600;
         
         // Action buttons
         this.actionButtons = {
@@ -57,6 +66,9 @@ class ArkhamHorrorClient {
         
         // Initialize connection
         this.connect();
+
+        this.setupResponsiveCanvas();
+        this.resizeCanvas();
         
         // Set up canvas rendering loop
         this.render();
@@ -78,21 +90,30 @@ class ArkhamHorrorClient {
                 console.log('Connected to Arkham Horror server');
                 this.updateConnectionStatus('connected');
                 this.reconnectAttempts = 0;
+                this.reconnectDelay = this.baseReconnectDelay;
+                this.showMessage('success', 'Connected. Waiting for game state sync...');
             };
             
             this.ws.onmessage = (event) => {
-                this.handleMessage(JSON.parse(event.data));
+                try {
+                    this.handleMessage(JSON.parse(event.data));
+                } catch (error) {
+                    console.error('Invalid message payload:', error);
+                    this.showMessage('error', 'Received an invalid server message.');
+                }
             };
             
             this.ws.onclose = () => {
                 console.log('Disconnected from server');
                 this.updateConnectionStatus('disconnected');
+                this.showMessage('warning', 'Disconnected from server. Reconnecting...');
                 this.attemptReconnect();
             };
             
             this.ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
                 this.updateConnectionStatus('error');
+                this.showMessage('error', 'Connection error. Please wait while reconnecting.');
             };
             
         } catch (error) {
@@ -152,15 +173,18 @@ class ArkhamHorrorClient {
                     localStorage.setItem('arkham_reconnect_token', message.token); // persist across page refreshes
                 }
                 console.log('Player ID assigned:', this.playerId);
+                this.showMessage('info', `Connected as ${this.playerId}.`);
                 break;
                 
             case 'gameState':
                 this.gameState = message.data;
+                this.pendingAction = false;
                 this.updateGameDisplay();
                 break;
                 
             case 'gameUpdate':
                 // Lightweight action-event notification preceding the full gameState broadcast.
+                this.pendingAction = false;
                 this.displayGameUpdate(message);
                 break;
                 
@@ -175,6 +199,13 @@ class ArkhamHorrorClient {
             case 'connectionQuality':
                 this.handleConnectionQuality(message);
                 break;
+
+            case 'error':
+            case 'invalidAction':
+            case 'actionError':
+                this.pendingAction = false;
+                this.handleActionErrorMessage(message);
+                break;
                 
             default:
                 console.log('Unknown message type:', message.type);
@@ -185,11 +216,44 @@ class ArkhamHorrorClient {
     sendAction(action, target = null) {
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
             console.error('WebSocket not connected');
+            this.showMessage('error', 'Cannot act while disconnected.');
             return;
         }
         
         if (!this.playerId) {
             console.error('Player ID not assigned');
+            this.showMessage('error', 'Player identity not assigned yet.');
+            return;
+        }
+
+        if (!this.gameState) {
+            this.showMessage('warning', 'Game state not synced yet.');
+            return;
+        }
+
+        const myPlayer = this.gameState.players[this.playerId];
+        if (!myPlayer) {
+            this.showMessage('error', 'You are not in the current game state.');
+            return;
+        }
+
+        if (this.gameState.currentPlayer !== this.playerId) {
+            this.showMessage('warning', 'It is not your turn.');
+            return;
+        }
+
+        if (myPlayer.actionsRemaining <= 0) {
+            this.showMessage('warning', 'No actions remaining this turn.');
+            return;
+        }
+
+        if (this.pendingAction) {
+            this.showMessage('warning', 'Action already submitted. Waiting for server...');
+            return;
+        }
+
+        if (action === 'ward' && myPlayer.resources.sanity <= 1) {
+            this.showMessage('warning', 'Cast Ward requires more than 1 Sanity.');
             return;
         }
         
@@ -201,6 +265,9 @@ class ArkhamHorrorClient {
         };
         
         this.ws.send(JSON.stringify(actionMessage));
+        this.pendingAction = true;
+        this.updateActionButtons();
+        this.showMessage('info', `Submitted action: ${action}${target ? ` -> ${target}` : ''}.`);
         console.log('Action sent:', actionMessage);
     }
     
@@ -211,8 +278,16 @@ class ArkhamHorrorClient {
         this.updateGamePhase();
         this.updateDoomCounter();
         this.updatePlayersList();
+        this.updateTurnOrder();
         this.updateActionButtons();
         this.checkGameEndConditions();
+
+        if (this.gameState.gamePhase === 'playing') {
+            const isMyTurn = this.gameState.currentPlayer === this.playerId;
+            this.showMessage('info', isMyTurn
+                ? 'Your turn. Choose 1 of the available actions.'
+                : `Waiting for ${this.gameState.currentPlayer} to act.`);
+        }
     }
     
     // Update game phase display
@@ -254,6 +329,18 @@ class ArkhamHorrorClient {
         } else {
             this.doomCounter.classList.remove('critical');
         }
+
+        if (this.doomExplanation) {
+            if (doom >= 12) {
+                this.doomExplanation.textContent = 'Doom reached 12. Investigators lose.';
+            } else if (doom >= 10) {
+                this.doomExplanation.textContent = 'Critical Doom level. Avoid tentacles and timeouts.';
+            } else {
+                this.doomExplanation.textContent = 'Tentacles and timeouts raise Doom.';
+            }
+        }
+
+        this.lastKnownDoom = doom;
     }
     
     // Update players list with resources and status
@@ -282,15 +369,15 @@ class ArkhamHorrorClient {
                 <div style="font-size: 0.9em; margin: 5px 0;">📍 ${player.location}</div>
                 <div class="resource-bar">
                     <div class="resource-item">
-                        <span>❤️</span>
+                        <span>❤️ Health</span>
                         <span class="resource-value">${player.resources.health}</span>
                     </div>
                     <div class="resource-item">
-                        <span>🧠</span>
+                        <span>🧠 Sanity</span>
                         <span class="resource-value">${player.resources.sanity}</span>
                     </div>
                     <div class="resource-item">
-                        <span>🔍</span>
+                        <span>🔍 Clues</span>
                         <span class="resource-value">${player.resources.clues}</span>
                     </div>
                 </div>
@@ -320,6 +407,14 @@ class ArkhamHorrorClient {
         // Special validation for Cast Ward (requires sanity > 1)
         if (myPlayer && myPlayer.resources.sanity <= 1) {
             this.actionButtons.ward.disabled = true;
+        }
+
+        const moveUiAllowed = buttonsEnabled && !this.pendingAction;
+        this.confirmMoveBtn.disabled = !moveUiAllowed;
+        if (!moveUiAllowed) {
+            this.locationSelect.style.display = 'none';
+            this.confirmMoveBtn.style.display = 'none';
+            this.locationSelect.value = '';
         }
     }
     
@@ -362,6 +457,9 @@ class ArkhamHorrorClient {
             </div>
             ${doomText ? `<div style="color: #FF0000">${doomText}</div>` : ''}
         `;
+
+        const summary = `${diceMessage.action}: ${successText}. ${diceMessage.successes} successes, ${diceMessage.tentacles} tentacles.`;
+        this.showMessage(diceMessage.success ? 'success' : 'warning', summary);
     }
     
     // Display a transient gameUpdate notification showing what changed in the last action.
@@ -393,6 +491,165 @@ class ArkhamHorrorClient {
         document.body.appendChild(notification);
         // Auto-dismiss after 3 seconds
         setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 3000);
+
+        const messageBits = [`${update.playerId} used ${update.event}: ${update.result}.`];
+        if (deltaLines.length > 0) {
+            messageBits.push(deltaLines.join(', '));
+        }
+        if (update.doomDelta > 0) {
+            messageBits.push(`Doom +${update.doomDelta}`);
+            if (this.doomExplanation) {
+                this.doomExplanation.textContent = `Doom increased by ${update.doomDelta} from ${update.playerId}'s action.`;
+            }
+        }
+        this.showMessage(update.result === 'success' ? 'success' : 'warning', messageBits.join(' '));
+    }
+
+    handleActionErrorMessage(message) {
+        const reason = message.reason || message.message || 'Action rejected by server.';
+        const action = message.action ? ` (${message.action})` : '';
+        this.showMessage('error', `Action rejected${action}: ${reason}`);
+    }
+
+    updateTurnOrder() {
+        if (!this.turnOrder || !this.gameState || !this.gameState.players) {
+            return;
+        }
+
+        const players = Object.values(this.gameState.players);
+        this.turnOrder.innerHTML = '';
+
+        players.forEach(player => {
+            const chip = document.createElement('span');
+            chip.className = 'turn-chip';
+            if (player.id === this.gameState.currentPlayer) {
+                chip.classList.add('current');
+            }
+            chip.textContent = `${player.id}${player.id === this.gameState.currentPlayer ? ' (Now)' : ''}`;
+            this.turnOrder.appendChild(chip);
+        });
+    }
+
+    setupResponsiveCanvas() {
+        window.addEventListener('resize', () => this.resizeCanvas());
+    }
+
+    resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = Math.floor(this.logicalCanvasWidth * dpr);
+        this.canvas.height = Math.floor(this.logicalCanvasHeight * dpr);
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.ctx.imageSmoothingEnabled = true;
+    }
+
+    render() {
+        this.drawBoard();
+        this.drawPlayersOnBoard();
+    }
+
+    drawBoard() {
+        this.ctx.clearRect(0, 0, this.logicalCanvasWidth, this.logicalCanvasHeight);
+
+        this.ctx.fillStyle = '#1f2d2d';
+        this.ctx.fillRect(0, 0, this.logicalCanvasWidth, this.logicalCanvasHeight);
+
+        this.ctx.strokeStyle = '#8B4513';
+        this.ctx.lineWidth = 3;
+
+        const links = [
+            ['Downtown', 'University'],
+            ['Downtown', 'Rivertown'],
+            ['University', 'Northside'],
+            ['Rivertown', 'Northside']
+        ];
+
+        links.forEach(([from, to]) => {
+            const a = this.locations[from];
+            const b = this.locations[to];
+            this.ctx.beginPath();
+            this.ctx.moveTo(a.x, a.y);
+            this.ctx.lineTo(b.x, b.y);
+            this.ctx.stroke();
+        });
+
+        Object.entries(this.locations).forEach(([name, location]) => {
+            this.ctx.beginPath();
+            this.ctx.fillStyle = location.color;
+            this.ctx.arc(location.x, location.y, 42, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.strokeStyle = '#f0e6d2';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 14px Georgia';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(name, location.x, location.y + 5);
+        });
+    }
+
+    drawPlayersOnBoard() {
+        if (!this.gameState || !this.gameState.players) {
+            return;
+        }
+
+        const playersByLocation = {};
+        Object.values(this.gameState.players).forEach(player => {
+            if (!playersByLocation[player.location]) {
+                playersByLocation[player.location] = [];
+            }
+            playersByLocation[player.location].push(player);
+        });
+
+        Object.entries(playersByLocation).forEach(([locationName, players]) => {
+            const location = this.locations[locationName];
+            if (!location) {
+                return;
+            }
+
+            players.forEach((player, index) => {
+                const offsetX = (index % 3) * 16 - 16;
+                const offsetY = Math.floor(index / 3) * 16 - 8;
+                const x = location.x + offsetX;
+                const y = location.y - 58 + offsetY;
+
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 7, 0, Math.PI * 2);
+                this.ctx.fillStyle = player.id === this.gameState.currentPlayer ? '#ffd700' : '#90ee90';
+                this.ctx.fill();
+
+                this.ctx.strokeStyle = '#111';
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = '11px Georgia';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(player.id, x + 10, y + 3);
+            });
+        });
+    }
+
+    checkGameEndConditions() {
+        if (!this.gameState || this.gameState.gamePhase !== 'ended') {
+            return;
+        }
+
+        if (this.gameState.winCondition) {
+            this.showMessage('success', 'Victory! Your team met the clue goal before doom consumed Arkham.');
+        } else {
+            this.showMessage('error', 'Defeat. Doom reached its limit before the team could contain the threat.');
+        }
+    }
+
+    showMessage(type, text) {
+        if (!this.uiMessage) {
+            return;
+        }
+
+        this.uiMessage.className = `ui-message ${type}`;
+        this.uiMessage.textContent = text;
     }
     
     // Handle ping messages and respond with pong
@@ -481,6 +738,11 @@ function selectMoveAction() {
     const client = window.gameClient;
     const locationSelect = client.locationSelect;
     const confirmBtn = client.confirmMoveBtn;
+
+    if (!client.gameState || client.gameState.currentPlayer !== client.playerId) {
+        client.showMessage('warning', 'You can move only during your own turn.');
+        return;
+    }
     
     // Show location selection UI
     locationSelect.style.display = 'block';
@@ -507,6 +769,13 @@ function confirmMove() {
     const client = window.gameClient;
     const locationSelect = client.locationSelect;
     const selectedLocation = locationSelect.value;
+
+    if (!client.gameState || client.gameState.currentPlayer !== client.playerId) {
+        client.showMessage('warning', 'Move cancelled: it is no longer your turn.');
+        locationSelect.style.display = 'none';
+        client.confirmMoveBtn.style.display = 'none';
+        return;
+    }
     
     if (selectedLocation) {
         client.sendAction('move', selectedLocation);
@@ -516,7 +785,7 @@ function confirmMove() {
         client.confirmMoveBtn.style.display = 'none';
         locationSelect.value = '';
     } else {
-        alert('Please select a location to move to.');
+        client.showMessage('warning', 'Please select an adjacent location first.');
     }
 }
 
