@@ -43,38 +43,10 @@ const (
 // Update handles connect-form input and reconnect countdown state.
 func (s *SceneConnect) Update() error {
 	s.tick++
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
-		s.activeField = (s.activeField + 1) % 2
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
-		s.handleBackspace()
-	}
-
-	for _, r := range ebiten.AppendInputChars(nil) {
-		s.appendRune(r)
-	}
-
-	gs, _, connected := s.game.state.Snapshot()
-	token := s.game.state.GetReconnectToken()
-	if !connected && token != "" {
-		s.reconnectTick++
-	} else {
-		s.reconnectTick = 0
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		address, name := s.game.state.ConnectFormSnapshot()
-		if strings.TrimSpace(address) != "" {
-			s.game.state.SetConnectAddress(address)
-		}
-		if strings.TrimSpace(name) == "" {
-			s.game.state.SetDisplayName("Investigator")
-		}
-	}
-
-	_ = gs
+	s.handleFieldSwitch()
+	s.handleFieldEdits()
+	s.updateReconnectTick()
+	s.confirmConnectForm()
 	return nil
 }
 
@@ -135,6 +107,46 @@ func (s *SceneConnect) handleBackspace() {
 
 	if len(displayName) > 0 {
 		s.game.state.SetDisplayName(displayName[:len(displayName)-1])
+	}
+}
+
+func (s *SceneConnect) handleFieldSwitch() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		s.activeField = (s.activeField + 1) % 2
+	}
+}
+
+func (s *SceneConnect) handleFieldEdits() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
+		s.handleBackspace()
+	}
+
+	for _, r := range ebiten.AppendInputChars(nil) {
+		s.appendRune(r)
+	}
+}
+
+func (s *SceneConnect) updateReconnectTick() {
+	_, _, connected := s.game.state.Snapshot()
+	token := s.game.state.GetReconnectToken()
+	if !connected && token != "" {
+		s.reconnectTick++
+		return
+	}
+	s.reconnectTick = 0
+}
+
+func (s *SceneConnect) confirmConnectForm() {
+	if !inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		return
+	}
+
+	address, name := s.game.state.ConnectFormSnapshot()
+	if strings.TrimSpace(address) != "" {
+		s.game.state.SetConnectAddress(address)
+	}
+	if strings.TrimSpace(name) == "" {
+		s.game.state.SetDisplayName("Investigator")
 	}
 }
 
@@ -299,49 +311,61 @@ func (g *Game) updateScene() {
 	gs, playerID, connected := g.state.Snapshot()
 	_, displayName := g.state.ConnectFormSnapshot()
 
-	// Game over takes priority.
-	if gs.WinCondition || gs.LoseCondition {
-		if _, ok := g.activeScene.(*SceneGameOver); !ok {
-			g.activeScene = &SceneGameOver{game: g}
-		}
+	if g.ensureGameOverScene(gs) {
 		return
 	}
 
-	// Connected, named, but investigator not selected → SceneCharacterSelect.
-	if connected {
-		if strings.TrimSpace(displayName) == "" {
-			if _, ok := g.activeScene.(*SceneConnect); !ok {
-				g.activeScene = &SceneConnect{game: g}
-			}
-			return
-		}
-
-		if player, exists := gs.Players[playerID]; exists && player.InvestigatorType == "" {
-			if _, ok := g.activeScene.(*SceneCharacterSelect); !ok {
-				g.activeScene = NewSceneCharacterSelect(g)
-			}
-			return
-		}
-	}
-
-	// Connected and local character selected, but others are still picking.
-	if connected {
-		if !allConnectedPlayersSelected(gs) {
-			if _, ok := g.activeScene.(*SceneCharacterSelect); !ok {
-				g.activeScene = NewSceneCharacterSelect(g)
-			}
-			return
-		}
-
-		if _, ok := g.activeScene.(*SceneGame); !ok {
-			g.activeScene = &SceneGame{game: g}
-		}
+	if !connected {
+		g.setConnectScene()
 		return
 	}
 
-	// Not connected → SceneConnect (initial state or reconnecting).
+	if strings.TrimSpace(displayName) == "" {
+		g.setConnectScene()
+		return
+	}
+
+	if g.localPlayerNeedsSelection(gs, playerID) || !allConnectedPlayersSelected(gs) {
+		g.setCharacterSelectScene()
+		return
+	}
+
+	g.setGameScene()
+}
+
+func (g *Game) ensureGameOverScene(gs ebclient.GameState) bool {
+	if !gs.WinCondition && !gs.LoseCondition {
+		return false
+	}
+	if _, ok := g.activeScene.(*SceneGameOver); !ok {
+		g.activeScene = &SceneGameOver{game: g}
+	}
+	return true
+}
+
+func (g *Game) localPlayerNeedsSelection(gs ebclient.GameState, playerID string) bool {
+	player, exists := gs.Players[playerID]
+	if !exists || player == nil {
+		return true
+	}
+	return player.InvestigatorType == ""
+}
+
+func (g *Game) setConnectScene() {
 	if _, ok := g.activeScene.(*SceneConnect); !ok {
 		g.activeScene = &SceneConnect{game: g}
+	}
+}
+
+func (g *Game) setCharacterSelectScene() {
+	if _, ok := g.activeScene.(*SceneCharacterSelect); !ok {
+		g.activeScene = NewSceneCharacterSelect(g)
+	}
+}
+
+func (g *Game) setGameScene() {
+	if _, ok := g.activeScene.(*SceneGame); !ok {
+		g.activeScene = &SceneGame{game: g}
 	}
 }
 
