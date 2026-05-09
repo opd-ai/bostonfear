@@ -9,7 +9,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // NewWebCommand wraps the WASM Ebitengine startup logic.
@@ -21,9 +20,6 @@ func NewWebCommand() *cobra.Command {
 			return runWeb()
 		},
 	}
-
-	cmd.Flags().String("server", "", "Optional WebSocket server URL override")
-	_ = viper.BindPFlag("web.server", cmd.Flags().Lookup("server"))
 
 	return cmd
 }
@@ -45,10 +41,6 @@ func runWeb() error {
 }
 
 func resolveWebServerURL() string {
-	if serverURL := viper.GetString("web.server"); serverURL != "" {
-		return serverURL
-	}
-
 	global := js.Global()
 	if v := global.Get("__serverURL"); v.Type() == js.TypeString {
 		return v.String()

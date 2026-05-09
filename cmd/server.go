@@ -181,12 +181,17 @@ func serveIndexWithServerURL(w http.ResponseWriter, r *http.Request, wasmDir str
 	injection := fmt.Sprintf(`<script>window.__serverURL="%s://%s/ws";</script>`+"\n  ", proto, host)
 
 	// Inject before the wasm_exec.js <script> tag so __serverURL is defined first.
-	data = bytes.Replace(
+	updated := bytes.Replace(
 		data,
 		[]byte(`<script src="wasm_exec.js">`),
 		append([]byte(injection), []byte(`<script src="wasm_exec.js">`)...),
 		1,
 	)
+	if bytes.Equal(updated, data) {
+		// Fallback when markup changes and the exact script tag isn't present.
+		updated = append([]byte(injection), data...)
+	}
+	data = updated
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write(data)
