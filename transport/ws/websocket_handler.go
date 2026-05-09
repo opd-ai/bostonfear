@@ -12,6 +12,8 @@ import (
 
 // SessionEngine defines the transport-neutral session lifecycle surface expected
 // by the WebSocket transport adapter.
+// Implementations must be safe for concurrent calls because each upgraded
+// session is handled in its own goroutine.
 type SessionEngine interface {
 	HandleConnection(conn net.Conn, reconnectToken string) error
 	AllowedOrigins() []string

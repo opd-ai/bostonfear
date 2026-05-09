@@ -16,6 +16,10 @@ import (
 
 // GameServer manages the central game state for the Arkham Horror multiplayer game,
 // handling WebSocket connections, player actions, turn management, and state broadcasting.
+//
+// Concurrency safety: exported methods on GameServer are safe for concurrent use
+// by multiple goroutines. Internal state mutations are synchronized with mutexes
+// and atomics, so callers do not need additional external locking.
 type GameServer struct {
 	gameState   *GameState
 	scenario    Scenario            // scenario configuration for this session
@@ -192,12 +196,15 @@ func (gs *GameServer) writeToConn(conn net.Conn, addr string, data []byte) error
 }
 
 // Start initializes the game server with goroutines for concurrent handling.
+// It returns an error only when the internal background context initialization
+// fails.
 func (gs *GameServer) Start() error {
 	return gs.StartWithContext(context.Background())
 }
 
 // StartWithContext initializes the game server with goroutines for concurrent
 // handling and links shutdown to context cancellation.
+// Returns ctx.Err() when called with an already-canceled context.
 func (gs *GameServer) StartWithContext(ctx context.Context) error {
 	if ctx == nil {
 		return fmt.Errorf("context is nil")

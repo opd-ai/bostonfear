@@ -350,7 +350,14 @@ func (v *GameStateValidator) copyGameState(original *GameState) *GameState {
 	return copied
 }
 
-// ValidationError represents a game state validation error
+// ValidationError represents a game state invariant violation detected by
+// StateValidator implementations.
+//
+// Severity handling guidance:
+//   - CRITICAL: unrecoverable corruption unless a full recovery path succeeds
+//   - HIGH: serious consistency issue that should abort current action handling
+//   - MEDIUM: recoverable issue that should be corrected before next turn
+//   - LOW: informational issue that can be logged and observed
 type ValidationError struct {
 	Type        string `json:"type"`
 	Description string `json:"description"`

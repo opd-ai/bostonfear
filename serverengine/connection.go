@@ -16,12 +16,17 @@ import (
 
 // HandleConnection manages a player session using only net.Conn so transports
 // can adapt websocket, tcp, or in-process connections without engine changes.
+// It returns ErrGameFull when the session cannot register another player,
+// ctx-related errors when startup cancellation has already occurred, or network
+// I/O errors originating from conn.
 func (gs *GameServer) HandleConnection(conn net.Conn, reconnectToken string) error {
 	return gs.HandleConnectionWithContext(context.Background(), conn, reconnectToken)
 }
 
 // HandleConnectionWithContext manages a player session and exits early when ctx
 // is canceled.
+// It returns ErrGameFull when registration exceeds MaxPlayers, ctx.Err() when
+// canceled before startup, or connection I/O errors during session processing.
 func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.Conn, reconnectToken string) error {
 	if ctx == nil {
 		return fmt.Errorf("context is nil")
@@ -116,7 +121,7 @@ func (gs *GameServer) registerPlayer(conn net.Conn) (string, error) {
 	defer gs.mutex.Unlock()
 
 	if len(gs.gameState.Players) >= MaxPlayers {
-		return "", fmt.Errorf("game is full (max %d players)", MaxPlayers)
+		return "", fmt.Errorf("%w (max %d players)", ErrGameFull, MaxPlayers)
 	}
 
 	gs.gameState.Players[playerID] = &Player{
