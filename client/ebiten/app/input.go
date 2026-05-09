@@ -105,66 +105,7 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 		SafeArea:       ui.SafeArea{},
 	}
 
-	// Build input mapper with location hit boxes.
-	mapper := ui.NewInputMapper()
-
-	// Register location hit boxes using anchor-based constraints.
-	locationConstraints := map[protocol.Location]*ui.Constraint{
-		protocol.Downtown: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 40,
-			OffsetY: 60,
-			Width:   160,
-			Height:  100,
-		},
-		protocol.University: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 220,
-			OffsetY: 60,
-			Width:   160,
-			Height:  100,
-		},
-		protocol.Rivertown: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 40,
-			OffsetY: 220,
-			Width:   160,
-			Height:  100,
-		},
-		protocol.Northside: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 220,
-			OffsetY: 220,
-			Width:   160,
-			Height:  100,
-		},
-	}
-
-	for location, constraint := range locationConstraints {
-		bounds := constraint.Bounds(vp)
-		mapper.Register(string(location), bounds, 44)
-	}
-
-	// Register action bar regions.
-	actionBarConstraint := ui.Constraint{
-		Anchor:  ui.AnchorBottomLeft,
-		OffsetY: -50,
-		Width:   0,
-		Height:  50,
-	}
-	actionBarBounds := actionBarConstraint.Bounds(vp)
-
-	actionNames := []string{"gather", "investigate", "ward", "focus", "research", "closegate"}
-	regionWidth := actionBarBounds.Dx() / len(actionNames)
-	for i, actionName := range actionNames {
-		regionBounds := image.Rect(
-			actionBarBounds.Min.X+i*regionWidth,
-			actionBarBounds.Min.Y,
-			actionBarBounds.Min.X+(i+1)*regionWidth,
-			actionBarBounds.Max.Y,
-		)
-		mapper.Register(actionName, regionBounds, 44)
-	}
+	mapper := buildTouchInputMapper(vp)
 
 	// Get newly pressed touch IDs from Ebitengine.
 	touchIDs := inpututil.JustPressedTouchIDs()
@@ -227,6 +168,68 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 			}
 		}
 	}
+}
+
+func buildTouchInputMapper(vp *ui.Viewport) *ui.InputMapper {
+	mapper := ui.NewInputMapper()
+
+	locationConstraints := map[protocol.Location]*ui.Constraint{
+		protocol.Downtown: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 40,
+			OffsetY: 60,
+			Width:   160,
+			Height:  100,
+		},
+		protocol.University: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 220,
+			OffsetY: 60,
+			Width:   160,
+			Height:  100,
+		},
+		protocol.Rivertown: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 40,
+			OffsetY: 220,
+			Width:   160,
+			Height:  100,
+		},
+		protocol.Northside: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 220,
+			OffsetY: 220,
+			Width:   160,
+			Height:  100,
+		},
+	}
+
+	for location, constraint := range locationConstraints {
+		bounds := constraint.Bounds(vp)
+		mapper.Register(string(location), bounds, 44)
+	}
+
+	actionBarConstraint := ui.Constraint{
+		Anchor:  ui.AnchorBottomLeft,
+		OffsetY: -50,
+		Width:   0,
+		Height:  50,
+	}
+	actionBarBounds := actionBarConstraint.Bounds(vp)
+
+	actionNames := []string{"gather", "investigate", "ward", "focus", "research", "closegate"}
+	regionWidth := actionBarBounds.Dx() / len(actionNames)
+	for i, actionName := range actionNames {
+		regionBounds := image.Rect(
+			actionBarBounds.Min.X+i*regionWidth,
+			actionBarBounds.Min.Y,
+			actionBarBounds.Min.X+(i+1)*regionWidth,
+			actionBarBounds.Max.Y,
+		)
+		mapper.Register(actionName, regionBounds, 44)
+	}
+
+	return mapper
 }
 
 func hasActionInputAttempted() bool {

@@ -10,7 +10,11 @@
 
 package app
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/opd-ai/bostonfear/client/ebiten/ui"
+)
 
 // TestKeyBindings_NotEmpty verifies that the keyBindings table is populated.
 // An empty table would silently disable all keyboard input.
@@ -75,5 +79,48 @@ func TestKeyBindings_UniqueKeys(t *testing.T) {
 			t.Errorf("duplicate key %d in keyBindings: actions %q and %q", keyInt, prev, kb.action)
 		}
 		seen[keyInt] = kb.action
+	}
+}
+
+func TestBuildTouchInputMapper_ContainsRequiredLocationsAndActions(t *testing.T) {
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth,
+		PhysicalHeight: screenHeight,
+		Scale:          1,
+	}
+	mapper := buildTouchInputMapper(vp)
+
+	requiredIDs := []string{
+		"Downtown", "University", "Rivertown", "Northside",
+		"gather", "investigate", "ward", "focus", "research", "closegate",
+	}
+
+	hitboxes := mapper.AllHitBoxes()
+	found := make(map[string]bool, len(hitboxes))
+	for _, hb := range hitboxes {
+		found[hb.ID] = true
+	}
+
+	for _, id := range requiredIDs {
+		if !found[id] {
+			t.Errorf("required touch hitbox %q not registered", id)
+		}
+	}
+}
+
+func TestBuildTouchInputMapper_AllHitBoxesAccessible(t *testing.T) {
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth,
+		PhysicalHeight: screenHeight,
+		Scale:          1,
+	}
+	mapper := buildTouchInputMapper(vp)
+	inaccessible := mapper.InaccessibleHitBoxes()
+	if len(inaccessible) != 0 {
+		t.Fatalf("found %d inaccessible hitboxes; all touch targets must be >=44px", len(inaccessible))
 	}
 }

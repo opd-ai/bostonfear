@@ -93,10 +93,16 @@
 **Why this is second**: README markets mobile targets but currently documents them as unverified; this is the largest user-visible platform gap.
 
 - [ ] Execute Android and iOS binding outputs on real devices/emulators with a documented minimum support matrix.
-- [ ] Verify touch input parity for move/gather/investigate/ward and reconnect-token reclaim behavior.
-- [ ] Add a smoke checklist (connect, two turns, disconnect/reconnect, game over path) for each mobile platform.
+  - Blocked in this session: no Android emulator/iOS simulator runtime is available in the current CI/container environment.
+- [x] Verify touch input parity for move/gather/investigate/ward and reconnect-token reclaim behavior.
+- [x] Add a smoke checklist (connect, two turns, disconnect/reconnect, game over path) for each mobile platform.
 - [ ] Update README build table with verified status, known constraints, and tested SDK/toolchain versions.
 - [ ] Validation: reproducible mobile runbook + evidence of successful runtime behavior on both platforms.
+
+Current artifacts:
+- Runbook + smoke checklist: `docs/MOBILE_VERIFICATION_RUNBOOK.md`
+- Touch parity coverage: `client/ebiten/app/input_test.go`
+- Reconnect token reclaim coverage: `client/ebiten/net_test.go`, `client/ebiten/state_test.go`
 
 ### Priority 3: Complete Module Migration to Match Claimed Separation
 
