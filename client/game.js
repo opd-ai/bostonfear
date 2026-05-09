@@ -579,6 +579,16 @@ class ArkhamHorrorClient {
         const displayWidth = Math.max(320, Math.floor(this.logicalCanvasWidth * scale));
         const displayHeight = Math.max(240, Math.floor(this.logicalCanvasHeight * scale));
 
+        this.layoutWarning = scale < 1 ? {
+            scale,
+            displayWidth,
+            displayHeight
+        } : null;
+
+        if (this.layoutWarning) {
+            console.warn('Canvas resized below logical size for available viewport', this.layoutWarning);
+        }
+
         this.canvas.style.width = `${displayWidth}px`;
         this.canvas.style.height = `${displayHeight}px`;
         this.canvas.width = Math.floor(displayWidth * dpr);

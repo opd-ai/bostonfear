@@ -34,14 +34,14 @@
 - [x] Reusable component candidates: `ui/inputmap` (screen-to-world transform, hitbox registry).
 - [x] Dependencies: Existing scene system in [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go).
 - [x] Dependencies: Input routing in [client/ebiten/app/input.go](client/ebiten/app/input.go).
-- [ ] Dependencies: Canvas resize behavior in [client/game.js](client/game.js).
-- [ ] Acceptance criteria: Portrait, landscape, and widescreen snapshots show no clipped or overlapping critical UI.
-- [ ] Acceptance criteria: All action targets meet minimum touch size.
-- [ ] Acceptance criteria: Turn, doom, and resources remain visible at all supported sizes.
-- [ ] Effort estimate: M
-- [ ] Verification steps: Add screenshot matrix test harness for profile set.
-- [ ] Verification steps: Manual pass on desktop, simulated mobile, and WASM viewport resize.
-- [ ] Verification steps: Track layout fallback warnings and verify zero critical collisions.
+- [x] Dependencies: Canvas resize behavior in [client/game.js](client/game.js).
+- [x] Acceptance criteria: Portrait, landscape, and widescreen snapshots show no clipped or overlapping critical UI.
+- [x] Acceptance criteria: All action targets meet minimum touch size.
+- [x] Acceptance criteria: Turn, doom, and resources remain visible at all supported sizes.
+- [x] Effort estimate: M
+- [x] Verification steps: Add screenshot matrix test harness for profile set.
+- [x] Verification steps: Manual pass on desktop, simulated mobile, and WASM viewport resize.
+- [x] Verification steps: Track layout fallback warnings and verify zero critical collisions.
 
 ### Workstream 2: UI Redesign (Readability, Hierarchy, Feedback)
 - Remediation checklist:
