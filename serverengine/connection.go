@@ -10,9 +10,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 )
+
+type displayNameProvider interface {
+	DisplayName() string
+}
 
 // HandleConnection manages a player session using only net.Conn so transports
 // can adapt websocket, tcp, or in-process connections without engine changes.
@@ -75,7 +80,7 @@ func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.
 	}
 
 	if reconnectToken != "" {
-		if restoredID := gs.restorePlayerByToken(reconnectToken, conn); restoredID != "" {
+		if restoredID := gs.restorePlayerByToken(reconnectToken, conn, connectionDisplayName(conn)); restoredID != "" {
 			log.Printf("Player %s reconnected via token", restoredID)
 			gs.sendConnectionStatus(conn, restoredID)
 			gs.broadcastGameState()
@@ -85,7 +90,7 @@ func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.
 		}
 	}
 
-	playerID, err := gs.registerPlayer(conn)
+	playerID, err := gs.registerPlayer(conn, connectionDisplayName(conn))
 	if err != nil {
 		gs.removeConnection(addrStr)
 		return err
@@ -107,6 +112,13 @@ func (gs *GameServer) removeConnection(addrStr string) {
 	gs.removeConnWriteLock(addrStr)
 }
 
+func connectionDisplayName(conn net.Conn) string {
+	if namedConn, ok := conn.(displayNameProvider); ok {
+		return strings.TrimSpace(namedConn.DisplayName())
+	}
+	return ""
+}
+
 // generateReconnectToken returns a cryptographically random 16-byte hex token
 // used to restore a disconnected player's slot on reconnection.
 func generateReconnectToken() string {
@@ -120,8 +132,11 @@ func generateReconnectToken() string {
 
 // registerPlayer adds a new player to the game state and starts their monitoring.
 // Returns the new player's ID or an error if the game is full.
-func (gs *GameServer) registerPlayer(conn net.Conn) (string, error) {
+func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string, error) {
 	playerID := fmt.Sprintf("player_%d", time.Now().UnixNano())
+	if strings.TrimSpace(displayName) == "" {
+		displayName = playerID
+	}
 
 	gs.trackConnection("connect", playerID, 0)
 	gs.trackPlayerSession(playerID, "start")
@@ -135,8 +150,9 @@ func (gs *GameServer) registerPlayer(conn net.Conn) (string, error) {
 	}
 
 	gs.gameState.Players[playerID] = &Player{
-		ID:       playerID,
-		Location: Downtown,
+		ID:          playerID,
+		DisplayName: displayName,
+		Location:    Downtown,
 		Resources: Resources{
 			Health: 10,
 			Sanity: 10,
@@ -182,10 +198,14 @@ func (gs *GameServer) sendConnectionStatus(conn net.Conn, playerID string) {
 	gs.mutex.RUnlock()
 
 	msg := map[string]interface{}{
-		"type":     "connectionStatus",
-		"playerId": playerID,
-		"token":    token,
-		"status":   "connected",
+		"type":        "connectionStatus",
+		"playerId":    playerID,
+		"displayName": "",
+		"token":       token,
+		"status":      "connected",
+	}
+	if p, ok := gs.gameState.Players[playerID]; ok && p != nil {
+		msg["displayName"] = p.DisplayName
 	}
 	data, _ := json.Marshal(msg)
 	gs.writeToConn(conn, conn.RemoteAddr().String(), data) //nolint:errcheck
@@ -303,7 +323,7 @@ func (gs *GameServer) handlePlayerDisconnectCore(playerID, addrStr string) {
 
 // restorePlayerByToken looks up a disconnected player whose ReconnectToken
 // matches token, marks them connected, and returns their playerID.
-func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn) string {
+func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn, displayName string) string {
 	gs.mutex.Lock()
 	defer gs.mutex.Unlock()
 
@@ -312,6 +332,9 @@ func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn) string {
 			p.Connected = true
 			p.DisconnectedAt = time.Time{}              // clear disconnect timestamp
 			p.ReconnectToken = generateReconnectToken() // rotate token
+			if strings.TrimSpace(p.DisplayName) == "" && strings.TrimSpace(displayName) != "" {
+				p.DisplayName = strings.TrimSpace(displayName)
+			}
 			gs.playerConns[id] = conn
 			return id
 		}

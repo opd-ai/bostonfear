@@ -5,6 +5,7 @@ import "fmt"
 // ActionOutcome represents the result of a player action.
 type ActionOutcome struct {
 	PlayerID       string
+	PlayerName     string
 	ActionType     string
 	ActionTarget   string
 	Successful     bool
@@ -102,6 +103,9 @@ func (rp *ResultsPanel) OutcomeText() string {
 	msg := o.Description
 	if msg == "" {
 		msg = fmt.Sprintf("%s: %s", o.ActionType, o.ActionTarget)
+	}
+	if o.PlayerName != "" {
+		msg = o.PlayerName + " - " + msg
 	}
 
 	// Add result indicator.

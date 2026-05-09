@@ -11,16 +11,18 @@ import (
 // connectionWrapper adapts a Gorilla WebSocket to net.Conn for engine APIs.
 // It is package-local so websocket types do not leak across package boundaries.
 type connectionWrapper struct {
-	ws         *websocket.Conn
-	localAddr  net.Addr
-	remoteAddr net.Addr
+	ws          *websocket.Conn
+	localAddr   net.Addr
+	remoteAddr  net.Addr
+	displayName string
 }
 
-func newConnectionWrapper(wsConn *websocket.Conn, localAddr, remoteAddr net.Addr) net.Conn {
+func newConnectionWrapper(wsConn *websocket.Conn, localAddr, remoteAddr net.Addr, displayName string) net.Conn {
 	return &connectionWrapper{
-		ws:         wsConn,
-		localAddr:  localAddr,
-		remoteAddr: remoteAddr,
+		ws:          wsConn,
+		localAddr:   localAddr,
+		remoteAddr:  remoteAddr,
+		displayName: displayName,
 	}
 }
 
@@ -50,6 +52,10 @@ func (c *connectionWrapper) LocalAddr() net.Addr {
 
 func (c *connectionWrapper) RemoteAddr() net.Addr {
 	return c.remoteAddr
+}
+
+func (c *connectionWrapper) DisplayName() string {
+	return c.displayName
 }
 
 func (c *connectionWrapper) SetDeadline(t time.Time) error {

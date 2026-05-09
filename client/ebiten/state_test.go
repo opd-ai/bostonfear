@@ -127,6 +127,11 @@ func TestSnapshot_ReturnsPlayerID(t *testing.T) {
 func TestUpdateDiceResult_AppendEvent(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
+	ls.UpdateGame(GameState{
+		Players: map[string]*Player{
+			"player2": {ID: "player2", DisplayName: "Ada", Connected: true},
+		},
+	})
 
 	dr := DiceResultData{
 		PlayerID:     "player2",
@@ -147,6 +152,9 @@ func TestUpdateDiceResult_AppendEvent(t *testing.T) {
 	}
 	if !ls.LastDiceResult.Success {
 		t.Error("expected Success = true")
+	}
+	if events := ls.EventLogSnapshot(); len(events) == 0 || !strings.Contains(events[0].Text, "Ada") {
+		t.Fatalf("event log did not use display name: %+v", events)
 	}
 
 	events := ls.EventLogSnapshot()
@@ -175,6 +183,11 @@ func TestUpdateDiceResult_FailureLabel(t *testing.T) {
 func TestUpdateGameEvent_AppendEvent(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	ls := NewLocalState("ws://localhost:8080/ws")
+	ls.UpdateGame(GameState{
+		Players: map[string]*Player{
+			"player1": {ID: "player1", DisplayName: "Beatrice", Connected: true},
+		},
+	})
 
 	gu := GameUpdateData{
 		PlayerID:  "player1",
@@ -195,6 +208,9 @@ func TestUpdateGameEvent_AppendEvent(t *testing.T) {
 	events := ls.EventLogSnapshot()
 	if len(events) != 1 {
 		t.Fatalf("EventLog length = %d, want 1", len(events))
+	}
+	if !strings.Contains(events[0].Text, "Beatrice") {
+		t.Fatalf("event text = %q, want display name", events[0].Text)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -22,6 +23,8 @@ type ConnectionQuality struct {
 type ConnectionStatusMessage struct {
 	Type               string                       `json:"type"`
 	PlayerID           string                       `json:"playerId"`
+	DisplayName        string                       `json:"displayName"`
+	Token              string                       `json:"token,omitempty"`
 	Quality            ConnectionQuality            `json:"quality"`
 	AllPlayerQualities map[string]ConnectionQuality `json:"allPlayerQualities"`
 }
@@ -206,9 +209,14 @@ func (gs *GameServer) broadcastConnectionQuality() {
 	gs.mutex.RUnlock()
 
 	for _, playerID := range playerIDs {
+		displayName := playerID
+		if player, ok := gs.gameState.Players[playerID]; ok && player != nil && strings.TrimSpace(player.DisplayName) != "" {
+			displayName = player.DisplayName
+		}
 		statusMsg := ConnectionStatusMessage{
 			Type:               "connectionQuality",
 			PlayerID:           playerID,
+			DisplayName:        displayName,
 			Quality:            allQualities[playerID],
 			AllPlayerQualities: allQualities,
 		}

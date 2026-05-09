@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -179,7 +180,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	screen.Fill(g.theme.Background)
 
 	gs, playerID, connected := g.state.Snapshot()
-	g.updateUXWidgets(connected)
+	g.updateUXWidgets(gs, connected)
 	g.ensureProceduralSeed(gs)
 	g.drawProceduralAtmosphere(screen)
 
@@ -275,7 +276,7 @@ func (g *Game) drawProceduralAtmosphere(screen *ebiten.Image) {
 	}
 }
 
-func (g *Game) updateUXWidgets(connected bool) {
+func (g *Game) updateUXWidgets(gs ebclient.GameState, connected bool) {
 	if g.stateBanner != nil {
 		if connected {
 			g.stateBanner.SetConnectionState(ui.Connected)
@@ -300,6 +301,7 @@ func (g *Game) updateUXWidgets(connected bool) {
 	g.lastOutcome = key
 	outcome := &ui.ActionOutcome{
 		PlayerID:    update.PlayerID,
+		PlayerName:  g.playerDisplayName(gs, update.PlayerID),
 		ActionType:  update.Event,
 		Successful:  update.Result != "fail",
 		Description: update.Result,
@@ -595,13 +597,14 @@ func (g *Game) playerPanelLabel(pid, currentPlayer, myID string, p *ebclient.Pla
 	if pid == myID {
 		me = " (you)"
 	}
+	name := g.playerDisplayNameFromPlayer(pid, p)
 	hp, sn, cl := "HP", "SN", "CL"
 	if g.icons != nil {
 		hp = g.icons.Get(ui.IconHealth)
 		sn = g.icons.Get(ui.IconSanity)
 		cl = g.icons.Get(ui.IconClues)
 	}
-	return marker + " " + pid + me + "  " + hp + ":" + strconv.Itoa(p.Resources.Health) +
+	return marker + " " + name + " (" + pid + ")" + me + "  " + hp + ":" + strconv.Itoa(p.Resources.Health) +
 		" " + sn + ":" + strconv.Itoa(p.Resources.Sanity) +
 		" " + cl + ":" + strconv.Itoa(p.Resources.Clues) +
 		" ACT:" + strconv.Itoa(p.ActionsRemaining)
@@ -913,6 +916,23 @@ func (g *Game) turnStatusLabel(gs ebclient.GameState, myID string, isMyTurn bool
 		}
 	}
 	return g.uiCache.statusText
+}
+
+func (g *Game) playerDisplayName(gs ebclient.GameState, playerID string) string {
+	if p, ok := gs.Players[playerID]; ok {
+		return g.playerDisplayNameFromPlayer(playerID, p)
+	}
+	return playerID
+}
+
+func (g *Game) playerDisplayNameFromPlayer(playerID string, p *ebclient.Player) string {
+	if p == nil {
+		return playerID
+	}
+	if name := strings.TrimSpace(p.DisplayName); name != "" {
+		return name
+	}
+	return playerID
 }
 
 // playerColourIndex returns a stable colour index for pid based on turn order.

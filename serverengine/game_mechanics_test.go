@@ -736,7 +736,7 @@ func TestSessionReconnection_RestoreByToken(t *testing.T) {
 	// Simulate reconnection via token.
 	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9999}
 	fakeConn := &stubConn{local: addr, remote: addr}
-	restoredID := gs.restorePlayerByToken(token, fakeConn)
+	restoredID := gs.restorePlayerByToken(token, fakeConn, "Recovered Player")
 
 	if restoredID != p1ID {
 		t.Errorf("expected restored player %s; got %q", p1ID, restoredID)
@@ -755,7 +755,7 @@ func TestSessionReconnection_UnknownTokenReturnsEmpty(t *testing.T) {
 	gs, _ := newTestServer(t)
 	addr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9999}
 	fakeConn := &stubConn{local: addr, remote: addr}
-	result := gs.restorePlayerByToken("invalid-token-xyz", fakeConn)
+	result := gs.restorePlayerByToken("invalid-token-xyz", fakeConn, "Recovered Player")
 	if result != "" {
 		t.Errorf("unknown token should return empty string; got %q", result)
 	}

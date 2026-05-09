@@ -101,10 +101,11 @@ func TestApplyConnectionStatus_PreservesToken(t *testing.T) {
 	client := NewNetClient(state)
 
 	payload := map[string]interface{}{
-		"type":     "connectionStatus",
-		"playerId": "player1",
-		"token":    "abc123",
-		"quality":  map[string]interface{}{"latencyMs": 10, "quality": "excellent"},
+		"type":        "connectionStatus",
+		"playerId":    "player1",
+		"displayName": "Ada",
+		"token":       "abc123",
+		"quality":     map[string]interface{}{"latencyMs": 10, "quality": "excellent"},
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -118,6 +119,9 @@ func TestApplyConnectionStatus_PreservesToken(t *testing.T) {
 	}
 	if state.GetReconnectToken() != "abc123" {
 		t.Errorf("ReconnectToken = %q, want %q", state.GetReconnectToken(), "abc123")
+	}
+	if state.DisplayName != "Ada" {
+		t.Errorf("DisplayName = %q, want Ada", state.DisplayName)
 	}
 }
 
@@ -351,8 +355,9 @@ func TestRouteMessage_ConnectionStatus_ServerPayloadShape(t *testing.T) {
 	client := NewNetClient(state)
 
 	payload := serverengine.ConnectionStatusMessage{
-		Type:     "connectionStatus",
-		PlayerID: "p3",
+		Type:        "connectionStatus",
+		PlayerID:    "p3",
+		DisplayName: "Carol",
 		Quality: serverengine.ConnectionQuality{
 			LatencyMs: 37,
 			Quality:   "good",
@@ -377,6 +382,9 @@ func TestRouteMessage_ConnectionStatus_ServerPayloadShape(t *testing.T) {
 	}
 	if state.ConnectionRating != "good" {
 		t.Errorf("ConnectionRating = %q, want good", state.ConnectionRating)
+	}
+	if state.DisplayName != "Carol" {
+		t.Errorf("DisplayName = %q, want Carol", state.DisplayName)
 	}
 }
 

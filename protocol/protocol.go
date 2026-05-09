@@ -109,6 +109,7 @@ type DiceResultMessage struct {
 // Player is the shared wire representation of an investigator.
 // Valid field values:
 //   - ID: non-empty string; server-generated unique identifier
+//   - DisplayName: optional human-readable name; defaults to ID when empty
 //   - Location: one of [Downtown, University, Rivertown, Northside]; default is Downtown
 //   - Resources: subject to constraints in Resources type; read comment there
 //   - ActionsRemaining: [0, 2]; number of unexecuted actions available this turn
@@ -124,6 +125,7 @@ type DiceResultMessage struct {
 // with severity details if invariants are violated.
 type Player struct {
 	ID                 string           `json:"id"`
+	DisplayName        string           `json:"displayName"`
 	Location           Location         `json:"location"`
 	Resources          Resources        `json:"resources"`
 	ActionsRemaining   int              `json:"actionsRemaining"`

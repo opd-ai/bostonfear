@@ -3,6 +3,8 @@ package ebiten
 import (
 	"encoding/json"
 	"log"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -98,7 +100,10 @@ func (c *NetClient) reconnectLoop() {
 
 		dialURL := c.state.ServerURL
 		if tok := c.state.GetReconnectToken(); tok != "" {
-			dialURL = dialURL + "?token=" + tok
+			dialURL = appendQueryParam(dialURL, "token", tok)
+		}
+		if name := strings.TrimSpace(c.state.DisplayName); name != "" {
+			dialURL = appendQueryParam(dialURL, "displayName", name)
 		}
 
 		conn, err := dialWebSocket(dialURL)
@@ -273,4 +278,15 @@ func (c *NetClient) applyConnectionStatus(data []byte) {
 		c.state.SetReconnectToken(cs.Token)
 	}
 	c.state.UpdateConnectionStatus(cs)
+}
+
+func appendQueryParam(rawURL, key, value string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	query := parsed.Query()
+	query.Set(key, value)
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
 }

@@ -52,7 +52,8 @@ func NewWebSocketHandler(engine SessionEngine) http.Handler {
 
 		remoteAddr := wsConn.RemoteAddr()
 		localAddr := wsConn.NetConn().LocalAddr()
-		conn := newConnectionWrapper(wsConn, localAddr, remoteAddr)
+		displayName := r.URL.Query().Get("displayName")
+		conn := newConnectionWrapper(wsConn, localAddr, remoteAddr, displayName)
 		reconnectToken := r.URL.Query().Get("token")
 
 		go func() {

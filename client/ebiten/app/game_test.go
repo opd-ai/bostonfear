@@ -11,6 +11,7 @@
 package app
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -73,6 +74,7 @@ func TestDrawPlayerPanel_SinglePlayer(t *testing.T) {
 		Players: map[string]*ebclient.Player{
 			"p1": {
 				ID:               "p1",
+				DisplayName:      "Investigators Unite",
 				Location:         "Downtown",
 				Resources:        ebclient.Resources{Health: 8, Sanity: 6, Clues: 2},
 				ActionsRemaining: 1,
@@ -85,6 +87,9 @@ func TestDrawPlayerPanel_SinglePlayer(t *testing.T) {
 	}
 	// Must not panic.
 	g.drawPlayerPanel(screen, gs, "p1")
+	if got := g.playerPanelLabel("p1", "p1", "p1", gs.Players["p1"]); !strings.Contains(got, "Investigators Unite") {
+		t.Fatalf("playerPanelLabel = %q, want display name", got)
+	}
 }
 
 // TestPlayerColourIndex_InOrder verifies that playerColourIndex returns the

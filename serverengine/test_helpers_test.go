@@ -47,7 +47,7 @@ func newIntegrationTestServer(t testing.TB) (*testServerWithCleanup, func()) {
 // and gameState messages, and returns the connection plus the assigned playerID and token.
 func (s *testServerWithCleanup) connectPlayer(t testing.TB) (*websocket.Conn, string, string) {
 	t.Helper()
-	conn, _, err := websocket.DefaultDialer.Dial(s.BaseURL, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(s.BaseURL+"?displayName=Test+Player", nil)
 	if err != nil {
 		t.Fatalf("dial failed: %v", err)
 	}
@@ -79,7 +79,7 @@ func (s *testServerWithCleanup) connectPlayer(t testing.TB) (*websocket.Conn, st
 // connectPlayerWithToken dials using a reconnect token and returns the connection and playerID.
 func (s *testServerWithCleanup) connectPlayerWithToken(t testing.TB, token string) (*websocket.Conn, string) {
 	t.Helper()
-	reconnectURL := s.BaseURL + "?token=" + token
+	reconnectURL := s.BaseURL + "?token=" + token + "&displayName=Test+Player"
 	conn, _, err := websocket.DefaultDialer.Dial(reconnectURL, nil)
 	if err != nil {
 		t.Fatalf("reconnect dial failed: %v", err)

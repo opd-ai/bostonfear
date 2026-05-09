@@ -93,6 +93,7 @@ type ConnectionQuality struct {
 // ConnectionStatusData mirrors the server's ConnectionStatusMessage.Data.
 type ConnectionStatusData struct {
 	PlayerID           string                       `json:"playerId"`
+	DisplayName        string                       `json:"displayName"`
 	Token              string                       `json:"token"`
 	Quality            ConnectionQuality            `json:"quality"`
 	AllPlayerQualities map[string]ConnectionQuality `json:"allPlayerQualities"`
@@ -152,7 +153,7 @@ type LocalState struct {
 	ConnectAddress string
 
 	// DisplayName is the local player display name captured in SceneConnect.
-	// The current wire contract does not send this field to the server yet.
+	// It is sent to the server as part of the shared session join flow.
 	DisplayName string
 
 	// UX instrumentation for plan-level usability verification.
@@ -297,7 +298,7 @@ func (s *LocalState) UpdateDiceResult(dr DiceResultData) {
 	}
 	s.appendEventLocked(EventLogEntry{
 		Timestamp: time.Now(),
-		Text:      dr.PlayerID + " rolled " + string(dr.Action) + ": " + outcome,
+		Text:      s.playerLabelLocked(dr.PlayerID) + " rolled " + string(dr.Action) + ": " + outcome,
 	})
 }
 
@@ -308,7 +309,7 @@ func (s *LocalState) UpdateGameEvent(gu GameUpdateData) {
 	s.LastGameUpdate = &gu
 	s.appendEventLocked(EventLogEntry{
 		Timestamp: gu.Timestamp,
-		Text:      gu.PlayerID + " " + gu.Event + " → " + gu.Result,
+		Text:      s.playerLabelLocked(gu.PlayerID) + " " + gu.Event + " → " + gu.Result,
 	})
 }
 
@@ -316,6 +317,9 @@ func (s *LocalState) UpdateGameEvent(gu GameUpdateData) {
 func (s *LocalState) UpdateConnectionStatus(cs ConnectionStatusData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if strings.TrimSpace(cs.DisplayName) != "" {
+		s.DisplayName = strings.TrimSpace(cs.DisplayName)
+	}
 	s.ConnectionRating = cs.Quality.Quality
 }
 
@@ -390,6 +394,18 @@ func (s *LocalState) appendEventLocked(e EventLogEntry) {
 	if len(s.EventLog) > 20 {
 		s.EventLog = s.EventLog[len(s.EventLog)-20:]
 	}
+}
+
+func (s *LocalState) playerLabelLocked(playerID string) string {
+	if playerID == "" {
+		return "unknown player"
+	}
+	if p, ok := s.Game.Players[playerID]; ok && p != nil {
+		if name := strings.TrimSpace(p.DisplayName); name != "" {
+			return name
+		}
+	}
+	return playerID
 }
 
 // Reset clears the game state for a fresh game, preserving the server URL
