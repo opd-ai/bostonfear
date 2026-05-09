@@ -57,8 +57,8 @@
 - [x] Acceptance criteria: Invalid actions always display reason and recovery guidance.
 - [x] Effort estimate: L
 - [ ] Verification steps: First-time-user moderated task tests for one full turn.
-- [ ] Verification steps: Instrument time-to-first-valid-action and invalid-action retry count.
-- [ ] Verification steps: UX regression checklist against onboarding and clarity states.
+- [x] Verification steps: Instrument time-to-first-valid-action and invalid-action retry count.
+- [x] Verification steps: UX regression checklist against onboarding and clarity states.
 
 ### Workstream 3: Procedural Visual Atmosphere
 - Remediation checklist:
