@@ -1,4 +1,3 @@
-// filepath: /workspaces/bostonfear/cmd/server/main.go
 package main
 
 import (
@@ -11,6 +10,9 @@ import (
 	"github.com/opd-ai/bostonfear/serverengine"
 	transportws "github.com/opd-ai/bostonfear/transport/ws"
 )
+
+// clientDir is the path to the client assets directory, relative to the repository root.
+const clientDir = "./client"
 
 // Main server setup using net.Listener interface
 // Moved from: main.go (original location)
@@ -41,8 +43,8 @@ func run() error {
 		WebSocket: transportws.NewWebSocketHandler(gameServer),
 		Health:    monitoring.HealthHandler(gameServer),
 		Metrics:   monitoring.MetricsHandler(gameServer),
-		Dashboard: monitoring.DashboardHandler(serverengine.ClientDir()),
-		Static:    http.FileServer(http.Dir(serverengine.ClientDir() + "/")),
+		Dashboard: monitoring.DashboardHandler(clientDir),
+		Static:    http.FileServer(http.Dir(clientDir + "/")),
 	}
 
 	// Setup and start server with proper interface usage

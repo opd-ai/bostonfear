@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/opd-ai/bostonfear/monitoring"
 	"github.com/opd-ai/bostonfear/monitoringdata"
 )
 
@@ -183,13 +182,4 @@ func (gs *GameServer) CollectMessageThroughput(runtime time.Duration) MessageThr
 // GameStatistics exposes derived game-state analytics to the monitoring package.
 func (gs *GameServer) GameStatistics() map[string]interface{} {
 	return gs.getGameStatistics()
-}
-
-// getSystemAlerts delegates alert-threshold policy to the monitoring package.
-func (gs *GameServer) getSystemAlerts() []map[string]interface{} {
-	performanceMetrics := gs.collectPerformanceMetrics()
-	gs.mutex.RLock()
-	doom := gs.gameState.Doom
-	gs.mutex.RUnlock()
-	return monitoring.BuildSystemAlerts(performanceMetrics, doom)
 }

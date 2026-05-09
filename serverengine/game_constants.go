@@ -2,17 +2,6 @@ package serverengine
 
 import "github.com/opd-ai/bostonfear/protocol"
 
-// clientDir is the path to the client assets directory, relative to cmd/server/.
-// Both the static file handler and the dashboard handler use this constant so
-// that a single change keeps them in sync.
-const clientDir = "../client"
-
-// ClientDir exposes the configured client asset directory to route-registration
-// packages without exporting the constant itself.
-func ClientDir() string {
-	return clientDir
-}
-
 // Player count limits matching AH3e core rulebook (1-6 investigators).
 const (
 	MinPlayers = 1 // Minimum players required to start a game

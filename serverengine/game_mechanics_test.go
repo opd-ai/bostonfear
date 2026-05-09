@@ -449,50 +449,6 @@ func TestProcessAction_TentacleIncrementsDoom(t *testing.T) {
 	}
 }
 
-// --- getSystemAlerts: present in /health (table-driven, consolidates coverage_test.go) ---
-
-func TestGetSystemAlerts(t *testing.T) {
-	cases := []struct {
-		name         string
-		doom         int
-		wantNonNil   bool
-		wantSeverity string // empty means no specific severity required
-	}{
-		{
-			name:         "no_alerts_at_low_doom",
-			doom:         0,
-			wantNonNil:   true,
-			wantSeverity: "", // only verifies the slice is non-nil; no severity required
-		},
-		{"medium_alert_at_doom_8", 8, true, "medium"},
-		{"critical_alert_at_doom_10", 10, true, "critical"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			gs, _ := newTestServer(t)
-			gs.gameState.Doom = tc.doom
-
-			alerts := gs.getSystemAlerts()
-			if tc.wantNonNil && alerts == nil {
-				t.Error("getSystemAlerts returned nil")
-				return
-			}
-			if tc.wantSeverity == "" {
-				return
-			}
-			found := false
-			for _, a := range alerts {
-				if sev, ok := a["severity"].(string); ok && sev == tc.wantSeverity {
-					found = true
-				}
-			}
-			if !found {
-				t.Errorf("doom=%d: expected alert with severity=%q", tc.doom, tc.wantSeverity)
-			}
-		})
-	}
-}
-
 // --- handlePongMessage: no deadlock ---
 
 func TestHandlePongMessage_NoDeadlock(t *testing.T) {
