@@ -126,20 +126,25 @@ func (oc *OnboardingController) notifyStepChange() {
 
 // Update advances time-based steps. Returns true if onboarding is complete.
 func (oc *OnboardingController) Update() bool {
-	if oc == nil || !oc.isActive || oc.currentStep >= len(oc.script.Steps) {
+	if !oc.canUpdate() {
 		return oc != nil && oc.isCompleted
 	}
-
-	step := oc.script.Steps[oc.currentStep]
-
-	// If step has a duration and no action requirement, auto-advance.
-	if step.Duration > 0 && step.Action == "" {
-		if time.Since(oc.stepStartTime) >= step.Duration {
-			oc.AdvanceStep()
-		}
-	}
-
+	oc.advanceTimedStep()
 	return !oc.isActive
+}
+
+func (oc *OnboardingController) canUpdate() bool {
+	return oc != nil && oc.isActive && oc.currentStep < len(oc.script.Steps)
+}
+
+func (oc *OnboardingController) advanceTimedStep() {
+	step := oc.script.Steps[oc.currentStep]
+	if step.Duration <= 0 || step.Action != "" {
+		return
+	}
+	if time.Since(oc.stepStartTime) >= step.Duration {
+		oc.AdvanceStep()
+	}
 }
 
 // IsActive reports whether onboarding is currently being shown.
