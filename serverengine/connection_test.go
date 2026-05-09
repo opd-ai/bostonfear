@@ -2,6 +2,7 @@
 package serverengine
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -131,5 +132,85 @@ func TestRescaleActDeck_LateJoin_ThreePlayers(t *testing.T) {
 	}
 	if thresh3P != 12 {
 		t.Errorf("3P late-join final act threshold = %d, want 12 (4 clues × 3 players)", thresh3P)
+	}
+}
+
+// TestHandleWebSocket_PregameActionsBeforeFirstTurn verifies that a freshly
+// connected player can still run pregame setup actions before taking the first
+// normal turn action in a live session.
+func TestHandleWebSocket_PregameActionsBeforeFirstTurn(t *testing.T) {
+	t.Parallel()
+
+	srv, cleanup := newIntegrationTestServer(t)
+	defer cleanup()
+
+	conn, playerID, _ := srv.connectPlayer(t)
+	defer conn.Close()
+
+	selectAction := map[string]interface{}{
+		"type":     "playerAction",
+		"playerId": playerID,
+		"action":   "selectInvestigator",
+		"target":   "researcher",
+	}
+	if err := conn.WriteJSON(selectAction); err != nil {
+		t.Fatalf("failed to send selectInvestigator action: %v", err)
+	}
+
+	difficultyAction := map[string]interface{}{
+		"type":     "playerAction",
+		"playerId": playerID,
+		"action":   "setDifficulty",
+		"target":   "hard",
+	}
+	if err := conn.WriteJSON(difficultyAction); err != nil {
+		t.Fatalf("failed to send setDifficulty action: %v", err)
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		now := time.Now()
+		if now.After(deadline) {
+			break
+		}
+		if err := conn.SetReadDeadline(now.Add(200 * time.Millisecond)); err != nil {
+			t.Fatalf("failed to set read deadline: %v", err)
+		}
+		_, raw, err := conn.ReadMessage()
+		if err != nil {
+			continue
+		}
+
+		var msg map[string]interface{}
+		if err := json.Unmarshal(raw, &msg); err != nil {
+			continue
+		}
+		if msgType, _ := msg["type"].(string); msgType != "gameState" {
+			continue
+		}
+
+		srv.GameServer.mutex.RLock()
+		p := srv.GameServer.gameState.Players[playerID]
+		difficulty := srv.GameServer.gameState.Difficulty
+		srv.GameServer.mutex.RUnlock()
+
+		if p != nil && p.InvestigatorType == InvestigatorResearcher && difficulty == "hard" {
+			return
+		}
+	}
+
+	srv.GameServer.mutex.RLock()
+	p := srv.GameServer.gameState.Players[playerID]
+	difficulty := srv.GameServer.gameState.Difficulty
+	srv.GameServer.mutex.RUnlock()
+
+	if p == nil {
+		t.Fatal("player not present after pregame actions")
+	}
+	if p.InvestigatorType != InvestigatorResearcher {
+		t.Fatalf("investigator type = %q, want %q", p.InvestigatorType, InvestigatorResearcher)
+	}
+	if difficulty != "hard" {
+		t.Fatalf("difficulty = %q, want hard", difficulty)
 	}
 }

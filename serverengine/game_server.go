@@ -64,6 +64,11 @@ type GameServer struct {
 	// When nil or empty the upgrader falls back to permissive mode (any origin
 	// is accepted). Set via SetAllowedOrigins for production deployments.
 	allowedOrigins []string
+
+	// pregameLocked is set after the first successful normal turn action.
+	// selectInvestigator/setDifficulty are allowed while this is false so
+	// sessions that auto-transition to playing can still perform pregame setup.
+	pregameLocked bool
 }
 
 // NewGameServer creates a new game server instance using the provided Scenario
@@ -299,6 +304,7 @@ func (gs *GameServer) processActionCore(action PlayerActionMessage) error {
 	if doomIncrease > 0 {
 		gs.gameState.Doom = min(gs.gameState.Doom+doomIncrease, 12)
 	}
+	gs.pregameLocked = true
 
 	player.ActionsRemaining--
 	gs.trackPlayerSession(action.PlayerID, "action")

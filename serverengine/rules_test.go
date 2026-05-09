@@ -970,8 +970,9 @@ func TestProcessAction_SetDifficulty(t *testing.T) {
 		}
 	})
 
-	t.Run("RejectedDuringPlay", func(t *testing.T) {
+	t.Run("RejectedAfterPregameWindowCloses", func(t *testing.T) {
 		gs, p1ID := newTestServer(t)
+		gs.pregameLocked = true
 		err := gs.processAction(PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: p1ID,
@@ -979,7 +980,7 @@ func TestProcessAction_SetDifficulty(t *testing.T) {
 			Target:   "easy",
 		})
 		if err == nil {
-			t.Error("expected error when setting difficulty during play, got nil")
+			t.Error("expected error when setting difficulty after pregame window closes, got nil")
 		}
 	})
 

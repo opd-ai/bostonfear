@@ -394,44 +394,6 @@ class ArkhamHorrorClient {
         // Auto-dismiss after 3 seconds
         setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 3000);
     }
-        const resultDiv = this.diceResult;
-        
-        // Create dice visual representation
-        const diceHtml = diceMessage.results.map(result => {
-            let className = '';
-            let symbol = '';
-            
-            switch (result) {
-                case 'success':
-                    className = 'dice-success';
-                    symbol = '✓';
-                    break;
-                case 'blank':
-                    className = 'dice-blank';
-                    symbol = '○';
-                    break;
-                case 'tentacle':
-                    className = 'dice-tentacle';
-                    symbol = '🐙';
-                    break;
-            }
-            
-            return `<div class="dice-face ${className}">${symbol}</div>`;
-        }).join('');
-        
-        const successText = diceMessage.success ? 'Success!' : 'Failed';
-        const doomText = diceMessage.doomIncrease > 0 ? `Doom +${diceMessage.doomIncrease}` : '';
-        
-        resultDiv.innerHTML = `
-            <div><strong>${diceMessage.playerId}</strong> - ${diceMessage.action}</div>
-            <div class="dice-roll">${diceHtml}</div>
-            <div>Successes: ${diceMessage.successes} | Tentacles: ${diceMessage.tentacles}</div>
-            <div style="font-weight: bold; color: ${diceMessage.success ? '#90EE90' : '#FF6347'}">
-                ${successText}
-            </div>
-            ${doomText ? `<div style="color: #FF0000">${doomText}</div>` : ''}
-        `;
-    }
     
     // Handle ping messages and respond with pong
     handlePingMessage(pingMessage) {

@@ -381,13 +381,26 @@ func (gs *GameServer) performCloseGate(player *Player, playerID string) (string,
 	return "fail", fmt.Errorf("no open gate at %s", loc)
 }
 
-// performSelectInvestigator sets the player's InvestigatorType during the waiting phase.
+// pregameActionsAllowedLocked reports whether lobby-time pregame actions
+// (investigator selection and difficulty setting) are currently allowed.
+// Caller must hold gs.mutex.
+func (gs *GameServer) pregameActionsAllowedLocked() bool {
+	if gs.gameState.GamePhase == "waiting" {
+		return true
+	}
+	if gs.gameState.GamePhase != "playing" {
+		return false
+	}
+	return !gs.pregameLocked
+}
+
+// performSelectInvestigator sets the player's InvestigatorType during the pregame window.
 // target must be one of the six valid archetype strings (e.g. "researcher", "soldier").
-// Returns an error if the game has already started or the archetype is unrecognised.
+// Returns an error if pregame setup has closed or the archetype is unrecognised.
 // Caller must hold gs.mutex.
 func (gs *GameServer) performSelectInvestigator(player *Player, playerID, target string) error {
-	if gs.gameState.GamePhase != "waiting" {
-		return fmt.Errorf("investigator selection is only allowed in the waiting phase")
+	if !gs.pregameActionsAllowedLocked() {
+		return fmt.Errorf("investigator selection is only allowed before the first turn action")
 	}
 	invType := InvestigatorType(strings.ToLower(target))
 	if _, ok := DefaultInvestigatorAbilities[invType]; !ok {
@@ -398,13 +411,13 @@ func (gs *GameServer) performSelectInvestigator(player *Player, playerID, target
 	return nil
 }
 
-// performSetDifficulty applies a difficulty preset during the waiting phase.
+// performSetDifficulty applies a difficulty preset during the pregame window.
 // target must be "easy", "standard", or "hard".
-// Returns an error if the game has already started or the name is unrecognised.
+// Returns an error if pregame setup has closed or the name is unrecognised.
 // Caller must hold gs.mutex.
 func (gs *GameServer) performSetDifficulty(target string) error {
-	if gs.gameState.GamePhase != "waiting" {
-		return fmt.Errorf("difficulty can only be set in the waiting phase")
+	if !gs.pregameActionsAllowedLocked() {
+		return fmt.Errorf("difficulty can only be set before the first turn action")
 	}
 	return gs.applyDifficulty(strings.ToLower(strings.TrimSpace(target)))
 }
