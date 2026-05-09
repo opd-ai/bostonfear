@@ -10,6 +10,7 @@ package app
 import (
 	"fmt"
 	"image/color"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -26,26 +27,138 @@ type Scene interface {
 }
 
 // SceneConnect is shown while the WebSocket connection is being established.
-// It renders an animated "Connecting…" banner and transitions to SceneGame
-// automatically once the connection is confirmed.
+// It captures server address and display name while showing connection status.
 type SceneConnect struct {
-	game *Game
-	tick int
+	game          *Game
+	tick          int
+	activeField   int
+	reconnectTick int
 }
 
-// Update increments the tick counter used for the connecting animation.
+const (
+	connectFieldAddress = iota
+	connectFieldName
+)
+
+// Update handles connect-form input and reconnect countdown state.
 func (s *SceneConnect) Update() error {
 	s.tick++
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		s.activeField = (s.activeField + 1) % 2
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
+		s.handleBackspace()
+	}
+
+	for _, r := range ebiten.AppendInputChars(nil) {
+		s.appendRune(r)
+	}
+
+	gs, _, connected := s.game.state.Snapshot()
+	token := s.game.state.GetReconnectToken()
+	if !connected && token != "" {
+		s.reconnectTick++
+	} else {
+		s.reconnectTick = 0
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		address, name := s.game.state.ConnectFormSnapshot()
+		if strings.TrimSpace(address) != "" {
+			s.game.state.SetConnectAddress(address)
+		}
+		if strings.TrimSpace(name) == "" {
+			s.game.state.SetDisplayName("Investigator")
+		}
+	}
+
+	_ = gs
 	return nil
 }
 
 // Draw renders the connecting screen.
 func (s *SceneConnect) Draw(screen *ebiten.Image) {
+	gs, playerID, connected := s.game.state.Snapshot()
+	address, displayName := s.game.state.ConnectFormSnapshot()
+	token := s.game.state.GetReconnectToken()
+
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	dots := "...."[:s.tick/15%5]
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Connecting to server%s", dots),
-		screenWidth/2-100, screenHeight/2)
-	ebitenutil.DebugPrintAt(screen, "Boston Fear — Arkham Horror", screenWidth/2-100, screenHeight/2-20)
+	ebitenutil.DebugPrintAt(screen, "Boston Fear — Arkham Horror", screenWidth/2-120, 120)
+
+	status := fmt.Sprintf("Connecting%s", dots)
+	if connected {
+		status = "Connected"
+	}
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Status: %s", status), screenWidth/2-120, 160)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Server: %s", address), screenWidth/2-120, 190)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Display Name: %s", displayName), screenWidth/2-120, 215)
+
+	connectedPlayers := countConnectedPlayers(gs)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Slots: %d/6", connectedPlayers), screenWidth/2-120, 245)
+	if connectedPlayers >= 6 {
+		ebitenutil.DebugPrintAt(screen, "Game Full (6/6)", screenWidth/2-120, 260)
+	}
+
+	if token != "" && !connected {
+		remaining := 60 - s.reconnectTick/60
+		if remaining < 0 {
+			remaining = 0
+		}
+		ebitenutil.DebugPrintAt(screen,
+			fmt.Sprintf("Reconnecting with saved session... %ds", remaining),
+			screenWidth/2-120, 290)
+	}
+
+	fieldLabel := "address"
+	if s.activeField == connectFieldName {
+		fieldLabel = "display name"
+	}
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Editing: %s (TAB to switch)", fieldLabel), screenWidth/2-120, 330)
+	ebitenutil.DebugPrintAt(screen, "Type to edit fields • BACKSPACE deletes • ENTER confirms", screenWidth/2-120, 350)
+
+	if playerID != "" {
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Player ID: %s", playerID), screenWidth/2-120, 380)
+	}
+}
+
+func (s *SceneConnect) handleBackspace() {
+	address, displayName := s.game.state.ConnectFormSnapshot()
+	if s.activeField == connectFieldAddress {
+		if len(address) > 0 {
+			s.game.state.SetConnectAddress(address[:len(address)-1])
+		}
+		return
+	}
+
+	if len(displayName) > 0 {
+		s.game.state.SetDisplayName(displayName[:len(displayName)-1])
+	}
+}
+
+func (s *SceneConnect) appendRune(r rune) {
+	if r < 32 || r > 126 {
+		return
+	}
+
+	address, displayName := s.game.state.ConnectFormSnapshot()
+	if s.activeField == connectFieldAddress {
+		s.game.state.SetConnectAddress(address + string(r))
+		return
+	}
+	s.game.state.SetDisplayName(displayName + string(r))
+}
+
+func countConnectedPlayers(gs ebclient.GameState) int {
+	count := 0
+	for _, p := range gs.Players {
+		if p != nil && p.Connected {
+			count++
+		}
+	}
+	return count
 }
 
 // SceneGame renders the in-progress game board. It delegates all drawing to
@@ -129,6 +242,9 @@ func (s *SceneCharacterSelect) Update() error {
 
 // Draw renders the character selection menu with 6 options and their key bindings.
 func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
+	gs, _, _ := s.game.state.Snapshot()
+	selected, waiting := investigatorSelectionStatus(gs)
+
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	ebitenutil.DebugPrintAt(screen, "Select Your Investigator", screenWidth/2-100, screenHeight/2-80)
 
@@ -138,6 +254,9 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 		text := fmt.Sprintf("[%s] %s", keyLabel, investigator.display)
 		ebitenutil.DebugPrintAt(screen, text, screenWidth/2-80, yOffset)
 	}
+
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Selected: %d  Waiting: %d", selected, waiting), screenWidth/2-100, screenHeight/2+90)
+	ebitenutil.DebugPrintAt(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+110)
 }
 
 // SceneGameOver is shown when the game reaches a win or lose condition.
@@ -178,6 +297,7 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 // Called from Game.Update() every tick.
 func (g *Game) updateScene() {
 	gs, playerID, connected := g.state.Snapshot()
+	_, displayName := g.state.ConnectFormSnapshot()
 
 	// Game over takes priority.
 	if gs.WinCondition || gs.LoseCondition {
@@ -187,8 +307,15 @@ func (g *Game) updateScene() {
 		return
 	}
 
-	// Connected but investigator not selected → SceneCharacterSelect.
+	// Connected, named, but investigator not selected → SceneCharacterSelect.
 	if connected {
+		if strings.TrimSpace(displayName) == "" {
+			if _, ok := g.activeScene.(*SceneConnect); !ok {
+				g.activeScene = &SceneConnect{game: g}
+			}
+			return
+		}
+
 		if player, exists := gs.Players[playerID]; exists && player.InvestigatorType == "" {
 			if _, ok := g.activeScene.(*SceneCharacterSelect); !ok {
 				g.activeScene = NewSceneCharacterSelect(g)
@@ -197,8 +324,15 @@ func (g *Game) updateScene() {
 		}
 	}
 
-	// Connected and character selected → SceneGame.
+	// Connected and local character selected, but others are still picking.
 	if connected {
+		if !allConnectedPlayersSelected(gs) {
+			if _, ok := g.activeScene.(*SceneCharacterSelect); !ok {
+				g.activeScene = NewSceneCharacterSelect(g)
+			}
+			return
+		}
+
 		if _, ok := g.activeScene.(*SceneGame); !ok {
 			g.activeScene = &SceneGame{game: g}
 		}
@@ -209,4 +343,37 @@ func (g *Game) updateScene() {
 	if _, ok := g.activeScene.(*SceneConnect); !ok {
 		g.activeScene = &SceneConnect{game: g}
 	}
+}
+
+func allConnectedPlayersSelected(gs ebclient.GameState) bool {
+	connectedPlayers := 0
+	selectedPlayers := 0
+	for _, pid := range gs.TurnOrder {
+		player, ok := gs.Players[pid]
+		if !ok || player == nil || !player.Connected {
+			continue
+		}
+		connectedPlayers++
+		if player.InvestigatorType != "" {
+			selectedPlayers++
+		}
+	}
+
+	return connectedPlayers > 0 && selectedPlayers == connectedPlayers
+}
+
+func investigatorSelectionStatus(gs ebclient.GameState) (selected int, waiting int) {
+	for _, pid := range gs.TurnOrder {
+		player, ok := gs.Players[pid]
+		if !ok || player == nil || !player.Connected {
+			continue
+		}
+		if player.InvestigatorType == "" {
+			waiting++
+			continue
+		}
+		selected++
+	}
+
+	return selected, waiting
 }

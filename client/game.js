@@ -421,7 +421,7 @@ class ArkhamHorrorClient {
         this.updatePlayersList();
         
         // Update own connection status if applicable
-        if (qualityMessage.playerID === this.playerId) {
+        if (qualityMessage.playerId === this.playerId) {
             this.updateOwnConnectionStatus(qualityMessage.quality);
         }
     }

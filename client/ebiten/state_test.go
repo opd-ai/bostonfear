@@ -232,3 +232,35 @@ func TestEventLogSnapshot_CapsAt20(t *testing.T) {
 		t.Errorf("EventLog length = %d, want ≤ 20", len(events))
 	}
 }
+
+// TestConnectFormSnapshot_Defaults verifies the connect form starts with a
+// host:port value derived from ServerURL.
+func TestConnectFormSnapshot_Defaults(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	ls := NewLocalState("ws://localhost:8080/ws")
+
+	address, displayName := ls.ConnectFormSnapshot()
+	if address != "localhost:8080" {
+		t.Errorf("address = %q, want %q", address, "localhost:8080")
+	}
+	if displayName != "" {
+		t.Errorf("displayName = %q, want empty", displayName)
+	}
+}
+
+// TestSetConnectAddress_NormalizesURL verifies host:port input updates ServerURL
+// with ws:// and /ws normalization.
+func TestSetConnectAddress_NormalizesURL(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	ls := NewLocalState("ws://localhost:8080/ws")
+
+	ls.SetConnectAddress("example.org:9090")
+	if ls.ServerURL != "ws://example.org:9090/ws" {
+		t.Errorf("ServerURL = %q, want %q", ls.ServerURL, "ws://example.org:9090/ws")
+	}
+
+	ls.SetConnectAddress("wss://example.org/socket")
+	if ls.ServerURL != "wss://example.org/socket/ws" {
+		t.Errorf("ServerURL = %q, want %q", ls.ServerURL, "wss://example.org/socket/ws")
+	}
+}

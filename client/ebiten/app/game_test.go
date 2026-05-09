@@ -122,3 +122,78 @@ func TestMin8(t *testing.T) {
 		t.Errorf("min8(255,255) = %d, want 255", got)
 	}
 }
+
+// TestAllConnectedPlayersSelected verifies SceneGame gating logic considers only
+// connected players and requires all connected players to confirm selection.
+func TestAllConnectedPlayersSelected(t *testing.T) {
+	gs := ebclient.GameState{
+		Players: map[string]*ebclient.Player{
+			"p1": {ID: "p1", Connected: true, InvestigatorType: "researcher"},
+			"p2": {ID: "p2", Connected: true, InvestigatorType: ""},
+			"p3": {ID: "p3", Connected: false, InvestigatorType: ""},
+		},
+		TurnOrder: []string{"p1", "p2", "p3"},
+	}
+
+	if allConnectedPlayersSelected(gs) {
+		t.Error("expected false when one connected player has not selected")
+	}
+
+	gs.Players["p2"].InvestigatorType = "mystic"
+	if !allConnectedPlayersSelected(gs) {
+		t.Error("expected true when all connected players have selected")
+	}
+}
+
+// TestUpdateScene_RequiresDisplayName keeps the client on SceneConnect until
+// a display name is captured, matching the connect-scene contract.
+func TestUpdateScene_RequiresDisplayName(t *testing.T) {
+	g := newTestGame(t)
+	g.state.SetConnected(true)
+	g.state.SetPlayerID("p1")
+	g.state.UpdateGame(ebclient.GameState{
+		Players: map[string]*ebclient.Player{
+			"p1": {ID: "p1", Connected: true, InvestigatorType: ""},
+		},
+		TurnOrder: []string{"p1"},
+	})
+	g.activeScene = &SceneConnect{game: g}
+
+	g.updateScene()
+
+	if _, ok := g.activeScene.(*SceneConnect); !ok {
+		t.Fatalf("active scene = %T, want *SceneConnect", g.activeScene)
+	}
+}
+
+// TestUpdateScene_WaitsForAllSelections verifies SceneCharacterSelect remains
+// active until every connected player has selected an investigator.
+func TestUpdateScene_WaitsForAllSelections(t *testing.T) {
+	g := newTestGame(t)
+	g.state.SetConnected(true)
+	g.state.SetPlayerID("p1")
+	g.state.SetDisplayName("Player One")
+	g.state.UpdateGame(ebclient.GameState{
+		Players: map[string]*ebclient.Player{
+			"p1": {ID: "p1", Connected: true, InvestigatorType: "researcher"},
+			"p2": {ID: "p2", Connected: true, InvestigatorType: ""},
+		},
+		TurnOrder: []string{"p1", "p2"},
+	})
+	g.activeScene = &SceneGame{game: g}
+
+	g.updateScene()
+
+	if _, ok := g.activeScene.(*SceneCharacterSelect); !ok {
+		t.Fatalf("active scene = %T, want *SceneCharacterSelect", g.activeScene)
+	}
+
+	state, _, _ := g.state.Snapshot()
+	state.Players["p2"].InvestigatorType = "detective"
+	g.state.UpdateGame(state)
+	g.updateScene()
+
+	if _, ok := g.activeScene.(*SceneGame); !ok {
+		t.Fatalf("active scene = %T, want *SceneGame", g.activeScene)
+	}
+}

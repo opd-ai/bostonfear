@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -135,6 +136,13 @@ type LocalState struct {
 
 	// ServerURL is the WebSocket server URL (e.g. "ws://localhost:8080/ws").
 	ServerURL string
+
+	// ConnectAddress is the editable host:port field shown in SceneConnect.
+	ConnectAddress string
+
+	// DisplayName is the local player display name captured in SceneConnect.
+	// The current wire contract does not send this field to the server yet.
+	DisplayName string
 }
 
 // NewLocalState creates an initialised LocalState ready for use.
@@ -142,7 +150,8 @@ type LocalState struct {
 // ~/.bostonfear/session.json; missing or unreadable files are silently ignored.
 func NewLocalState(serverURL string) *LocalState {
 	ls := &LocalState{
-		ServerURL: serverURL,
+		ServerURL:      serverURL,
+		ConnectAddress: hostPortFromURL(serverURL),
 		Game: GameState{
 			Players:   make(map[string]*Player),
 			TurnOrder: []string{},
@@ -152,6 +161,60 @@ func NewLocalState(serverURL string) *LocalState {
 	// Restore persisted token; ignore missing-file errors.
 	_ = ls.LoadTokenFromFile()
 	return ls
+}
+
+// ConnectFormSnapshot returns the address and display-name values for SceneConnect.
+func (s *LocalState) ConnectFormSnapshot() (address string, displayName string) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.ConnectAddress, s.DisplayName
+}
+
+// SetConnectAddress updates the editable address and normalized WebSocket URL.
+func (s *LocalState) SetConnectAddress(address string) {
+	trimmed := strings.TrimSpace(address)
+	if trimmed == "" {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ConnectAddress = trimmed
+	s.ServerURL = websocketURLFromAddress(trimmed)
+}
+
+// SetDisplayName stores the display name used in SceneConnect.
+func (s *LocalState) SetDisplayName(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.DisplayName = strings.TrimSpace(name)
+}
+
+// hostPortFromURL strips ws:// and path segments for the connect-form field.
+func hostPortFromURL(serverURL string) string {
+	trimmed := strings.TrimSpace(serverURL)
+	trimmed = strings.TrimPrefix(trimmed, "ws://")
+	trimmed = strings.TrimPrefix(trimmed, "wss://")
+	if idx := strings.Index(trimmed, "/"); idx >= 0 {
+		trimmed = trimmed[:idx]
+	}
+	if trimmed == "" {
+		return "localhost:8080"
+	}
+	return trimmed
+}
+
+// websocketURLFromAddress normalizes host:port and ws:// input to a ws URL with /ws.
+func websocketURLFromAddress(address string) string {
+	trimmed := strings.TrimSpace(address)
+	trimmed = strings.TrimSuffix(trimmed, "/")
+	if strings.HasPrefix(trimmed, "ws://") || strings.HasPrefix(trimmed, "wss://") {
+		if strings.HasSuffix(trimmed, "/ws") {
+			return trimmed
+		}
+		return trimmed + "/ws"
+	}
+	return "ws://" + trimmed + "/ws"
 }
 
 // UpdateGame replaces the full game state with the latest server snapshot.
