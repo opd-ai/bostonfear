@@ -280,7 +280,25 @@ type SceneGame struct {
 func (s *SceneGame) Update() error {
 	s.game.input.Update()
 	s.handleCameraControls()
+	s.handleOnboarding()
 	return nil
+}
+
+func (s *SceneGame) handleOnboarding() {
+	if s.game.onboarding == nil {
+		return
+	}
+	if !s.game.onboarding.IsActive() && !s.game.onboarding.IsCompleted() {
+		s.game.onboarding.Start()
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyH) {
+		s.game.onboarding.Skip()
+		return
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && s.game.onboarding.IsActive() {
+		s.game.onboarding.AdvanceStep()
+	}
+	s.game.onboarding.Update()
 }
 
 func (s *SceneGame) handleCameraControls() {

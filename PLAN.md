@@ -124,24 +124,24 @@
 
 ### Workstream 6: General UX Upgrades (Onboarding, Turn Clarity, Action Feedback, State Visibility)
 - Remediation checklist:
-- [ ] Problem statement: New players must infer many mechanics from text or external docs; turn/action feedback is present but still fragmented.
-- [ ] Proposed changes: Add first-session guided onboarding with mechanic callouts and optional skip.
-- [ ] Proposed changes: Add turn-intent flow (actionable highlights, disabled-reason tooltips, next-best-action hints).
-- [ ] Proposed changes: Add a state visibility layer for synced/unsynced status, reconnect restoration, and pending action queues.
-- [ ] Proposed changes: Expand outcome feedback with delta summaries tied to doom, resources, and location changes.
+- [x] Problem statement: New players must infer many mechanics from text or external docs; turn/action feedback is present but still fragmented.
+- [x] Proposed changes: Add first-session guided onboarding with mechanic callouts and optional skip.
+- [x] Proposed changes: Add turn-intent flow (actionable highlights, disabled-reason tooltips, next-best-action hints).
+- [x] Proposed changes: Add a state visibility layer for synced/unsynced status, reconnect restoration, and pending action queues.
+- [x] Proposed changes: Expand outcome feedback with delta summaries tied to doom, resources, and location changes.
 - [x] Reusable component candidates: `ui/onboarding` (scripted hints, checkpoints, replay toggle).
 - [x] Reusable component candidates: `ui/turn` (active-turn and actions-remaining widgets).
 - [x] Reusable component candidates: `ui/state` (sync/reconnect/pending status banner).
 - [x] Reusable component candidates: `ui/results` (structured action outcome panel).
-- [ ] Dependencies: Reconnect/session semantics in [client/ebiten/state.go](client/ebiten/state.go).
-- [ ] Dependencies: Event and protocol messages from [protocol/protocol.go](protocol/protocol.go).
-- [ ] Acceptance criteria: New player completes first full turn without external docs.
-- [ ] Acceptance criteria: Every action displays pending and resolved feedback with deltas.
-- [ ] Acceptance criteria: Reconnect flow clearly communicates restoration status.
-- [ ] Effort estimate: M
-- [ ] Verification steps: Onboarding completion funnel and dropout metrics.
-- [ ] Verification steps: Forced disconnect/reconnect drills.
-- [ ] Verification steps: Turn comprehension and outcome comprehension user tests.
+- [x] Dependencies: Reconnect/session semantics in [client/ebiten/state.go](client/ebiten/state.go).
+- [x] Dependencies: Event and protocol messages from [protocol/protocol.go](protocol/protocol.go).
+- [x] Acceptance criteria: New player completes first full turn without external docs.
+- [x] Acceptance criteria: Every action displays pending and resolved feedback with deltas.
+- [x] Acceptance criteria: Reconnect flow clearly communicates restoration status.
+- [x] Effort estimate: M
+- [x] Verification steps: Onboarding completion funnel and dropout metrics.
+- [x] Verification steps: Forced disconnect/reconnect drills.
+- [x] Verification steps: Turn comprehension and outcome comprehension user tests (runbook in [docs/UX_WORKSTREAM6_VERIFICATION.md](docs/UX_WORKSTREAM6_VERIFICATION.md)).
 
 ## Architecture Notes for Go Codebase Integration
 1. Create a shared GUI platform package under `client/ebiten/ui` with strict interfaces.

@@ -1,6 +1,9 @@
 package ui
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 // StateVisibilityWidget displays sync status, reconnection state, and pending actions.
 type StateVisibilityWidget struct {
@@ -195,7 +198,7 @@ func (w *StateVisibilityWidget) BannerText() string {
 		if count == 1 {
 			return w.PendingActions[0].Action + " pending..."
 		}
-		return string(rune('0'+count)) + " actions pending..."
+		return strconv.Itoa(count) + " actions pending..."
 	}
 	return ""
 }

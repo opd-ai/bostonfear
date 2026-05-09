@@ -69,6 +69,10 @@ type Game struct {
 	theme       ui.ThemePack
 	tokens      *ui.DesignTokenRegistry
 	icons       *ui.IconRegistry
+	onboarding  *ui.OnboardingController
+	stateBanner *ui.StateVisibilityWidget
+	results     *ui.ResultsPanel
+	lastOutcome string
 	procedural  *ui.ProceduralGenerator
 	camera      *ui.Camera
 	boardView   *ui.BoardView
@@ -100,17 +104,20 @@ func NewGame(serverURL string) *Game {
 	quality := ui.ParseQualityTier(os.Getenv("BOSTONFEAR_RENDER_QUALITY"))
 	tokens := ui.NewDefaultArkhamTheme()
 	g := &Game{
-		state:     state,
-		net:       net,
-		input:     input,
-		renderer:  render.NewCompositor(),
-		quality:   quality,
-		effects:   ui.EffectProfileForTier(quality),
-		theme:     ui.ResolveThemePack(tokens),
-		tokens:    tokens,
-		icons:     ui.NewIconRegistry(),
-		camera:    ui.NewCamera(),
-		startedAt: time.Now(),
+		state:       state,
+		net:         net,
+		input:       input,
+		renderer:    render.NewCompositor(),
+		quality:     quality,
+		effects:     ui.EffectProfileForTier(quality),
+		theme:       ui.ResolveThemePack(tokens),
+		tokens:      tokens,
+		icons:       ui.NewIconRegistry(),
+		onboarding:  ui.NewOnboardingController(ui.DefaultArkhamHorrorOnboarding()),
+		stateBanner: ui.NewStateVisibilityWidget(),
+		results:     ui.NewResultsPanel(),
+		camera:      ui.NewCamera(),
+		startedAt:   time.Now(),
 	}
 	g.boardView = ui.NewBoardView(g.camera, 210, 190)
 	g.activeScene = &SceneConnect{game: g}
@@ -174,6 +181,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	screen.Fill(g.theme.Background)
 
 	gs, playerID, connected := g.state.Snapshot()
+	g.updateUXWidgets(connected)
 	g.ensureProceduralSeed(gs)
 	g.drawProceduralAtmosphere(screen)
 
@@ -191,10 +199,13 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 
 	// Layer 3 — UI: text overlays drawn directly on screen after sprite flush.
 	g.drawConnectionBanner(screen, connected)
+	g.drawStateBanner(screen)
 	g.drawDoomCounter(screen, gs)
 	g.drawPlayerPanel(screen, gs, playerID)
+	g.drawResultsPanel(screen)
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
+	g.drawOnboarding(screen)
 
 	if g.effects.EnableFog {
 		render.DrawFogOverlay(screen, g.shaders, g.effects.FogOpacity)
@@ -248,6 +259,95 @@ func (g *Game) drawProceduralAtmosphere(screen *ebiten.Image) {
 		}
 		ebitenutil.DrawRect(screen, r.X, r.Y, r.W, r.H, col)
 	}
+}
+
+func (g *Game) updateUXWidgets(connected bool) {
+	if g.stateBanner != nil {
+		if connected {
+			g.stateBanner.SetConnectionState(ui.Connected)
+			g.stateBanner.SetSyncStatus(ui.Synchronized)
+		} else {
+			g.stateBanner.SetConnectionState(ui.Reconnecting)
+			g.stateBanner.SetSyncStatus(ui.Syncing)
+		}
+	}
+
+	if g.results == nil {
+		return
+	}
+	update, dice := g.state.LatestEventsSnapshot()
+	if update == nil {
+		return
+	}
+	key := update.Timestamp.String() + ":" + update.Event + ":" + update.PlayerID
+	if key == g.lastOutcome {
+		return
+	}
+	g.lastOutcome = key
+	outcome := &ui.ActionOutcome{
+		PlayerID:    update.PlayerID,
+		ActionType:  update.Event,
+		Successful:  update.Result != "fail",
+		Description: update.Result,
+		ResourceDelta: ui.ResourceDelta{
+			HealthDelta: update.ResourceDelta.Health,
+			SanityDelta: update.ResourceDelta.Sanity,
+			ClueDelta:   update.ResourceDelta.Clues,
+			DoomDelta:   update.DoomDelta,
+		},
+	}
+	if dice != nil {
+		results := make([]string, 0, len(dice.Results))
+		for _, r := range dice.Results {
+			results = append(results, string(r))
+		}
+		required := 0
+		switch update.Event {
+		case "investigate":
+			required = 2
+		case "ward", "closegate":
+			required = 3
+		}
+		outcome.DiceRoll = &ui.DiceRollResult{
+			Dice:     results,
+			Required: required,
+			Achieved: dice.Successes,
+			Passed:   dice.Success,
+		}
+	}
+	g.results.DisplayOutcome(outcome)
+}
+
+func (g *Game) drawStateBanner(screen *ebiten.Image) {
+	if g.stateBanner == nil || !g.stateBanner.BannerVisible() {
+		return
+	}
+	ebitenutil.DrawRect(screen, 0, 0, screenWidth, 20, color.RGBA{R: 10, G: 25, B: 40, A: 220})
+	drawUIText(screen, g.stateBanner.BannerText(), 8, 6, color.White)
+}
+
+func (g *Game) drawResultsPanel(screen *ebiten.Image) {
+	if g.results == nil || !g.results.IsVisible() {
+		return
+	}
+	ebitenutil.DrawRect(screen, 8, 24, 420, 54, color.RGBA{R: 30, G: 30, B: 40, A: 220})
+	drawUIText(screen, trimToWidth(g.results.OutcomeText(), 400), 14, 30, color.White)
+	drawUIText(screen, trimToWidth(g.results.ResourceDeltaText(), 400), 14, 44, color.RGBA{R: 210, G: 230, B: 255, A: 255})
+	drawUIText(screen, trimToWidth(g.results.DoomChangeText(), 400), 14, 58, color.RGBA{R: 255, G: 210, B: 180, A: 255})
+}
+
+func (g *Game) drawOnboarding(screen *ebiten.Image) {
+	if g.onboarding == nil || !g.onboarding.IsActive() {
+		return
+	}
+	step := g.onboarding.CurrentStep()
+	if step == nil {
+		return
+	}
+	ebitenutil.DrawRect(screen, 120, 90, 560, 96, color.RGBA{R: 12, G: 12, B: 22, A: 240})
+	drawUIText(screen, trimToWidth(step.Title, 540), 136, 102, color.RGBA{R: 230, G: 230, B: 255, A: 255})
+	drawUIText(screen, trimToWidth(step.Description, 540), 136, 120, color.White)
+	drawUIText(screen, "ENTER: next  H: skip tutorial", 136, 154, color.RGBA{R: 200, G: 200, B: 220, A: 255})
 }
 
 // enqueueBoard adds one board-layer draw command per location.
@@ -429,6 +529,7 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 		"3 Move→Rivertown 4 Move→Northside",
 		"G Gather  I Investigate  W Ward",
 		"[ / ] Rotate Camera  V Toggle Top-Down",
+		"H Skip Tutorial  ENTER Advance Tutorial",
 	}
 	for _, h := range hints {
 		drawUIText(screen, h, 10, y, color.RGBA{R: 220, G: 220, B: 220, A: 255})

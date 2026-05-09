@@ -1,5 +1,7 @@
 package ui
 
+import "strconv"
+
 // TurnWidget displays the current turn holder and actions remaining.
 type TurnWidget struct {
 	CurrentPlayer      string
@@ -38,7 +40,7 @@ func (w *TurnWidget) StatusText() string {
 		return ""
 	}
 	if w.IsYourTurn {
-		return "Your Turn (" + string(rune(w.ActionsRemaining)) + "/" + string(rune(w.MaxActions)) + " actions)"
+		return "Your Turn (" + strconv.Itoa(w.ActionsRemaining) + "/" + strconv.Itoa(w.MaxActions) + " actions)"
 	}
 	return w.CurrentPlayer + "'s Turn"
 }
@@ -57,7 +59,7 @@ func (w *TurnWidget) ActionsRemainingText() string {
 	if w == nil {
 		return "0/0"
 	}
-	return string(rune('0'+w.ActionsRemaining)) + "/" + string(rune('0'+w.MaxActions))
+	return strconv.Itoa(w.ActionsRemaining) + "/" + strconv.Itoa(w.MaxActions)
 }
 
 // AvailableActionsWidget lists which actions can be taken.
