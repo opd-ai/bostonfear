@@ -3,12 +3,15 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/opd-ai/bostonfear/monitoring"
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror"
@@ -20,6 +23,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var wasmBuildMu sync.Mutex
 
 // NewServerCommand wraps the existing server startup flow in a Cobra command.
 func NewServerCommand() *cobra.Command {
@@ -91,6 +96,7 @@ func runServer(cmd *cobra.Command) error {
 	defer listener.Close()
 
 	wasmDir := "./client/wasm"
+	warnIfWASMBuildUnavailable(wasmDir)
 	handlers := transportws.RouteHandlers{
 		WebSocket: transportws.NewWebSocketHandler(gameEngine),
 		Health:    monitoring.HealthHandler(gameEngine),
@@ -105,8 +111,7 @@ func runServer(cmd *cobra.Command) error {
 			case "/wasm_exec.js":
 				serveWASMExecJS(w, r, wasmDir)
 			case "/game.wasm":
-				w.Header().Set("Content-Type", "application/wasm")
-				http.ServeFile(w, r, wasmDir+"/game.wasm")
+				serveGameWASM(w, r, wasmDir)
 			default:
 				http.NotFound(w, r)
 			}
@@ -224,4 +229,62 @@ func serveWASMExecJS(w http.ResponseWriter, r *http.Request, wasmDir string) {
 	}
 
 	http.NotFound(w, r)
+}
+
+// serveGameWASM serves game.wasm and builds it on-demand if the binary is
+// missing. This removes the mandatory manual GOOS=js GOARCH=wasm build step
+// during local development.
+func serveGameWASM(w http.ResponseWriter, r *http.Request, wasmDir string) {
+	wasmPath := filepath.Join(wasmDir, "game.wasm")
+	if _, err := os.Stat(wasmPath); os.IsNotExist(err) {
+		if err := buildGameWASM(wasmPath); err != nil {
+			http.Error(w, fmt.Sprintf("failed to build game.wasm: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/wasm")
+	http.ServeFile(w, r, wasmPath)
+}
+
+// buildGameWASM compiles ./cmd/web into the target wasmPath. Calls are
+// serialized so concurrent /game.wasm requests do not race the output file.
+func buildGameWASM(wasmPath string) error {
+	wasmBuildMu.Lock()
+	defer wasmBuildMu.Unlock()
+
+	// Re-check inside lock in case another request built it first.
+	if _, err := os.Stat(wasmPath); err == nil {
+		return nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(wasmPath), 0o755); err != nil {
+		return fmt.Errorf("create wasm output dir: %w", err)
+	}
+
+	if _, err := exec.LookPath("go"); err != nil {
+		return fmt.Errorf("go toolchain not found on host; prebuild and ship %s (e.g. GOOS=js GOARCH=wasm go build -o %s ./cmd/web/)", wasmPath, wasmPath)
+	}
+
+	cmd := exec.Command("go", "build", "-o", wasmPath, "./cmd/web/")
+	cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("go build failed: %w\n%s", err, strings.TrimSpace(string(output)))
+	}
+
+	log.Printf("Built game.wasm at runtime: %s", wasmPath)
+	return nil
+}
+
+// warnIfWASMBuildUnavailable logs a startup warning when no prebuilt game.wasm
+// is present and runtime auto-build cannot run due to missing Go toolchain.
+func warnIfWASMBuildUnavailable(wasmDir string) {
+	wasmPath := filepath.Join(wasmDir, "game.wasm")
+	if _, err := os.Stat(wasmPath); err == nil {
+		return
+	}
+	if _, err := exec.LookPath("go"); err != nil {
+		log.Printf("Warning: %s missing and Go toolchain unavailable; /game.wasm requests will fail. Ship a prebuilt game.wasm artifact.", wasmPath)
+	}
 }
