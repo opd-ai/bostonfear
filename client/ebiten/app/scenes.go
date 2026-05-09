@@ -15,6 +15,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
+	"github.com/opd-ai/bostonfear/client/ebiten/ui"
 	"github.com/opd-ai/bostonfear/protocol"
 )
 
@@ -49,49 +50,144 @@ func (s *SceneConnect) Update() error {
 	return nil
 }
 
-// Draw renders the connecting screen.
+// Draw renders the connecting screen using anchor-based layout.
 func (s *SceneConnect) Draw(screen *ebiten.Image) {
 	gs, playerID, connected := s.game.state.Snapshot()
 	address, displayName := s.game.state.ConnectFormSnapshot()
 	token := s.game.state.GetReconnectToken()
 
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
-	dots := "...."[:s.tick/15%5]
-	drawUIText(screen, "Boston Fear - Arkham Horror", screenWidth/2-120, 120, color.White)
 
+	// Create viewport for anchor-based positioning.
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth, // 1:1 scale for now
+		PhysicalHeight: screenHeight,
+		Scale:          1.0,
+		SafeArea:       ui.SafeArea{},
+	}
+
+	dots := "...."[:s.tick/15%5]
+
+	// Title: centered near top.
+	titleConstraint := ui.Constraint{
+		Anchor:  ui.AnchorTopCenter,
+		OffsetY: 120,
+		Width:   240,
+		Height:  16,
+	}
+	titleBounds := titleConstraint.Bounds(vp)
+	drawUIText(screen, "Boston Fear - Arkham Horror", titleBounds.Min.X, titleBounds.Min.Y, color.White)
+
+	// Status: below title.
 	status := "Connecting" + dots
 	if connected {
 		status = "Connected"
 	}
-	drawUIText(screen, "Status: "+status, screenWidth/2-120, 160, color.White)
-	drawUIText(screen, trimToWidth("Server: "+address, 320), screenWidth/2-120, 190, color.White)
-	drawUIText(screen, trimToWidth("Display Name: "+displayName, 320), screenWidth/2-120, 215, color.White)
+	statusConstraint := ui.Constraint{
+		Anchor:  ui.AnchorTopCenter,
+		OffsetY: 160,
+		Width:   240,
+		Height:  16,
+	}
+	statusBounds := statusConstraint.Bounds(vp)
+	drawUIText(screen, "Status: "+status, statusBounds.Min.X, statusBounds.Min.Y, color.White)
 
+	// Server address field.
+	serverConstraint := ui.Constraint{
+		Anchor:  ui.AnchorTopCenter,
+		OffsetY: 190,
+		Width:   320,
+		Height:  16,
+	}
+	serverBounds := serverConstraint.Bounds(vp)
+	drawUIText(screen, trimToWidth("Server: "+address, 320), serverBounds.Min.X, serverBounds.Min.Y, color.White)
+
+	// Display name field.
+	nameConstraint := ui.Constraint{
+		Anchor:  ui.AnchorTopCenter,
+		OffsetY: 215,
+		Width:   320,
+		Height:  16,
+	}
+	nameBounds := nameConstraint.Bounds(vp)
+	drawUIText(screen, trimToWidth("Display Name: "+displayName, 320), nameBounds.Min.X, nameBounds.Min.Y, color.White)
+
+	// Player slots indicator.
 	connectedPlayers := countConnectedPlayers(gs)
-	drawUIText(screen, "Slots: "+strconv.Itoa(connectedPlayers)+"/6", screenWidth/2-120, 245, color.White)
+	slotsConstraint := ui.Constraint{
+		Anchor:  ui.AnchorTopCenter,
+		OffsetY: 245,
+		Width:   240,
+		Height:  16,
+	}
+	slotsBounds := slotsConstraint.Bounds(vp)
+	drawUIText(screen, "Slots: "+strconv.Itoa(connectedPlayers)+"/6", slotsBounds.Min.X, slotsBounds.Min.Y, color.White)
+
 	if connectedPlayers >= 6 {
-		drawUIText(screen, "Game Full (6/6)", screenWidth/2-120, 260, color.RGBA{R: 255, G: 190, B: 190, A: 255})
+		fullConstraint := ui.Constraint{
+			Anchor:  ui.AnchorTopCenter,
+			OffsetY: 260,
+			Width:   240,
+			Height:  16,
+		}
+		fullBounds := fullConstraint.Bounds(vp)
+		drawUIText(screen, "Game Full (6/6)", fullBounds.Min.X, fullBounds.Min.Y, color.RGBA{R: 255, G: 190, B: 190, A: 255})
 	}
 
+	// Reconnection timer (if saved session exists but not connected).
 	if token != "" && !connected {
 		remaining := 60 - s.reconnectTick/60
 		if remaining < 0 {
 			remaining = 0
 		}
+		reconnectConstraint := ui.Constraint{
+			Anchor:  ui.AnchorTopCenter,
+			OffsetY: 290,
+			Width:   400,
+			Height:  16,
+		}
+		reconnectBounds := reconnectConstraint.Bounds(vp)
 		drawUIText(screen,
 			"Reconnecting with saved session... "+strconv.Itoa(remaining)+"s",
-			screenWidth/2-120, 290, color.White)
+			reconnectBounds.Min.X, reconnectBounds.Min.Y, color.White)
 	}
 
+	// Field editing instruction.
 	fieldLabel := "address"
 	if s.activeField == connectFieldName {
 		fieldLabel = "display name"
 	}
-	drawUIText(screen, "Editing: "+fieldLabel+" (TAB to switch)", screenWidth/2-120, 330, color.White)
-	drawUIText(screen, "Type to edit fields - BACKSPACE deletes - ENTER confirms", screenWidth/2-120, 350, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+	editConstraint := ui.Constraint{
+		Anchor:  ui.AnchorTopCenter,
+		OffsetY: 330,
+		Width:   400,
+		Height:  16,
+	}
+	editBounds := editConstraint.Bounds(vp)
+	drawUIText(screen, "Editing: "+fieldLabel+" (TAB to switch)", editBounds.Min.X, editBounds.Min.Y, color.White)
 
+	// Input instructions.
+	instrConstraint := ui.Constraint{
+		Anchor:  ui.AnchorTopCenter,
+		OffsetY: 350,
+		Width:   400,
+		Height:  16,
+	}
+	instrBounds := instrConstraint.Bounds(vp)
+	drawUIText(screen, "Type to edit fields - BACKSPACE deletes - ENTER confirms", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+
+	// Player ID display (if assigned).
 	if playerID != "" {
-		drawUIText(screen, trimToWidth("Player ID: "+playerID, 320), screenWidth/2-120, 380, color.White)
+		playerIDConstraint := ui.Constraint{
+			Anchor:  ui.AnchorTopCenter,
+			OffsetY: 380,
+			Width:   320,
+			Height:  16,
+		}
+		playerIDBounds := playerIDConstraint.Bounds(vp)
+		drawUIText(screen, trimToWidth("Player ID: "+playerID, 320), playerIDBounds.Min.X, playerIDBounds.Min.Y, color.White)
 	}
 }
 

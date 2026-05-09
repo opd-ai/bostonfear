@@ -32,8 +32,8 @@
 - [x] Reusable component candidates: `ui/layout` (viewport model, anchors, constraints, safe-area abstraction).
 - [x] Reusable component candidates: `ui/scaling` (device profile resolver, text/icon scale curves).
 - [x] Reusable component candidates: `ui/inputmap` (screen-to-world transform, hitbox registry).
-- [ ] Dependencies: Existing scene system in [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go).
-- [ ] Dependencies: Input routing in [client/ebiten/app/input.go](client/ebiten/app/input.go).
+- [x] Dependencies: Existing scene system in [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go).
+- [x] Dependencies: Input routing in [client/ebiten/app/input.go](client/ebiten/app/input.go).
 - [ ] Dependencies: Canvas resize behavior in [client/game.js](client/game.js).
 - [ ] Acceptance criteria: Portrait, landscape, and widescreen snapshots show no clipped or overlapping critical UI.
 - [ ] Acceptance criteria: All action targets meet minimum touch size.
@@ -49,7 +49,7 @@
 - [x] Proposed changes: Introduce a production HUD shell with three fixed zones (top status rail, center board, bottom action rail).
 - [x] Proposed changes: Replace text-heavy status blocks with compact cards (turn, objective, doom, player strip).
 - [x] Proposed changes: Convert transient updates into a unified notification system with action preview, submitted state, and resolved state.
-- [ ] Proposed changes: Implement animation language for turn transitions, dice outcomes, doom spikes, and invalid actions.
+- [x] Proposed changes: Implement animation language for turn transitions, dice outcomes, doom spikes, and invalid actions.
 - [x] Reusable component candidates: `ui/hud` (status rail, player strip, action rail primitives).
 - [x] Reusable component candidates: `ui/feedback` (toasts, confirmations, transient update queue).
 - [x] Reusable component candidates: `ui/components` (badges, pills, counters, segmented bars).
@@ -112,7 +112,7 @@
 - [ ] Proposed changes: Introduce a shared icon system for actions, resources, status, and outcomes.
 - [ ] Proposed changes: Standardize contrast-safe palettes and non-color state cues.
 - [ ] Proposed changes: Refactor critical screens to consume tokens only.
-- [ ] Reusable component candidates: `ui/tokens` (centralized design token registry).
+- [x] Reusable component candidates: `ui/tokens` (centralized design token registry).
 - [ ] Reusable component candidates: `ui/icons` (vector/sprite icon map).
 - [ ] Reusable component candidates: `ui/motion` (transition presets and easing catalog).
 - [ ] Dependencies: Scene and HUD refactor from Workstream 2.
@@ -132,10 +132,10 @@
 - [ ] Proposed changes: Add turn-intent flow (actionable highlights, disabled-reason tooltips, next-best-action hints).
 - [ ] Proposed changes: Add a state visibility layer for synced/unsynced status, reconnect restoration, and pending action queues.
 - [ ] Proposed changes: Expand outcome feedback with delta summaries tied to doom, resources, and location changes.
-- [ ] Reusable component candidates: `ui/onboarding` (scripted hints, checkpoints, replay toggle).
-- [ ] Reusable component candidates: `ui/turn` (active-turn and actions-remaining widgets).
-- [ ] Reusable component candidates: `ui/state` (sync/reconnect/pending status banner).
-- [ ] Reusable component candidates: `ui/results` (structured action outcome panel).
+- [x] Reusable component candidates: `ui/onboarding` (scripted hints, checkpoints, replay toggle).
+- [x] Reusable component candidates: `ui/turn` (active-turn and actions-remaining widgets).
+- [x] Reusable component candidates: `ui/state` (sync/reconnect/pending status banner).
+- [x] Reusable component candidates: `ui/results` (structured action outcome panel).
 - [ ] Dependencies: Reconnect/session semantics in [client/ebiten/state.go](client/ebiten/state.go) and [client/game.js](client/game.js).
 - [ ] Dependencies: Event and protocol messages from [protocol/protocol.go](protocol/protocol.go).
 - [ ] Acceptance criteria: New player completes first full turn without external docs.

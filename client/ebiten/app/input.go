@@ -1,20 +1,14 @@
 package app
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
+	"github.com/opd-ai/bostonfear/client/ebiten/ui"
 	"github.com/opd-ai/bostonfear/protocol"
 )
-
-// touchLocationRects maps each location name to its board rectangle (x, y, w, h)
-// for touch input region detection on mobile platforms.
-var touchLocationRects = map[protocol.Location]struct{ x, y, w, h int }{
-	protocol.Downtown:   {40, 60, 160, 100},
-	protocol.University: {220, 60, 160, 100},
-	protocol.Rivertown:  {40, 220, 160, 100},
-	protocol.Northside:  {220, 220, 160, 100},
-}
 
 // actionKey maps a keyboard key to the action string sent to the server.
 type actionKey struct {
@@ -93,12 +87,81 @@ func (h *InputHandler) Update() {
 	h.handleTouchInput(gs, playerID)
 }
 
-// handleTouchInput processes touch events and maps them to game actions.
+// handleTouchInput processes touch events and maps them to game actions using hit box registry.
 // Location taps trigger Move actions; HUD tap regions trigger other actions.
 func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) {
-	layout := currentTouchLayout()
+	// Create viewport for input coordinate transforms.
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth,
+		PhysicalHeight: screenHeight,
+		Scale:          1.0,
+		SafeArea:       ui.SafeArea{},
+	}
 
-	// Get newly pressed touch IDs.
+	// Build input mapper with location hit boxes.
+	mapper := ui.NewInputMapper()
+
+	// Register location hit boxes using anchor-based constraints.
+	locationConstraints := map[protocol.Location]*ui.Constraint{
+		protocol.Downtown: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 40,
+			OffsetY: 60,
+			Width:   160,
+			Height:  100,
+		},
+		protocol.University: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 220,
+			OffsetY: 60,
+			Width:   160,
+			Height:  100,
+		},
+		protocol.Rivertown: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 40,
+			OffsetY: 220,
+			Width:   160,
+			Height:  100,
+		},
+		protocol.Northside: {
+			Anchor:  ui.AnchorTopLeft,
+			OffsetX: 220,
+			OffsetY: 220,
+			Width:   160,
+			Height:  100,
+		},
+	}
+
+	for location, constraint := range locationConstraints {
+		bounds := constraint.Bounds(vp)
+		mapper.Register(string(location), bounds, 44)
+	}
+
+	// Register action bar regions.
+	actionBarConstraint := ui.Constraint{
+		Anchor:  ui.AnchorBottomLeft,
+		OffsetY: -50,
+		Width:   0,
+		Height:  50,
+	}
+	actionBarBounds := actionBarConstraint.Bounds(vp)
+
+	actionNames := []string{"gather", "investigate", "ward", "focus", "research", "closegate"}
+	regionWidth := actionBarBounds.Dx() / len(actionNames)
+	for i, actionName := range actionNames {
+		regionBounds := image.Rect(
+			actionBarBounds.Min.X+i*regionWidth,
+			actionBarBounds.Min.Y,
+			actionBarBounds.Min.X+(i+1)*regionWidth,
+			actionBarBounds.Max.Y,
+		)
+		mapper.Register(actionName, regionBounds, 44)
+	}
+
+	// Get newly pressed touch IDs from Ebitengine.
 	touchIDs := inpututil.JustPressedTouchIDs()
 	if len(touchIDs) == 0 {
 		return
@@ -111,42 +174,47 @@ func (h *InputHandler) handleTouchInput(gs ebclient.GameState, playerID string) 
 			continue
 		}
 
-		// Check if the tap is within a location rectangle.
-		for location, rect := range touchLocationRects {
-			if x >= rect.x && x < rect.x+rect.w && y >= rect.y && y < rect.y+rect.h {
-				// Tap is within this location; send Move action.
-				h.net.SendAction(ebclient.PlayerActionMessage{
-					Type:     "playerAction",
-					PlayerID: playerID,
-					Action:   protocol.ActionMove,
-					Target:   string(location),
-				})
-				return
-			}
+		// Convert physical coordinates to logical (1:1 scale for now).
+		logicalX := float64(x)
+		logicalY := float64(y)
+
+		// Perform hit test.
+		hitBox := mapper.HitTest(logicalX, logicalY)
+		if hitBox == nil {
+			continue
 		}
 
-		// Check HUD tap regions on the bottom action bar.
-		if y >= layout.actionBarTop && y < layout.actionBarBottom {
-			// Divide the bar into 6 regions. Each target is >=44x44 logical pixels.
-			region := int(float64(x) / float64(layout.width) * float64(layout.actionRegions))
-			actions := []struct {
-				action protocol.ActionType
-				target string
-			}{
-				{protocol.ActionGather, ""},
-				{protocol.ActionInvestigate, ""},
-				{protocol.ActionCastWard, ""},
-				{protocol.ActionFocus, ""},
-				{protocol.ActionResearch, ""},
-				{protocol.ActionCloseGate, ""},
+		// Dispatch action based on hit box ID.
+		id := hitBox.ID
+
+		// Check if it's a location (move action).
+		switch protocol.Location(id) {
+		case protocol.Downtown, protocol.University, protocol.Rivertown, protocol.Northside:
+			h.net.SendAction(ebclient.PlayerActionMessage{
+				Type:     "playerAction",
+				PlayerID: playerID,
+				Action:   protocol.ActionMove,
+				Target:   id,
+			})
+			return
+
+		default:
+			// Must be an action button in the action bar.
+			actionMap := map[string]protocol.ActionType{
+				"gather":      protocol.ActionGather,
+				"investigate": protocol.ActionInvestigate,
+				"ward":        protocol.ActionCastWard,
+				"focus":       protocol.ActionFocus,
+				"research":    protocol.ActionResearch,
+				"closegate":   protocol.ActionCloseGate,
 			}
-			if region >= 0 && region < len(actions) {
-				action := actions[region]
+
+			if action, exists := actionMap[id]; exists {
 				h.net.SendAction(ebclient.PlayerActionMessage{
 					Type:     "playerAction",
 					PlayerID: playerID,
-					Action:   action.action,
-					Target:   action.target,
+					Action:   action,
+					Target:   "",
 				})
 				return
 			}
