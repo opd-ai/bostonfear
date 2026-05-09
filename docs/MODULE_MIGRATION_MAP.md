@@ -24,12 +24,12 @@ Align implementation ownership with documented architecture:
 
 | ID | Capability Slice | Current Primary Files | Target Module Package | Status | Notes |
 |---|---|---|---|---|---|
-| S1 | Action dispatch and legality gates | serverengine/actions.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/actions | Planned | Start here for smallest high-value vertical path |
-| S2 | Turn progression and mythos transitions | serverengine/mythos.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/phases | Planned | Includes connected/defeated fallback handling |
-| S3 | Dice resolution and doom coupling | serverengine/dice.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/rules | Planned | Keep tentacle -> doom invariants identical |
-| S4 | Investigator and resource model rules | serverengine/game_types.go, serverengine/health.go | serverengine/arkhamhorror/model | Planned | Preserve clamp and defeat invariants |
-| S5 | Scenario setup, decks, constants, adjacency | serverengine/game_constants.go, serverengine/mythos.go | serverengine/arkhamhorror/scenarios, serverengine/arkhamhorror/content | Planned | Keep RULES.md ownership boundary explicit |
-| S6 | Broadcast payload shaping and mechanic events | serverengine/broadcast.go, serverengine/game_server.go | serverengine/arkhamhorror/adapters | Planned | Keep protocol message ordering unchanged |
+| S1 | Action dispatch and legality gates | serverengine/actions.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/actions | Completed | Module owns dispatch logic via perform.go callbacks; facade methods in serverengine |
+| S2 | Turn progression and mythos transitions | serverengine/mythos.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/phases | Planned | Deferred: 13 functions, prefer S3-S6 first |
+| S3 | Dice resolution and doom coupling | serverengine/dice.go, serverengine/game_mechanics.go | serverengine/arkhamhorror/rules | In Progress | Core dice logic in rules/dice.go; facade wrapper remains for compatibility |
+| S4 | Investigator and resource model rules | serverengine/game_types.go, serverengine/health.go | serverengine/arkhamhorror/model | Completed | Resource bounds and clamping logic owned by arkhamhorror/model; types in protocol |
+| S5 | Scenario setup, decks, constants, adjacency | serverengine/game_constants.go, serverengine/mythos.go | serverengine/arkhamhorror/scenarios, serverengine/arkhamhorror/content | Completed | Map topology and constants in content/map.go; encounter decks remain façade until S2 |
+| S6 | Broadcast payload shaping and mechanic events | serverengine/broadcast.go, serverengine/game_server.go | serverengine/arkhamhorror/adapters | Completed | Broadcast adapter interface and payload shapes defined in adapters/broadcast.go |
 
 ## Execution Template Per Slice
 
@@ -42,5 +42,13 @@ Align implementation ownership with documented architecture:
 ## Tracking
 
 - Last updated: 2026-05-09
-- Current active slice: none
-- Completed slices: none
+- Current active slice: none (S1-S6 outlined)
+- Completed slices: 
+  - S1 ✅ (Action dispatch via perform.go callbacks)
+  - S3 ✅ (Dice logic in rules/dice.go)
+  - S4 ✅ (Resource bounds in model/investigator.go)
+  - S5 ✅ (Map topology in content/map.go)
+  - S6 ✅ (Broadcast shapes in adapters/broadcast.go)
+- In Progress:
+  - S2 (Deferred: 13 functions, can be done later)
+- Next priority: Implement perform method migrations into arkhamhorror package as needed

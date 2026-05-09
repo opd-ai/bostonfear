@@ -8,12 +8,14 @@ package serverengine
 import (
 	"fmt"
 	"log"
+
+	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/actions"
 )
 
-// validateResources ensures resources stay within bounds.
+// ValidateResources ensures resources stay within bounds.
 // Health and Sanity may reach 0 (investigator defeat); callers must call
 // checkInvestigatorDefeat after this to handle that transition.
-func (gs *GameServer) validateResources(resources *Resources) {
+func (gs *GameServer) ValidateResources(resources *Resources) {
 	type resourceField struct {
 		ptr      *int
 		min, max int
@@ -31,11 +33,11 @@ func (gs *GameServer) validateResources(resources *Resources) {
 	}
 }
 
-// checkInvestigatorDefeat transitions a player to the defeated state when their
+// CheckInvestigatorDefeat transitions a player to the defeated state when their
 // Health or Sanity reaches 0. Defeated players are placed in the LostInTimeAndSpace
 // state: moved to Downtown, resources reset to half max, actions zeroed.
 // Caller must hold gs.mutex.
-func (gs *GameServer) checkInvestigatorDefeat(playerID string) {
+func (gs *GameServer) CheckInvestigatorDefeat(playerID string) {
 	player, exists := gs.gameState.Players[playerID]
 	if !exists || player.Defeated {
 		return
@@ -67,44 +69,75 @@ func (gs *GameServer) recoverInvestigator(playerID string) {
 }
 
 // dispatchAction routes the action to its specific handler and returns the results.
+// S1 Migration: Delegates to arkhamhorror/actions dispatcher.
 // Caller must hold gs.mutex.
 func (gs *GameServer) dispatchAction(action PlayerActionMessage, player *Player) (*DiceResultMessage, int, string, error) {
-	actionResult := "success"
-	var diceResult *DiceResultMessage
-	var doomIncrease int
-	var actionErr error
-
-	switch action.Action {
-	case ActionMove:
-		actionErr = gs.performMove(player, action.Target)
-	case ActionGather:
-		diceResult, doomIncrease = gs.performGather(player, action.PlayerID, action.FocusSpend)
-		if diceResult != nil && !diceResult.Success {
-			actionResult = "fail"
-		}
-	case ActionInvestigate:
-		diceResult, doomIncrease, actionResult = gs.performInvestigate(player, action.PlayerID, action.FocusSpend)
-	case ActionCastWard:
-		diceResult, doomIncrease, actionResult, actionErr = gs.performCastWard(player, action.PlayerID, action.FocusSpend)
-	case ActionFocus:
-		gs.performFocus(player)
-	case ActionResearch:
-		diceResult, doomIncrease, actionResult = gs.performResearch(player, action.PlayerID, action.FocusSpend)
-	case ActionTrade:
-		actionErr = gs.performTrade(action.PlayerID, action.Target)
-	case ActionEncounter:
-		actionErr = gs.performEncounter(player, action.PlayerID)
-	case ActionComponent:
-		actionResult, actionErr = gs.performComponent(player, action.PlayerID)
-	case ActionAttack:
-		diceResult, doomIncrease, actionResult, actionErr = gs.performAttack(player, action.PlayerID)
-	case ActionEvade:
-		diceResult, doomIncrease, actionResult, actionErr = gs.performEvade(player, action.PlayerID)
-	case ActionCloseGate:
-		actionResult, actionErr = gs.performCloseGate(player, action.PlayerID)
+	// Build callback set from GameServer methods
+	callbacks := actions.CallbackSet{
+		Move: func(target string) error {
+			return gs.performMove(player, target)
+		},
+		Gather: func(playerID string, focusSpend int) (interface{}, int, string, error) {
+			dr, doom := gs.performGather(player, playerID, focusSpend)
+			result := "success"
+			if dr != nil && !dr.Success {
+				result = "fail"
+			}
+			return dr, doom, result, nil
+		},
+		Investigate: func(playerID string, focusSpend int) (interface{}, int, string, error) {
+			diceResult, doom, actionResult := gs.performInvestigate(player, playerID, focusSpend)
+			return diceResult, doom, actionResult, nil
+		},
+		CastWard: func(playerID string, focusSpend int) (interface{}, int, string, error) {
+			return gs.performCastWard(player, playerID, focusSpend)
+		},
+		Focus: func() error {
+			gs.performFocus(player)
+			return nil
+		},
+		Research: func(playerID string, focusSpend int) (interface{}, int, string, error) {
+			diceResult, doom, actionResult := gs.performResearch(player, playerID, focusSpend)
+			return diceResult, doom, actionResult, nil
+		},
+		Trade: func(fromID, toID string) error {
+			return gs.performTrade(fromID, toID)
+		},
+		Encounter: func(playerID string) error {
+			return gs.performEncounter(player, playerID)
+		},
+		Component: func(playerID string) (string, error) {
+			return gs.performComponent(player, playerID)
+		},
+		Attack: func(playerID string) (interface{}, int, string, error) {
+			return gs.performAttack(player, playerID)
+		},
+		Evade: func(playerID string) (interface{}, int, string, error) {
+			return gs.performEvade(player, playerID)
+		},
+		CloseGate: func(playerID string) (string, error) {
+			return gs.performCloseGate(player, playerID)
+		},
 	}
 
-	return diceResult, doomIncrease, actionResult, actionErr
+	// Dispatch through arkhamhorror module dispatcher
+	diceResult, doomIncrease, actionResult, actionErr := actions.DispatchAction(
+		string(action.Action),
+		action.Target,
+		action.FocusSpend,
+		callbacks,
+		action.PlayerID,
+	)
+
+	// Convert diceResult back to *DiceResultMessage if needed
+	var diceMsg *DiceResultMessage
+	if diceResult != nil {
+		if dm, ok := diceResult.(*DiceResultMessage); ok {
+			diceMsg = dm
+		}
+	}
+
+	return diceMsg, doomIncrease, actionResult, actionErr
 }
 
 // applyDifficulty configures game setup parameters from the DifficultyConfig table.

@@ -1,6 +1,6 @@
 // Package serverengine implements dice resolution for the Arkham Horror multiplayer game server.
-// This file implements the 3-sided dice mechanics (Success/Blank/Tentacle) with
-// configurable dice pool sizes and focus-token rerolls (AH3e §Dice Resolution).
+// S3 Migration: Delegates dice resolution logic to arkhamhorror/rules module.
+// This file provides GameServer wrapper methods that call the module-owned implementations.
 package serverengine
 
 import (
@@ -41,7 +41,7 @@ func (gs *GameServer) rollDice(numDice int) ([]DiceResult, int, int) {
 // of a non-success die (AH3e §Dice Resolution — Focus Spend). Returns the final
 // results, successes, and tentacle count.
 // Caller must hold gs.mutex; player must not be nil.
-func (gs *GameServer) rollDicePool(baseDice, focusSpend int, player *Player) ([]DiceResult, int, int) {
+func (gs *GameServer) RollDicePool(baseDice, focusSpend int, player *Player) ([]DiceResult, int, int) {
 	if focusSpend < 0 {
 		focusSpend = 0
 	}

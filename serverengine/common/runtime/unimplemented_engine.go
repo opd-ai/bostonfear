@@ -3,6 +3,8 @@ package runtime
 import (
 	"fmt"
 	"net"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/opd-ai/bostonfear/monitoringdata"
@@ -13,6 +15,8 @@ import (
 // that have package scaffolding but no playable runtime yet.
 type UnimplementedEngine struct {
 	gameName string
+	mu       sync.Mutex
+	origins  []string
 }
 
 // NewUnimplementedEngine returns a placeholder engine for a game family.
@@ -28,9 +32,29 @@ func (e *UnimplementedEngine) HandleConnection(_ net.Conn, _ string) error {
 	return fmt.Errorf("%s engine not implemented", e.gameName)
 }
 
-func (e *UnimplementedEngine) SetAllowedOrigins(_ []string) {}
+func (e *UnimplementedEngine) SetAllowedOrigins(origins []string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
-func (e *UnimplementedEngine) AllowedOrigins() []string { return nil }
+	normalized := make([]string, 0, len(origins))
+	for _, origin := range origins {
+		if trimmed := strings.TrimSpace(strings.ToLower(origin)); trimmed != "" {
+			normalized = append(normalized, trimmed)
+		}
+	}
+	e.origins = normalized
+}
+
+func (e *UnimplementedEngine) AllowedOrigins() []string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if len(e.origins) == 0 {
+		return nil
+	}
+
+	return append([]string(nil), e.origins...)
+}
 
 func (e *UnimplementedEngine) SnapshotHealth() monitoringdata.HealthSnapshot {
 	return monitoringdata.HealthSnapshot{IsHealthy: false}

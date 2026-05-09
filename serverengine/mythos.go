@@ -166,7 +166,7 @@ func (gs *GameServer) resolveEventEffect(evt MythosEvent) {
 		for _, p := range gs.gameState.Players {
 			if p.Connected && !p.Defeated {
 				p.Resources.Sanity = max(p.Resources.Sanity-1, 0)
-				gs.validateResources(&p.Resources)
+				gs.ValidateResources(&p.Resources)
 			}
 		}
 
@@ -216,7 +216,7 @@ func (gs *GameServer) resolveMythosToken(token string) {
 	case MythosTokenCurse:
 		if cur, ok := gs.gameState.Players[gs.gameState.CurrentPlayer]; ok {
 			cur.Resources.Sanity = max(cur.Resources.Sanity-1, 0)
-			gs.checkInvestigatorDefeat(gs.gameState.CurrentPlayer)
+			gs.CheckInvestigatorDefeat(gs.gameState.CurrentPlayer)
 		}
 	}
 }
@@ -402,7 +402,7 @@ func (gs *GameServer) spawnEnemiesForDoom() {
 // sealAnomalyAtLocation removes the first anomaly found at neighbourhood and
 // reduces doom by 2. This is the sealing effect applied on a successful Ward.
 // Caller must hold gs.mutex.
-func (gs *GameServer) sealAnomalyAtLocation(neighbourhood string) {
+func (gs *GameServer) SealAnomalyAtLocation(neighbourhood string) {
 	for i, a := range gs.gameState.Anomalies {
 		if a.NeighbourhoodID == neighbourhood {
 			gs.gameState.Anomalies = append(gs.gameState.Anomalies[:i], gs.gameState.Anomalies[i+1:]...)

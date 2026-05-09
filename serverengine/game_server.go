@@ -282,8 +282,14 @@ func (gs *GameServer) signalShutdown() {
 	close(gs.shutdownCh)
 }
 
-func (gs *GameServer) validateMovement(from, to Location) bool {
+// ValidateMovement checks if movement from one location to another is legal.
+func (gs *GameServer) ValidateMovement(from, to Location) bool {
 	return arkhamrules.IsAdjacent(from, to)
+}
+
+// GameState returns the current game state.
+func (gs *GameServer) GameState() *GameState {
+	return gs.gameState
 }
 
 // processAction dispatches directly to the core action pipeline.
@@ -375,8 +381,8 @@ func (gs *GameServer) processActionCore(action PlayerActionMessage) error {
 
 	player.ActionsRemaining--
 	gs.trackPlayerSession(action.PlayerID, "action")
-	gs.validateResources(&player.Resources)
-	gs.checkInvestigatorDefeat(action.PlayerID)
+	gs.ValidateResources(&player.Resources)
+	gs.CheckInvestigatorDefeat(action.PlayerID)
 	gs.checkGameEndConditions()
 	if player.ActionsRemaining == 0 || player.Defeated {
 		gs.advanceTurn()

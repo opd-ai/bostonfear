@@ -339,7 +339,7 @@ func TestGameMechanicsIntegration_MechanicsWorkTogether(t *testing.T) {
 
 	// Test 2: Resource tracking - validate bounds
 	player.Resources.Health = 10
-	gs.validateResources(&player.Resources)
+	gs.ValidateResources(&player.Resources)
 	if player.Resources.Health > 10 {
 		t.Errorf("Resource validation should cap health at 10")
 	}

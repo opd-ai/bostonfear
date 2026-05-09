@@ -76,7 +76,7 @@ func TestValidateResources_ClampsBounds(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			r := tc.in
-			gs.validateResources(&r)
+			gs.ValidateResources(&r)
 			if r != tc.want {
 				t.Errorf("validateResources(%+v) = %+v, want %+v", tc.in, r, tc.want)
 			}
@@ -100,7 +100,7 @@ func TestValidateMovement_Adjacency(t *testing.T) {
 		{Northside, Rivertown},
 	}
 	for _, pair := range allowed {
-		if !gs.validateMovement(pair[0], pair[1]) {
+		if !gs.ValidateMovement(pair[0], pair[1]) {
 			t.Errorf("expected movement from %s to %s to be allowed", pair[0], pair[1])
 		}
 	}
@@ -112,7 +112,7 @@ func TestValidateMovement_Adjacency(t *testing.T) {
 		{Northside, Downtown},
 	}
 	for _, pair := range forbidden {
-		if gs.validateMovement(pair[0], pair[1]) {
+		if gs.ValidateMovement(pair[0], pair[1]) {
 			t.Errorf("expected movement from %s to %s to be forbidden", pair[0], pair[1])
 		}
 	}
@@ -641,7 +641,7 @@ func TestInvestigatorDefeat(t *testing.T) {
 	// Directly set Health to 0, then call checkInvestigatorDefeat.
 	gs.mutex.Lock()
 	gs.gameState.Players[p1ID].Resources.Health = 0
-	gs.checkInvestigatorDefeat(p1ID)
+	gs.CheckInvestigatorDefeat(p1ID)
 	gs.mutex.Unlock()
 
 	gs.mutex.RLock()
@@ -679,7 +679,7 @@ func TestInvestigatorDefeat_SanityZero(t *testing.T) {
 	}
 
 	gs.mutex.Lock()
-	gs.checkInvestigatorDefeat(playerID)
+	gs.CheckInvestigatorDefeat(playerID)
 	gs.mutex.Unlock()
 
 	gs.mutex.RLock()
@@ -828,7 +828,7 @@ func TestProcessAction_ComponentActionAccepted(t *testing.T) {
 func TestDicePool_ZeroFocusNoChange(t *testing.T) {
 	gs := NewGameServer()
 	player := &Player{Resources: Resources{Focus: 2}}
-	_, _, _ = gs.rollDicePool(3, 0, player)
+	_, _, _ = gs.RollDicePool(3, 0, player)
 	if player.Resources.Focus != 2 {
 		t.Errorf("Focus should not be deducted with focusSpend=0; got %d", player.Resources.Focus)
 	}
@@ -839,7 +839,7 @@ func TestDicePool_ZeroFocusNoChange(t *testing.T) {
 func TestDicePool_FocusSpendDeductsTokens(t *testing.T) {
 	gs := NewGameServer()
 	player := &Player{Resources: Resources{Focus: 3}}
-	gs.rollDicePool(3, 2, player)
+	gs.RollDicePool(3, 2, player)
 	if player.Resources.Focus != 1 {
 		t.Errorf("Focus after spending 2 = %d, want 1", player.Resources.Focus)
 	}
@@ -851,7 +851,7 @@ func TestDicePool_InvalidFocusSpend(t *testing.T) {
 	gs := NewGameServer()
 	player := &Player{Resources: Resources{Focus: 1}}
 	// Attempt to spend 5 but only 1 is available.
-	gs.rollDicePool(3, 5, player)
+	gs.RollDicePool(3, 5, player)
 	if player.Resources.Focus < 0 {
 		t.Errorf("Focus must not go negative; got %d", player.Resources.Focus)
 	}
@@ -864,7 +864,7 @@ func TestDicePool_FocusSpendAddsExtraDice(t *testing.T) {
 	// Run many times so statistical variance doesn't mask the effect.
 	for i := 0; i < 20; i++ {
 		player := &Player{Resources: Resources{Focus: 2}}
-		results, _, _ := gs.rollDicePool(3, 2, player)
+		results, _, _ := gs.RollDicePool(3, 2, player)
 		if len(results) != 5 {
 			t.Errorf("expected 5 dice results (3 base + 2 focus); got %d", len(results))
 		}

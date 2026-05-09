@@ -296,7 +296,7 @@ func TestRulesAnomalyGateMechanics(t *testing.T) {
 		gs.spawnAnomaly(string(Downtown))
 		gs.gameState.Doom = 6
 		// Directly seal the anomaly to test the sealing path.
-		gs.sealAnomalyAtLocation(string(Downtown))
+		gs.SealAnomalyAtLocation(string(Downtown))
 		if len(gs.gameState.Anomalies) != 0 {
 			t.Errorf("ward success should seal anomaly; got %d anomalies", len(gs.gameState.Anomalies))
 		}
@@ -310,7 +310,7 @@ func TestRulesAnomalyGateMechanics(t *testing.T) {
 		gs, _ := newTestServer(t)
 		gs.gameState.Doom = 5
 		// No anomaly — sealing should be a no-op.
-		gs.sealAnomalyAtLocation(string(Downtown))
+		gs.SealAnomalyAtLocation(string(Downtown))
 		if gs.gameState.Doom != 5 {
 			t.Errorf("no anomaly seal should not change doom; got %d", gs.gameState.Doom)
 		}
@@ -556,7 +556,7 @@ func TestRulesDefeatRecovery(t *testing.T) {
 	t.Run("LostInTimeAndSpaceState", func(t *testing.T) {
 		gs, p1ID := newTestServer(t)
 		gs.gameState.Players[p1ID].Resources.Health = 0
-		gs.checkInvestigatorDefeat(p1ID)
+		gs.CheckInvestigatorDefeat(p1ID)
 		if !gs.gameState.Players[p1ID].LostInTimeAndSpace {
 			t.Error("defeated player should be LostInTimeAndSpace")
 		}
@@ -568,7 +568,7 @@ func TestRulesDefeatRecovery(t *testing.T) {
 	t.Run("InvestigatorRecovery", func(t *testing.T) {
 		gs, p1ID := newTestServer(t)
 		gs.gameState.Players[p1ID].Resources.Health = 0
-		gs.checkInvestigatorDefeat(p1ID)
+		gs.CheckInvestigatorDefeat(p1ID)
 		gs.recoverInvestigator(p1ID)
 		if gs.gameState.Players[p1ID].Defeated {
 			t.Error("recovered investigator should not be Defeated")
@@ -590,7 +590,7 @@ func TestInvestigatorAutoRecovery(t *testing.T) {
 	// Defeat the player first (caller must hold gs.mutex per checkInvestigatorDefeat contract).
 	gs.mutex.Lock()
 	gs.gameState.Players[p1ID].Resources.Health = 0
-	gs.checkInvestigatorDefeat(p1ID)
+	gs.CheckInvestigatorDefeat(p1ID)
 	gs.mutex.Unlock()
 	if !gs.gameState.Players[p1ID].LostInTimeAndSpace {
 		t.Fatal("precondition: player should be LostInTimeAndSpace after defeat")
@@ -660,31 +660,31 @@ func TestRulesResourceTypes(t *testing.T) {
 
 		// Health bounds: 0–10 (0 = investigator defeated).
 		r.Health = -1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Health < 0 {
 			t.Errorf("health below 0 after validation: %d", r.Health)
 		}
 		r.Health = 11
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Health > 10 {
 			t.Errorf("health above 10 after validation: %d", r.Health)
 		}
 
 		// Sanity bounds: 0–10 (0 = investigator defeated).
 		r.Sanity = -1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Sanity < 0 {
 			t.Errorf("sanity below 0 after validation: %d", r.Sanity)
 		}
 
 		// Clue bounds: 0–5.
 		r.Clues = -1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Clues < 0 {
 			t.Errorf("clues below 0 after validation: %d", r.Clues)
 		}
 		r.Clues = 6
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Clues > 5 {
 			t.Errorf("clues above 5 after validation: %d", r.Clues)
 		}
@@ -695,12 +695,12 @@ func TestRulesResourceTypes(t *testing.T) {
 		r := &gs.gameState.Players[p1ID].Resources
 
 		r.Money = -1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Money < 0 {
 			t.Errorf("money below 0 after validation: %d", r.Money)
 		}
 		r.Money = MaxMoney + 1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Money > MaxMoney {
 			t.Errorf("money above %d after validation: %d", MaxMoney, r.Money)
 		}
@@ -711,12 +711,12 @@ func TestRulesResourceTypes(t *testing.T) {
 		r := &gs.gameState.Players[p1ID].Resources
 
 		r.Remnants = -1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Remnants < 0 {
 			t.Errorf("remnants below 0 after validation: %d", r.Remnants)
 		}
 		r.Remnants = MaxRemnants + 1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Remnants > MaxRemnants {
 			t.Errorf("remnants above %d after validation: %d", MaxRemnants, r.Remnants)
 		}
@@ -727,12 +727,12 @@ func TestRulesResourceTypes(t *testing.T) {
 		r := &gs.gameState.Players[p1ID].Resources
 
 		r.Focus = -1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Focus < 0 {
 			t.Errorf("focus below 0 after validation: %d", r.Focus)
 		}
 		r.Focus = MaxFocus + 1
-		gs.validateResources(r)
+		gs.ValidateResources(r)
 		if r.Focus > MaxFocus {
 			t.Errorf("focus above %d after validation: %d", MaxFocus, r.Focus)
 		}

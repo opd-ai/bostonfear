@@ -94,7 +94,7 @@ func TestHandlePongMessage_UnknownPlayer(t *testing.T) {
 
 func TestValidateMovement_UnknownSource(t *testing.T) {
 	gs, _ := newTestServer(t)
-	result := gs.validateMovement("Unknown", Downtown)
+	result := gs.ValidateMovement("Unknown", Downtown)
 	if result {
 		t.Error("expected false for movement from unknown location")
 	}
