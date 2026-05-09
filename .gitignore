@@ -59,3 +59,7 @@ diff-report*.json
 tmp
 *_test
 *_server
+*-test
+*-server
+*-desktop
+*-connection_wrapper
