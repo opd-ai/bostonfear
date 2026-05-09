@@ -56,9 +56,13 @@ func NewServerCommand() *cobra.Command {
 func runServer(cmd *cobra.Command) error {
 	registry := commonruntime.NewRegistry()
 	registry.MustRegister(arkhamhorror.NewModule())
-	registry.MustRegister(eldersign.NewModule())
-	registry.MustRegister(eldritchhorror.NewModule())
-	registry.MustRegister(finalhour.NewModule())
+
+	// Register placeholder game-family modules only if explicitly enabled via BOSTONFEAR_EXPERIMENTAL
+	if experimental := strings.TrimSpace(os.Getenv("BOSTONFEAR_EXPERIMENTAL")); experimental == "1" || experimental == "true" {
+		registry.MustRegister(eldersign.NewModule())
+		registry.MustRegister(eldritchhorror.NewModule())
+		registry.MustRegister(finalhour.NewModule())
+	}
 
 	gameID := strings.ToLower(strings.TrimSpace(viper.GetString("server.game")))
 	if gameID == "" {

@@ -32,6 +32,10 @@ func (e *UnimplementedEngine) HandleConnection(_ net.Conn, _ string) error {
 	return fmt.Errorf("%s engine not implemented", e.gameName)
 }
 
+// SetAllowedOrigins stores the allowed origins for contract compliance,
+// though they are not used in practice since Start() always fails with
+// "game not implemented". This method is provided to satisfy the SessionHandler
+// interface but does not offer the filtering semantics that production engines provide.
 func (e *UnimplementedEngine) SetAllowedOrigins(origins []string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -45,6 +49,10 @@ func (e *UnimplementedEngine) SetAllowedOrigins(origins []string) {
 	e.origins = normalized
 }
 
+// AllowedOrigins returns the stored list of allowed origins, or nil if none
+// were configured. Note that as a placeholder engine, this does not provide
+// actual origin filtering semantics - Start() always fails before origins are validated.
+// This method exists to satisfy the SessionHandler interface contract.
 func (e *UnimplementedEngine) AllowedOrigins() []string {
 	e.mu.Lock()
 	defer e.mu.Unlock()
