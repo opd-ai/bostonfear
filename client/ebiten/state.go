@@ -226,7 +226,7 @@ func (s *LocalState) UXMetrics() UXMetricsSnapshot {
 }
 
 // ConnectFormSnapshot returns the address and display-name values for SceneConnect.
-func (s *LocalState) ConnectFormSnapshot() (address string, displayName string) {
+func (s *LocalState) ConnectFormSnapshot() (address, displayName string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.ConnectAddress, s.DisplayName

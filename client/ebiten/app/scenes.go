@@ -544,7 +544,7 @@ func allConnectedPlayersSelected(gs ebclient.GameState) bool {
 	return connectedPlayers > 0 && selectedPlayers == connectedPlayers
 }
 
-func investigatorSelectionStatus(gs ebclient.GameState) (selected int, waiting int) {
+func investigatorSelectionStatus(gs ebclient.GameState) (selected, waiting int) {
 	for _, pid := range gs.TurnOrder {
 		player, ok := gs.Players[pid]
 		if !ok || player == nil || !player.Connected {

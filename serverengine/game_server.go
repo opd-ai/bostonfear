@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	arkhamrules "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/rules"
 )
 
 // GameServer manages the central game state for the Arkham Horror multiplayer game,
@@ -270,17 +272,7 @@ func (gs *GameServer) signalShutdown() {
 }
 
 func (gs *GameServer) validateMovement(from, to Location) bool {
-	adjacentLocations, exists := locationAdjacency[from]
-	if !exists {
-		return false
-	}
-
-	for _, location := range adjacentLocations {
-		if location == to {
-			return true
-		}
-	}
-	return false
+	return arkhamrules.IsAdjacent(from, to)
 }
 
 // processAction dispatches directly to the core action pipeline.
@@ -288,9 +280,7 @@ func (gs *GameServer) processAction(action PlayerActionMessage) error {
 	return gs.processActionCore(action)
 }
 
-// processActionCore handles individual player actions with mechanic integration.
-// The mutex is acquired at the start for all state validation and mutation,
-// then released before broadcasting so broadcastGameState can re-acquire it.
+// processActionCore handles the action and must be called with the mutex released before broadcasting so broadcastGameState can re-acquire it.
 func (gs *GameServer) processActionCore(action PlayerActionMessage) error {
 	// Normalize action type to lowercase so clients using camelCase variants
 	// (e.g. "selectInvestigator") are accepted alongside the canonical forms.

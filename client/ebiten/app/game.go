@@ -441,7 +441,7 @@ func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, filled, 14, fg)
 }
 
-func (g *Game) doomBarColors() (bg color.RGBA, fg color.RGBA) {
+func (g *Game) doomBarColors() (bg, fg color.RGBA) {
 	bg = color.RGBA{R: 60, G: 60, B: 60, A: 255}
 	fg = color.RGBA{R: 200, G: 40, B: 40, A: 255}
 	if g.tokens == nil {

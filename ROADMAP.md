@@ -109,7 +109,7 @@ Current artifacts:
 **Why this is third**: The architecture claim is directionally true, but compatibility layering still centralizes too much logic in `serverengine`, increasing long-term change risk.
 
 - [x] Define and track a migration map from `serverengine/*` gameplay paths into `serverengine/arkhamhorror/{actions,phases,rules,model}`.
-- [ ] Move one vertical slice at a time (e.g., action dispatch + validation + tests) to avoid broad regressions.
+- [x] Move one vertical slice at a time (e.g., action dispatch + validation + tests) to avoid broad regressions. *(movement adjacency: `validateMovement` → `serverengine/arkhamhorror/rules.IsAdjacent`, tests in `movement_test.go`)*
 - [ ] Keep `serverengine/common/*` strictly game-family-agnostic and enforce dependency direction in CI.
 - [ ] Add module-level package tests that assert behavior parity before/after each migration slice.
 - [ ] Validation: primary Arkham mechanics execute from module-owned packages with no behavior drift and preserved test pass rate.
