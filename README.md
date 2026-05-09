@@ -130,8 +130,20 @@ Each player gets 2 actions per turn:
   - `server.game` -> module selection (fallback: `BOSTONFEAR_GAME`, default `arkhamhorror`)
   - `server.listen` -> TCP listen address (default `:8080`)
   - `network.allowed-origins` -> WebSocket origin allow-list
+  - `scenario.default_id` -> default scenario content ID (default `scn.nightglass.harbor-signal`)
   - `desktop.server` -> desktop client WebSocket URL (default `ws://localhost:8080/ws`)
   - `web.server` -> optional WASM client WebSocket URL override
+
+#### Default Scenario Content
+The demo content pack defines `scn.nightglass.harbor-signal` as the default scenario.
+
+Fallback behavior (content-loader contract):
+1. Use `scenario.default_id` when valid and enabled.
+2. Else use `content/scenarios/index.yaml` `defaultScenarioId`.
+3. Else use the first enabled scenario sorted by ID.
+4. Else fail startup with a content validation error.
+
+Specification and inventory details are documented in `docs/content/BASE_SET_DEFAULT_SCENARIO_SPEC.md`.
 
 #### Configuring Allowed Origins (Production)
 By default the server accepts WebSocket upgrades from any origin, which is safe

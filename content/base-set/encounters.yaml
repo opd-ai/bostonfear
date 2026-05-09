@@ -1,0 +1,173 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "enc.docks-cold-chain"
+    name: "Cold Chain"
+    summary: "A drifting cargo line catches ankles and tools."
+    enabled: true
+    version: 1
+    deck: "district"
+    locationTagFilter: ["waterfront"]
+    test: {stat: "finesse", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainResource", params: {resourceId: "res.salvage", amount: 1}}]
+      fail: [{effectType: "damage", params: {resourceId: "res.vitality", amount: 1}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.salvage", amount: 2}}]
+      criticalFail: [{effectType: "applyCondition", params: {conditionId: "cond.slowed", target: "self"}}]
+    weight: 3
+  - id: "enc.docks-siren-buoy"
+    name: "Siren Buoy"
+    summary: "An unpowered buoy emits warning tones."
+    enabled: true
+    version: 1
+    deck: "district"
+    locationTagFilter: ["docks"]
+    test: {stat: "wit", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainResource", params: {resourceId: "res.leads", amount: 1}}]
+      fail: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: 1}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.leads", amount: 2}}]
+      criticalFail: [{effectType: "spawnThreat", params: {threatId: "thr.pier-hound", count: 1}}]
+    weight: 3
+  - id: "enc.civic-crowd-ripple"
+    name: "Crowd Ripple"
+    summary: "Panic jumps through the square in silent waves."
+    enabled: true
+    version: 1
+    deck: "district"
+    locationTagFilter: ["public"]
+    test: {stat: "composure", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainResource", params: {resourceId: "res.focus", amount: 1}}]
+      fail: [{effectType: "damage", params: {resourceId: "res.composure", amount: 1}}]
+      criticalPass: [{effectType: "applyCondition", params: {conditionId: "cond.lucid-focus", target: "self"}}]
+      criticalFail: [{effectType: "applyCondition", params: {conditionId: "cond.shaken", target: "self"}}]
+    weight: 4
+  - id: "enc.market-burnt-ledger"
+    name: "Burnt Ledger"
+    summary: "Charred records reveal hidden ownership chains."
+    enabled: true
+    version: 1
+    deck: "district"
+    locationTagFilter: ["market"]
+    test: {stat: "wit", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainResource", params: {resourceId: "res.leads", amount: 1}}]
+      fail: [{effectType: "applyCondition", params: {conditionId: "cond.overextended", target: "self"}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.leads", amount: 2}}]
+      criticalFail: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: 1}}]
+    weight: 3
+  - id: "enc.archive-flood-map"
+    name: "Flood Map"
+    summary: "Old surge maps reveal safe movement channels."
+    enabled: true
+    version: 1
+    deck: "district"
+    locationTagFilter: ["research"]
+    test: {stat: "wit", difficulty: 1}
+    outcomes:
+      pass: [{effectType: "applyCondition", params: {conditionId: "cond.clear-route", target: "team"}}]
+      fail: [{effectType: "applyCondition", params: {conditionId: "cond.slowed", target: "self"}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.focus", amount: 2}}]
+      criticalFail: [{effectType: "spawnThreat", params: {threatId: "thr.quay-murmur", count: 1}}]
+    weight: 3
+  - id: "enc.tower-prebell"
+    name: "Prebell"
+    summary: "The tower bell rings ahead of the strike."
+    enabled: true
+    version: 1
+    deck: "district"
+    locationTagFilter: ["ritual"]
+    test: {stat: "composure", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: -1}}]
+      fail: [{effectType: "damage", params: {resourceId: "res.composure", amount: 1}}]
+      criticalPass: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: -2}}]
+      criticalFail: [{effectType: "spawnThreat", params: {threatId: "thr.bell-widow", count: 1}}]
+    weight: 2
+  - id: "enc.reservoir-basin-echo"
+    name: "Basin Echo"
+    summary: "Voices return from below with altered timing."
+    enabled: true
+    version: 1
+    deck: "district"
+    locationTagFilter: ["industrial"]
+    test: {stat: "composure", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainResource", params: {resourceId: "res.focus", amount: 1}}]
+      fail: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: 1}}]
+      criticalPass: [{effectType: "applyCondition", params: {conditionId: "cond.firm-footing", target: "self"}}]
+      criticalFail: [{effectType: "spawnThreat", params: {threatId: "thr.sump-giant", count: 1}}]
+    weight: 3
+  - id: "enc.breakwater-signal-burst"
+    name: "Signal Burst"
+    summary: "A harmonic spike shakes every ward line."
+    enabled: true
+    version: 1
+    deck: "crisis"
+    locationTagFilter: ["beacon"]
+    test: {stat: "wit", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainResource", params: {resourceId: "res.ward-charge", amount: 1}}]
+      fail: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: 2}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.ward-charge", amount: 2}}]
+      criticalFail: [{effectType: "setFlag", params: {flag: "resonanceBreach", delta: 1}}]
+    weight: 2
+  - id: "enc.omen-low-tide"
+    name: "Low Tide Omen"
+    summary: "Waterline retreats too far, exposing marked stone."
+    enabled: true
+    version: 1
+    deck: "omen"
+    locationTagFilter: []
+    test: {stat: "wit", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainResource", params: {resourceId: "res.leads", amount: 1}}]
+      fail: [{effectType: "spawnThreat", params: {threatId: "thr.gutter-maw", count: 1}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.leads", amount: 2}}]
+      criticalFail: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: 1}}]
+    weight: 2
+  - id: "enc.omen-lantern-gale"
+    name: "Lantern Gale"
+    summary: "A wind sweeps district lights into synchronized flicker."
+    enabled: true
+    version: 1
+    deck: "omen"
+    locationTagFilter: []
+    test: {stat: "composure", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "applyCondition", params: {conditionId: "cond.lucid-focus", target: "self"}}]
+      fail: [{effectType: "applyCondition", params: {conditionId: "cond.shaken", target: "self"}}]
+      criticalPass: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: -1}}]
+      criticalFail: [{effectType: "spawnThreat", params: {threatId: "thr.hollow-choir", count: 1}}]
+    weight: 2
+  - id: "enc.omen-archive-hum"
+    name: "Archive Hum"
+    summary: "Shelves vibrate in patterns that encode local routes."
+    enabled: true
+    version: 1
+    deck: "omen"
+    locationTagFilter: []
+    test: {stat: "wit", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "applyCondition", params: {conditionId: "cond.clear-route", target: "team"}}]
+      fail: [{effectType: "damage", params: {resourceId: "res.composure", amount: 1}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.focus", amount: 2}}]
+      criticalFail: [{effectType: "setFlag", params: {flag: "resonanceBreach", delta: 1}}]
+    weight: 2
+  - id: "enc.crisis-anchor-slip"
+    name: "Anchor Slip"
+    summary: "An anchored ward buckles and throws sparks across stone."
+    enabled: true
+    version: 1
+    deck: "crisis"
+    locationTagFilter: []
+    test: {stat: "force", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "preventLoss", params: {flag: "resonanceBreach", amount: 1}}]
+      fail: [{effectType: "setFlag", params: {flag: "resonanceBreach", delta: 1}}]
+      criticalPass: [{effectType: "gainResource", params: {resourceId: "res.ward-charge", amount: 1}}]
+      criticalFail: [{effectType: "changeGlobal", params: {resourceId: "res.nightfall", amount: 2}}]
+    weight: 2

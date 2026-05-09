@@ -1,0 +1,115 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "abl.paper-trace"
+    name: "Paper Trace"
+    summary: "First Survey test each round gains +1 success if in Archive or Civic district."
+    enabled: true
+    version: 1
+    type: "passive"
+    trigger: "actionEnd"
+    cost: {}
+    effect: {effectType: "grantBonusSuccess", params: {action: "survey", amount: 1, districtTypes: ["observatory", "civic"]}}
+  - id: "abl.index-collapse"
+    name: "Index Collapse"
+    summary: "Spend 1 focus to convert one blank into success on Survey."
+    enabled: true
+    version: 1
+    type: "activated"
+    trigger: "testRolled"
+    cost: {res.focus: 1}
+    effect: {effectType: "convertResult", params: {from: "blank", to: "success", max: 1, action: "survey"}}
+    oncePerRound: true
+  - id: "abl.bulwark-stance"
+    name: "Bulwark Stance"
+    summary: "Gain 1 composure after defeating a brute threat."
+    enabled: true
+    version: 1
+    type: "reaction"
+    trigger: "actionEnd"
+    cost: {}
+    effect: {effectType: "gainResource", params: {resourceId: "res.composure", amount: 1, condition: "defeatedBrute"}}
+  - id: "abl.chain-hook"
+    name: "Chain Hook"
+    summary: "After Move, optionally pull one adjacent stalker threat into your location."
+    enabled: true
+    version: 1
+    type: "activated"
+    trigger: "actionEnd"
+    cost: {}
+    effect: {effectType: "repositionThreat", params: {fromRange: 1, class: "stalker", max: 1}}
+  - id: "abl.local-favor"
+    name: "Local Favor"
+    summary: "Gain 1 salvage the first time you enter Ash Market each round."
+    enabled: true
+    version: 1
+    type: "passive"
+    trigger: "actionEnd"
+    cost: {}
+    effect: {effectType: "gainResource", params: {resourceId: "res.salvage", amount: 1, locationId: "loc.ash-market"}}
+  - id: "abl.swap-route"
+    name: "Swap Route"
+    summary: "Spend 1 lead to move one ally investigator to your location."
+    enabled: true
+    version: 1
+    type: "activated"
+    trigger: "actionStart"
+    cost: {res.leads: 1}
+    effect: {effectType: "moveInvestigator", params: {target: "ally", destination: "selfLocation"}}
+    cooldownTurns: 1
+  - id: "abl.chalk-aegis"
+    name: "Chalk Aegis"
+    summary: "Seal costs 1 less lead when at Bell Tower."
+    enabled: true
+    version: 1
+    type: "passive"
+    trigger: "actionStart"
+    cost: {}
+    effect: {effectType: "reduceActionCost", params: {action: "seal", resourceId: "res.leads", amount: 1, minCost: 0, locationId: "loc.bell-tower"}}
+  - id: "abl.tide-bind"
+    name: "Tide Bind"
+    summary: "Spend 1 composure to stun one whisper threat for one round."
+    enabled: true
+    version: 1
+    type: "activated"
+    trigger: "actionStart"
+    cost: {res.composure: 1}
+    effect: {effectType: "applyCondition", params: {conditionId: "cond.stunned", targetClass: "whisper", duration: "round"}}
+  - id: "abl.scrap-instinct"
+    name: "Scrap Instinct"
+    summary: "Scavenge gains +1 salvage in industrial or market districts."
+    enabled: true
+    version: 1
+    type: "passive"
+    trigger: "actionEnd"
+    cost: {}
+    effect: {effectType: "gainResource", params: {resourceId: "res.salvage", amount: 1, districtTypes: ["industrial", "market"], action: "scavenge"}}
+  - id: "abl.quick-rig"
+    name: "Quick Rig"
+    summary: "Spend 2 salvage to refresh one consumable item charge."
+    enabled: true
+    version: 1
+    type: "activated"
+    trigger: "actionStart"
+    cost: {res.salvage: 2}
+    effect: {effectType: "restoreItemCharge", params: {slot: "consumable", amount: 1}}
+  - id: "abl.weather-sense"
+    name: "Weather Sense"
+    summary: "Ignore first fracture rolled during Move each round."
+    enabled: true
+    version: 1
+    type: "passive"
+    trigger: "testRolled"
+    cost: {}
+    effect: {effectType: "cancelResult", params: {result: "fracture", action: "move", max: 1}}
+  - id: "abl.fade-step"
+    name: "Fade Step"
+    summary: "After successful evade-style Confront, move to an adjacent location."
+    enabled: true
+    version: 1
+    type: "reaction"
+    trigger: "actionEnd"
+    cost: {}
+    effect: {effectType: "bonusMove", params: {action: "confront", on: "success", range: 1}}

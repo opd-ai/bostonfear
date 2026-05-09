@@ -1,0 +1,93 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "loc.blackwater-docks"
+    name: "Blackwater Docks"
+    summary: "Salt-slick piers and abandoned freight cranes."
+    enabled: true
+    version: 1
+    districtType: "docks"
+    adjacency: ["loc.mirror-square", "loc.north-breakwater"]
+    traits: ["waterfront", "smuggling", "exposed"]
+    encounterDeckRefs: ["deck.district.docks"]
+    threatCapacity: 3
+    coordinates: {x: 130, y: 470}
+  - id: "loc.mirror-square"
+    name: "Mirror Square"
+    summary: "A civic plaza where wet stone reflects impossible constellations."
+    enabled: true
+    version: 1
+    districtType: "civic"
+    adjacency: ["loc.blackwater-docks", "loc.lantern-row", "loc.ash-market", "loc.salt-archive"]
+    traits: ["central", "crowded", "public"]
+    encounterDeckRefs: ["deck.district.civic"]
+    threatCapacity: 2
+    coordinates: {x: 350, y: 370}
+  - id: "loc.lantern-row"
+    name: "Lantern Row"
+    summary: "Narrow alleys strung with oil lamps that never fully go dark."
+    enabled: true
+    version: 1
+    districtType: "market"
+    adjacency: ["loc.mirror-square", "loc.old-reservoir", "loc.bell-tower"]
+    traits: ["alleys", "vendors", "low-light"]
+    encounterDeckRefs: ["deck.district.market"]
+    threatCapacity: 3
+    coordinates: {x: 520, y: 390}
+  - id: "loc.old-reservoir"
+    name: "Old Reservoir"
+    summary: "A drained basin where whispers carry farther than wind."
+    enabled: true
+    version: 1
+    districtType: "industrial"
+    adjacency: ["loc.lantern-row", "loc.north-breakwater", "loc.bell-tower"]
+    traits: ["echo", "open", "derelict"]
+    encounterDeckRefs: ["deck.district.industrial"]
+    threatCapacity: 4
+    coordinates: {x: 620, y: 510}
+  - id: "loc.bell-tower"
+    name: "Bell Tower"
+    summary: "A cracked tower whose bells ring before the ropes move."
+    enabled: true
+    version: 1
+    districtType: "chapel"
+    adjacency: ["loc.lantern-row", "loc.old-reservoir", "loc.salt-archive"]
+    traits: ["elevated", "ritual", "echo"]
+    encounterDeckRefs: ["deck.district.chapel"]
+    threatCapacity: 2
+    coordinates: {x: 680, y: 290}
+  - id: "loc.ash-market"
+    name: "Ash Market"
+    summary: "A burned-out arcade rebuilt with tin roofs and rumor stalls."
+    enabled: true
+    version: 1
+    districtType: "market"
+    adjacency: ["loc.mirror-square", "loc.salt-archive", "loc.north-breakwater"]
+    traits: ["trade", "salvage", "volatile"]
+    encounterDeckRefs: ["deck.district.market"]
+    threatCapacity: 3
+    coordinates: {x: 300, y: 220}
+  - id: "loc.salt-archive"
+    name: "Salt Archive"
+    summary: "Flood-safe records vault where old maps are etched in mineral film."
+    enabled: true
+    version: 1
+    districtType: "observatory"
+    adjacency: ["loc.mirror-square", "loc.ash-market", "loc.bell-tower"]
+    traits: ["research", "quiet", "sealed"]
+    encounterDeckRefs: ["deck.district.observatory"]
+    threatCapacity: 2
+    coordinates: {x: 470, y: 180}
+  - id: "loc.north-breakwater"
+    name: "North Breakwater"
+    summary: "Storm barriers and signal pylons facing the open deep."
+    enabled: true
+    version: 1
+    districtType: "docks"
+    adjacency: ["loc.blackwater-docks", "loc.ash-market", "loc.old-reservoir"]
+    traits: ["finale", "beacon", "hazard"]
+    encounterDeckRefs: ["deck.district.docks", "deck.crisis.global"]
+    threatCapacity: 4
+    coordinates: {x: 180, y: 560}

@@ -5,6 +5,7 @@
 # - desktop.server
 # - web.server
 # - network.allowed_origins
+# - scenario.default_id
 
 [server]
 # Game module key loaded by the server command.
@@ -32,3 +33,13 @@ server = ""
 # Optional allow-list used by the server to validate WebSocket upgrade origins.
 # Keep empty to allow any origin for local development.
 allowed_origins = []
+
+[scenario]
+# Default content scenario ID to load at startup.
+# Canonical demo default: scn.nightglass.harbor-signal
+# Fallback behavior (for content loaders):
+# 1) Use scenario.default_id when valid and enabled
+# 2) Else use content/scenarios/index.yaml defaultScenarioId
+# 3) Else use first enabled scenario sorted by ID
+# 4) Else fail startup with a content validation error
+default_id = "scn.nightglass.harbor-signal"

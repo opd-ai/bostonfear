@@ -1,0 +1,77 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "inv.mara-quill"
+    name: "Mara Quill"
+    summary: "Archive analyst who reconstructs events from fragmented records."
+    enabled: true
+    version: 1
+    archetype: "analyst"
+    startingLocationId: "loc.salt-archive"
+    stats: {vitalityMax: 8, composureMax: 10, wit: 3, force: 1, finesse: 2}
+    startingResources: {res.vitality: 8, res.composure: 9, res.leads: 2, res.focus: 1, res.salvage: 0}
+    passiveAbilityId: "abl.paper-trace"
+    activeAbilityIds: ["abl.index-collapse"]
+    personalConditionDeckIds: ["cond.overextended"]
+  - id: "inv.ion-voss"
+    name: "Ion Voss"
+    summary: "Former harbor rigger who can hold a line against surging threats."
+    enabled: true
+    version: 1
+    archetype: "guardian"
+    startingLocationId: "loc.blackwater-docks"
+    stats: {vitalityMax: 10, composureMax: 7, wit: 1, force: 3, finesse: 2}
+    startingResources: {res.vitality: 10, res.composure: 7, res.leads: 1, res.focus: 0, res.salvage: 1}
+    passiveAbilityId: "abl.bulwark-stance"
+    activeAbilityIds: ["abl.chain-hook"]
+    personalConditionDeckIds: ["cond.braced"]
+  - id: "inv.selene-raft"
+    name: "Selene Raft"
+    summary: "Street envoy with a web of favors and hidden routes."
+    enabled: true
+    version: 1
+    archetype: "envoy"
+    startingLocationId: "loc.mirror-square"
+    stats: {vitalityMax: 7, composureMax: 9, wit: 2, force: 1, finesse: 3}
+    startingResources: {res.vitality: 7, res.composure: 9, res.leads: 1, res.focus: 1, res.salvage: 1}
+    passiveAbilityId: "abl.local-favor"
+    activeAbilityIds: ["abl.swap-route"]
+    personalConditionDeckIds: ["cond.marked"]
+  - id: "inv.bram-caul"
+    name: "Bram Caul"
+    summary: "Ritual practitioner who stabilizes rupture points at personal cost."
+    enabled: true
+    version: 1
+    archetype: "ritualist"
+    startingLocationId: "loc.bell-tower"
+    stats: {vitalityMax: 7, composureMax: 10, wit: 2, force: 1, finesse: 2}
+    startingResources: {res.vitality: 7, res.composure: 10, res.leads: 1, res.focus: 2, res.salvage: 0}
+    passiveAbilityId: "abl.chalk-aegis"
+    activeAbilityIds: ["abl.tide-bind"]
+    personalConditionDeckIds: ["cond.ringing-ears"]
+  - id: "inv.petra-kline"
+    name: "Petra Kline"
+    summary: "Salvage diver who turns damaged relics into practical tools."
+    enabled: true
+    version: 1
+    archetype: "scavenger"
+    startingLocationId: "loc.ash-market"
+    stats: {vitalityMax: 9, composureMax: 8, wit: 2, force: 2, finesse: 2}
+    startingResources: {res.vitality: 9, res.composure: 8, res.leads: 0, res.focus: 1, res.salvage: 2}
+    passiveAbilityId: "abl.scrap-instinct"
+    activeAbilityIds: ["abl.quick-rig"]
+    personalConditionDeckIds: ["cond.frayed-nerves"]
+  - id: "inv.orrin-hale"
+    name: "Orrin Hale"
+    summary: "Wandering fixer adept at reading danger before it arrives."
+    enabled: true
+    version: 1
+    archetype: "drifter"
+    startingLocationId: "loc.lantern-row"
+    stats: {vitalityMax: 8, composureMax: 8, wit: 2, force: 2, finesse: 3}
+    startingResources: {res.vitality: 8, res.composure: 8, res.leads: 1, res.focus: 1, res.salvage: 1}
+    passiveAbilityId: "abl.weather-sense"
+    activeAbilityIds: ["abl.fade-step"]
+    personalConditionDeckIds: ["cond.shaken"]

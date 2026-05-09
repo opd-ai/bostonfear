@@ -1,0 +1,53 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "enum.archetype"
+    enabled: true
+    version: 1
+    values: ["analyst", "drifter", "guardian", "ritualist", "envoy", "scavenger"]
+  - id: "enum.itemSlot"
+    enabled: true
+    version: 1
+    values: ["hand", "body", "trinket", "consumable"]
+  - id: "enum.abilityType"
+    enabled: true
+    version: 1
+    values: ["passive", "activated", "reaction"]
+  - id: "enum.abilityTrigger"
+    enabled: true
+    version: 1
+    values: ["actionStart", "actionEnd", "testRolled", "turnStart", "turnEnd", "threatSpawned"]
+  - id: "enum.threatClass"
+    enabled: true
+    version: 1
+    values: ["stalker", "swarmer", "brute", "whisper", "hazard"]
+  - id: "enum.encounterDeck"
+    enabled: true
+    version: 1
+    values: ["district", "omen", "crisis"]
+  - id: "enum.districtType"
+    enabled: true
+    version: 1
+    values: ["docks", "civic", "market", "observatory", "chapel", "industrial"]
+  - id: "enum.conditionPolarity"
+    enabled: true
+    version: 1
+    values: ["boon", "bane", "neutral"]
+  - id: "enum.duration"
+    enabled: true
+    version: 1
+    values: ["instant", "turn", "round", "persistent"]
+  - id: "enum.expireTrigger"
+    enabled: true
+    version: 1
+    values: ["turnEnd", "roundEnd", "conditionMet", "none"]
+  - id: "enum.resourceScope"
+    enabled: true
+    version: 1
+    values: ["player", "team", "global"]
+  - id: "enum.resourceVisibility"
+    enabled: true
+    version: 1
+    values: ["public", "private", "team"]

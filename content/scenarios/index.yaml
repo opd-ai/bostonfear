@@ -1,0 +1,12 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+defaultScenarioId: "scn.nightglass.harbor-signal"
+records:
+  - id: "scn.nightglass.harbor-signal"
+    name: "Harbor Signal"
+    summary: "Stabilize resonance anchors and sever the deepwater signal."
+    enabled: true
+    version: 1
+    file: "content/scenarios/nightglass-harbor-signal.yaml"

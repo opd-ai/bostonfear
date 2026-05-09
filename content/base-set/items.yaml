@@ -1,0 +1,116 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "item.tide-lantern"
+    name: "Tide Lantern"
+    summary: "Steady light that cuts false silhouettes."
+    enabled: true
+    version: 1
+    slot: "hand"
+    cost: {res.salvage: 1}
+    modifiers: [{target: "survey", stat: "wit", amount: 1}]
+    actionGrantIds: []
+  - id: "item.brass-compass"
+    name: "Brass Compass"
+    summary: "Needle points toward live resonance lines."
+    enabled: true
+    version: 1
+    slot: "trinket"
+    cost: {res.salvage: 1}
+    modifiers: [{target: "move", stat: "finesse", amount: 1}]
+    actionGrantIds: []
+  - id: "item.rigging-gloves"
+    name: "Rigging Gloves"
+    summary: "Improves grip and leverage during confrontations."
+    enabled: true
+    version: 1
+    slot: "body"
+    cost: {res.salvage: 2}
+    modifiers: [{target: "confront", stat: "force", amount: 1}]
+    actionGrantIds: []
+  - id: "item.field-journal"
+    name: "Field Journal"
+    summary: "Structured notes reduce repeated mistakes."
+    enabled: true
+    version: 1
+    slot: "trinket"
+    cost: {res.leads: 1}
+    modifiers: [{target: "survey", stat: "wit", amount: 1}]
+    actionGrantIds: []
+  - id: "item.murkwire-spike"
+    name: "Murkwire Spike"
+    summary: "One-use grounding rod for unstable wards."
+    enabled: true
+    version: 1
+    slot: "consumable"
+    cost: {res.salvage: 1, res.focus: 1}
+    modifiers: []
+    actionGrantIds: ["act.seal-boost"]
+    charges: 1
+  - id: "item.coastline-map"
+    name: "Coastline Map"
+    summary: "Annotated routes through flood-safe alleys."
+    enabled: true
+    version: 1
+    slot: "hand"
+    cost: {res.leads: 1}
+    modifiers: [{target: "move", stat: "wit", amount: 1}]
+    actionGrantIds: []
+  - id: "item.ashcloth-coat"
+    name: "Ashcloth Coat"
+    summary: "Insulated lining against biting static rain."
+    enabled: true
+    version: 1
+    slot: "body"
+    cost: {res.salvage: 2}
+    modifiers: [{target: "defense", stat: "vitality", amount: 1}]
+    actionGrantIds: []
+  - id: "item.signal-whistle"
+    name: "Signal Whistle"
+    summary: "Coordinates split teams across district noise."
+    enabled: true
+    version: 1
+    slot: "consumable"
+    cost: {res.salvage: 1}
+    modifiers: []
+    actionGrantIds: ["act.team-reposition"]
+    charges: 1
+  - id: "item.salt-charms"
+    name: "Salt Charms"
+    summary: "Braided thread knots absorb low-grade distortions."
+    enabled: true
+    version: 1
+    slot: "trinket"
+    cost: {res.focus: 1}
+    modifiers: [{target: "seal", stat: "composure", amount: 1}]
+    actionGrantIds: []
+  - id: "item.breakwater-key"
+    name: "Breakwater Key"
+    summary: "Unlocks maintenance channels at North Breakwater."
+    enabled: true
+    version: 1
+    slot: "hand"
+    cost: {res.leads: 2}
+    modifiers: []
+    actionGrantIds: ["act.signal-sever"]
+  - id: "item.gale-tonic"
+    name: "Gale Tonic"
+    summary: "Bitter draught restoring composure under pressure."
+    enabled: true
+    version: 1
+    slot: "consumable"
+    cost: {res.salvage: 1}
+    modifiers: []
+    actionGrantIds: ["act.restore-composure"]
+    charges: 1
+  - id: "item.etched-baton"
+    name: "Etched Baton"
+    summary: "Conductive rod tuned for close-quarters disruption."
+    enabled: true
+    version: 1
+    slot: "hand"
+    cost: {res.salvage: 2}
+    modifiers: [{target: "confront", stat: "finesse", amount: 1}]
+    actionGrantIds: []

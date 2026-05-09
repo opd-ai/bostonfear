@@ -1,0 +1,137 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "cond.shaken"
+    name: "Shaken"
+    summary: "-1 composure on next test."
+    enabled: true
+    version: 1
+    polarity: "bane"
+    stackable: false
+    maxStacks: 1
+    duration: "turn"
+    expireTrigger: "turnEnd"
+    effects: [{effectType: "modifyTest", params: {resourceId: "res.composure", amount: -1}}]
+  - id: "cond.lucid-focus"
+    name: "Lucid Focus"
+    summary: "+1 success on next Survey or Seal test."
+    enabled: true
+    version: 1
+    polarity: "boon"
+    stackable: false
+    maxStacks: 1
+    duration: "turn"
+    expireTrigger: "conditionMet"
+    effects: [{effectType: "grantBonusSuccess", params: {actions: ["survey", "seal"], amount: 1}}]
+  - id: "cond.overextended"
+    name: "Overextended"
+    summary: "Cannot gain focus this turn."
+    enabled: true
+    version: 1
+    polarity: "bane"
+    stackable: false
+    maxStacks: 1
+    duration: "turn"
+    expireTrigger: "turnEnd"
+    effects: [{effectType: "blockGain", params: {resourceId: "res.focus"}}]
+  - id: "cond.braced"
+    name: "Braced"
+    summary: "Reduce next vitality loss by 1."
+    enabled: true
+    version: 1
+    polarity: "boon"
+    stackable: false
+    maxStacks: 1
+    duration: "turn"
+    expireTrigger: "conditionMet"
+    effects: [{effectType: "reduceDamage", params: {resourceId: "res.vitality", amount: 1}}]
+  - id: "cond.marked"
+    name: "Marked"
+    summary: "First threat targeting you each round gains +1 damage."
+    enabled: true
+    version: 1
+    polarity: "bane"
+    stackable: false
+    maxStacks: 1
+    duration: "round"
+    expireTrigger: "roundEnd"
+    effects: [{effectType: "modifyIncoming", params: {damage: 1, times: 1}}]
+  - id: "cond.ringing-ears"
+    name: "Ringing Ears"
+    summary: "-1 wit until end of round."
+    enabled: true
+    version: 1
+    polarity: "bane"
+    stackable: false
+    maxStacks: 1
+    duration: "round"
+    expireTrigger: "roundEnd"
+    effects: [{effectType: "modifyStat", params: {stat: "wit", amount: -1}}]
+  - id: "cond.frayed-nerves"
+    name: "Frayed Nerves"
+    summary: "Lose 1 composure when you fail a crisis test."
+    enabled: true
+    version: 1
+    polarity: "bane"
+    stackable: false
+    maxStacks: 1
+    duration: "persistent"
+    expireTrigger: "none"
+    effects: [{effectType: "onFailCost", params: {deck: "crisis", resourceId: "res.composure", amount: 1}}]
+  - id: "cond.stunned"
+    name: "Stunned"
+    summary: "Threat cannot move this round."
+    enabled: true
+    version: 1
+    polarity: "neutral"
+    stackable: false
+    maxStacks: 1
+    duration: "round"
+    expireTrigger: "roundEnd"
+    effects: [{effectType: "disableBehavior", params: {behavior: "move"}}]
+  - id: "cond.slowed"
+    name: "Slowed"
+    summary: "Move action requires +1 success this turn."
+    enabled: true
+    version: 1
+    polarity: "bane"
+    stackable: false
+    maxStacks: 1
+    duration: "turn"
+    expireTrigger: "turnEnd"
+    effects: [{effectType: "increaseDifficulty", params: {action: "move", amount: 1}}]
+  - id: "cond.firm-footing"
+    name: "Firm Footing"
+    summary: "Ignore one forced displacement this round."
+    enabled: true
+    version: 1
+    polarity: "boon"
+    stackable: false
+    maxStacks: 1
+    duration: "round"
+    expireTrigger: "conditionMet"
+    effects: [{effectType: "preventDisplacement", params: {max: 1}}]
+  - id: "cond.clear-route"
+    name: "Clear Route"
+    summary: "First team Move each round gains +1 success."
+    enabled: true
+    version: 1
+    polarity: "boon"
+    stackable: false
+    maxStacks: 1
+    duration: "round"
+    expireTrigger: "roundEnd"
+    effects: [{effectType: "grantTeamBonus", params: {action: "move", amount: 1, max: 1}}]
+  - id: "cond.slicked"
+    name: "Slicked"
+    summary: "Lose 1 finesse on next Confront."
+    enabled: true
+    version: 1
+    polarity: "bane"
+    stackable: false
+    maxStacks: 1
+    duration: "turn"
+    expireTrigger: "conditionMet"
+    effects: [{effectType: "modifyStat", params: {stat: "finesse", amount: -1, action: "confront"}}]

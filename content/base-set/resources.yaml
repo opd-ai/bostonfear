@@ -1,0 +1,86 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-09T00:00:00Z"
+records:
+  - id: "res.vitality"
+    name: "Vitality"
+    summary: "Physical endurance and wound tolerance."
+    enabled: true
+    version: 1
+    scope: "player"
+    min: 0
+    max: 10
+    defaultValue: 8
+    uiPriority: 10
+    visibility: "public"
+    lossConditionFlag: true
+  - id: "res.composure"
+    name: "Composure"
+    summary: "Mental resilience against dread and distortion."
+    enabled: true
+    version: 1
+    scope: "player"
+    min: 0
+    max: 10
+    defaultValue: 8
+    uiPriority: 20
+    visibility: "public"
+    lossConditionFlag: true
+  - id: "res.leads"
+    name: "Leads"
+    summary: "Investigative leads used to progress objectives and seals."
+    enabled: true
+    version: 1
+    scope: "player"
+    min: 0
+    max: 9
+    defaultValue: 1
+    uiPriority: 30
+    visibility: "public"
+  - id: "res.focus"
+    name: "Focus"
+    summary: "Concentration used to improve test reliability."
+    enabled: true
+    version: 1
+    scope: "player"
+    min: 0
+    max: 5
+    defaultValue: 1
+    uiPriority: 40
+    visibility: "public"
+  - id: "res.salvage"
+    name: "Salvage"
+    summary: "Recovered parts used for equipment and field solutions."
+    enabled: true
+    version: 1
+    scope: "player"
+    min: 0
+    max: 8
+    defaultValue: 0
+    uiPriority: 50
+    visibility: "public"
+  - id: "res.ward-charge"
+    name: "Ward Charge"
+    summary: "Team progress on stabilizing resonance anchors."
+    enabled: true
+    version: 1
+    scope: "team"
+    min: 0
+    max: 12
+    defaultValue: 0
+    uiPriority: 60
+    visibility: "team"
+    winConditionFlag: true
+  - id: "res.nightfall"
+    name: "Nightfall"
+    summary: "Global doom pressure; reaching the limit ends the game."
+    enabled: true
+    version: 1
+    scope: "global"
+    min: 0
+    max: 12
+    defaultValue: 1
+    uiPriority: 70
+    visibility: "public"
+    lossConditionFlag: true
