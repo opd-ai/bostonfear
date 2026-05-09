@@ -21,6 +21,20 @@ import (
 // by multiple goroutines. Internal state mutations are synchronized with mutexes
 // and atomics, so callers do not need additional external locking.
 //
+// Receiver types: All methods on GameServer use pointer receiver (*GameServer)
+// because they mutate shared state. Pass GameServer instances by pointer or store
+// as *GameServer in your data structures. Example:
+//
+//	gs := serverengine.NewGameServer()
+//	go gs.Start()                          // correct: pointer receiver
+//	var engine *GameServer = gs            // correct: store as pointer
+//	// listener, err := net.Listen("tcp", ":8080")
+//	// defer listener.Close()
+//	// go func() {
+//	//     conn, _ := listener.Accept()
+//	//     gs.HandleConnection(conn, "")   // correct: pointer receiver
+//	// }()
+//
 // Session Recovery and Late Joiners:
 //
 // Use HandleConnection(conn, reconnectToken) to manage player sessions:

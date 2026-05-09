@@ -1,3 +1,19 @@
+// Package eldritchhorror is a placeholder for Eldritch Horror game module implementation.
+//
+// Eldritch Horror is a globetrotting cooperative game featuring investigators
+// traveling around the world to prevent the rise of ancient gods. This package
+// currently returns an unimplemented engine; full rules implementation is deferred
+// to a future phase.
+//
+// Planned features (when implemented):
+//   - Global map with intercontinental travel
+//   - Monster encounter system with escalating difficulty
+//   - Unique resource economy (special items, clues, sanity)
+//   - Ancient One selection with scenario-specific mechanics
+//   - Support for 2-8 players with asymmetric investigator abilities
+//
+// Status: Scaffolding only. Use arkhamhorror module for a fully playable experience.
+// See ROADMAP.md for implementation timeline.
 package eldritchhorror
 
 import (

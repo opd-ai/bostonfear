@@ -1,3 +1,17 @@
+// Package eldersign is a placeholder for Elder Sign game module implementation.
+//
+// Elder Sign is a cooperative dice-placement game where investigators work together
+// to seal gates and prevent the rise of Cthulhu. This package currently returns an
+// unimplemented engine; full rules implementation is deferred to a future phase.
+//
+// Planned features (when implemented):
+//   - Dice tower mechanic with strategic placement
+//   - Unique Elder Sign thematic elements (Lovecraft flavor)
+//   - Difficulty scaling for 1-N players
+//   - Session persistence (reconnection support)
+//
+// Status: Scaffolding only. Use arkhamhorror module for a fully playable experience.
+// See ROADMAP.md for implementation timeline.
 package eldersign
 
 import (

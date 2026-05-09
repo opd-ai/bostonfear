@@ -1,3 +1,37 @@
+// Package arkhamhorror implements the core Arkham Horror 3rd Edition (AH3e) game rules.
+//
+// This module provides a fully playable implementation of Arkham Horror 3rd Edition,
+// including:
+//   - Location system: Downtown, University, Rivertown, Northside with adjacency rules
+//   - Investigator mechanics: 6 investigator types with distinct abilities
+//   - Resource economy: Health, Sanity, Clues, Focus tokens with action costs
+//   - Action system: 12 action types (Move, Gather, Investigate, CastWard, etc.)
+//   - Mythos phase: Agenda/Act deck progression, enemy spawning, gate locations
+//   - Doom counter: 0-12 with loss condition at 12
+//   - Dice resolution: 3-sided dice with focus token spending for rerolls
+//   - Encounter system: Location encounters with typed effects (sanity loss, clue gain, etc.)
+//
+// Features:
+//   - Scenario-based setup with custom win/lose conditions
+//   - Support for 1-6 concurrent players with automatic difficulty scaling
+//   - Dungeon encounters and anomaly/gate mechanics
+//   - Component abilities (investigator-specific powers triggered via actions)
+//   - Session persistence: players can reconnect and resume sessions
+//
+// Usage: Create an engine instance with NewModule().NewEngine() to start a game.
+// Configure origins with SetAllowedOrigins([]string{...}) before handling connections.
+//
+// Example:
+//
+//	ark := arkhamhorror.NewModule()
+//	engine, err := ark.NewEngine()
+//	if err != nil {
+//		log.Fatalf("failed to create engine: %v", err)
+//	}
+//	engine.SetAllowedOrigins([]string{"localhost:3000"})
+//	if err := engine.Start(); err != nil {
+//		log.Fatalf("engine start failed: %v", err)
+//	}
 package arkhamhorror
 
 import (

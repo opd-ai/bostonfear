@@ -1,3 +1,18 @@
+// Package finalhour is a placeholder for Final Hour game module implementation.
+//
+// Final Hour is a high-tension cooperative game where investigators race against
+// time to prevent an impending apocalypse. This package currently returns an
+// unimplemented engine; full rules implementation is deferred to a future phase.
+//
+// Planned features (when implemented):
+//   - Real-time turn mechanics with time pressure
+//   - Countdown tokens and escalating threat levels
+//   - Objective track system with branching paths
+//   - Simultaneous action programming (players plan actions in secret)
+//   - Unique difficulty ramping based on player count and decisions
+//
+// Status: Scaffolding only. Use arkhamhorror module for a fully playable experience.
+// See ROADMAP.md for implementation timeline.
 package finalhour
 
 import (

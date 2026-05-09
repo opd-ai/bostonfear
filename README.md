@@ -339,6 +339,40 @@ Comprehensive health checks available at `http://localhost:8080/health`:
 }
 ```
 
+## API Stability and Public Packages
+
+**Version**: v0.0.0 (pre-release; no stability guarantees)
+
+### Recommended Stable Packages (for integration)
+Use these packages if building custom tools, alternative transports, or game variants:
+- **`protocol`**: Message types, DTOs, Location/ActionType/DiceResult enums
+  - Stable wire format for WebSocket interop with non-Go clients
+  - Safe to depend on for JSON serialization contracts
+- **`serverengine`**: Core GameServer, game mechanics, state validation
+  - Safe for: Starting a game, handling connections, integrating new transports
+  - Key types: `GameServer`, `Scenario`, interfaces `Broadcaster`, `StateValidator`
+  - Avoid direct access to internal fields; use public methods
+- **`monitoring`**: Health and metrics HTTP handlers
+  - Safe for: Prometheus scraping, health probes, observability integration
+- **`transport/ws`**: Gorilla WebSocket adapter, HTTP server setup
+  - Safe for: Upgrading WebSocket connections, custom route registration
+  - Key interface: `SessionEngine` (minimal 2-method surface)
+
+### Experimental Packages (subject to change)
+These packages may be refactored or reorganized before v1:
+- **`serverengine/arkhamhorror`**: Game module implementation (rules may change; scaffolding expected as new cards/mechanics are added)
+- **`serverengine/common`**: Shared contracts and utilities (organizing principles may shift as modules mature)
+- **`client/ebiten`**: Ebitengine client implementation (UI/UX subject to change)
+- **`cmd`**: CLI commands and startup logic (config file format and flags may change)
+
+### Unimplemented/Scaffolding Packages
+Not yet functional; expect breaking changes or removal:
+- **`serverengine/eldersign`**, `eldritchhorror`, `finalhour`: Placeholder game modules
+- **`serverengine/common/messaging`**, `session`, `state`: Reserved for future cross-module sharing
+
+### Breaking Changes
+As a pre-v1 project, breaking changes may occur without deprecation periods. The JSON wire protocol for clients (in `protocol`) is considered more stable than Go API surface. Subscribe to releases for migration guidance.
+
 ## Troubleshooting
 
 ### Connection Issues
