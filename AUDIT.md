@@ -45,8 +45,8 @@ Primary improvement area: state visibility.
 - [x] Add touch parity for the full supported action set.
 - [x] Prevent touch action taps from also rotating or toggling the camera.
 - [x] Promote player display names into the shared wire-visible UI identity.
-- [ ] Correct the WASM host status so it distinguishes client boot from server connectivity.
-- [ ] Upgrade text rendering and wrap long tutorial, event, and result text.
+- [x] Correct the WASM host status so it distinguishes client boot from server connectivity.
+- [x] Upgrade text rendering and wrap long tutorial, event, and result text.
 
 ## Findings
 
@@ -187,9 +187,9 @@ Primary improvement area: state visibility.
 - Fix: Switch to a larger scalable face and wrap multi-sentence content.
 - Validation: At 800×600, no critical instructional or result text should be truncated.
 - Remediation Checklist:
-  - [ ] Replace the bitmap body font with a more readable scalable face.
-  - [ ] Wrap onboarding, event log, and result text.
-  - [ ] Recheck readability at the project minimum resolution.
+  - [x] Replace the bitmap body font with a more readable scalable face.
+  - [x] Wrap onboarding, event log, and result text.
+  - [x] Recheck readability at the project minimum resolution.
 
 ## Player Journey Assessment
 
