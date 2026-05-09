@@ -138,6 +138,11 @@ Each player gets 2 actions per turn:
 The demo content pack defines `scn.nightglass.harbor-signal` as the default scenario.
 Arkham-specific content is module-scoped under `serverengine/arkhamhorror/content/nightglass/`.
 
+At server startup for `arkhamhorror`, the Nightglass content pack is sourced from
+an embedded filesystem and any missing files are installed into
+`serverengine/arkhamhorror/content/nightglass/` on first run.
+Existing files are preserved and are not overwritten.
+
 Fallback behavior (content-loader contract):
 1. Use `scenario.default_id` when valid and enabled.
 2. Else use `serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml` `defaultScenarioId`.

@@ -15,6 +15,7 @@ import (
 
 	"github.com/opd-ai/bostonfear/monitoring"
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror"
+	arkhamcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
 	"github.com/opd-ai/bostonfear/serverengine/eldersign"
 	"github.com/opd-ai/bostonfear/serverengine/eldritchhorror"
@@ -69,6 +70,12 @@ func runServer(cmd *cobra.Command) error {
 	module, ok := registry.Get(gameID)
 	if !ok {
 		return fmt.Errorf("unknown game module %q (available: %v)", gameID, registry.Keys())
+	}
+
+	if gameID == "arkhamhorror" {
+		if err := arkhamcontent.EnsureNightglassContentInstalled("."); err != nil {
+			return fmt.Errorf("install embedded arkham content: %w", err)
+		}
 	}
 
 	gameEngine, err := module.NewEngine()

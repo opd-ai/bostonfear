@@ -48,6 +48,13 @@ serverengine/arkhamhorror/content/nightglass/
     en-US.yaml
 ```
 
+### Embedded Distribution and First-Run Install
+- The Nightglass pack is embedded in Go binaries from `serverengine/arkhamhorror/content/nightglass/**`.
+- On `arkhamhorror` server startup, installer logic writes only missing files into:
+  - `serverengine/arkhamhorror/content/nightglass/`
+- Existing files are never overwritten, allowing local customization after first install.
+- Installer failures are startup-blocking to avoid running with partial content.
+
 ### Schema Field Definitions Per Component Type
 
 #### Common Envelope (all files)
