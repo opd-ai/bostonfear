@@ -1,6 +1,9 @@
 package ui
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // EasingFunc defines how a value changes over time (0->1).
 type EasingFunc func(t float64) float64
@@ -124,16 +127,11 @@ func (t *Transition) Value() float64 {
 	if t == nil {
 		return 0
 	}
+	if t.duration <= 0 {
+		return t.endVal
+	}
 	elapsed := time.Since(t.startTime)
-	progress := float64(elapsed.Nanoseconds()) / float64(t.duration.Nanoseconds())
-
-	// Clamp progress to [0, 1].
-	if progress < 0 {
-		progress = 0
-	}
-	if progress > 1 {
-		progress = 1
-	}
+	progress := clamp01(float64(elapsed.Nanoseconds()) / float64(t.duration.Nanoseconds()))
 
 	// Apply easing.
 	eased := t.easing(progress)
@@ -213,37 +211,39 @@ func (aq *AnimationQueue) Update() bool {
 	if aq == nil || aq.isDone {
 		return true
 	}
-
+	if !aq.isRunning {
+		return false
+	}
 	if aq.current == nil {
-		if !aq.isRunning {
-			return false
-		}
-		// Queue was empty or all done.
-		aq.isDone = true
-		if aq.onAllDone != nil {
-			aq.onAllDone()
-		}
-		return true
+		return aq.finishQueue()
 	}
-
-	// Check if current transition is done.
-	if aq.current.Update() {
-		// Move to next.
-		if len(aq.queued) > 0 {
-			aq.current = aq.queued[0]
-			aq.queued = aq.queued[1:]
-		} else {
-			// No more queued.
-			aq.current = nil
-			aq.isDone = true
-			if aq.onAllDone != nil {
-				aq.onAllDone()
-			}
-			return true
-		}
+	if !aq.current.Update() {
+		return false
 	}
+	aq.advanceQueue()
+	return aq.isDone
+}
 
-	return false
+func (aq *AnimationQueue) finishQueue() bool {
+	aq.isDone = true
+	if aq.onAllDone != nil {
+		aq.onAllDone()
+	}
+	return true
+}
+
+func (aq *AnimationQueue) advanceQueue() {
+	if len(aq.queued) > 0 {
+		aq.current = aq.queued[0]
+		aq.queued = aq.queued[1:]
+		return
+	}
+	aq.current = nil
+	aq.finishQueue()
+}
+
+func clamp01(v float64) float64 {
+	return math.Max(0, math.Min(1, v))
 }
 
 // CurrentValue returns the value of the current transition.

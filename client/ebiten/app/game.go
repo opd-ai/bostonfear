@@ -165,18 +165,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 // from the Draw fallback path when no active scene is set.
 func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.frameCount++
-
-	// Lazily compile Kage shaders on first draw. Errors are logged but non-fatal:
-	// the game renders correctly without shader effects, just without the doom vignette.
-	if g.shaders == nil {
-		if ss, err := render.NewShaderSet(); err == nil {
-			g.shaders = ss
-		} else {
-			log.Printf("shader compilation failed (vignette disabled): %v", err)
-			// Assign a sentinel non-nil value so we don't retry every frame.
-			g.shaders = &render.ShaderSet{}
-		}
-	}
+	g.ensureShaders()
 
 	screen.Fill(g.theme.Background)
 
@@ -206,17 +195,32 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
 	g.drawOnboarding(screen)
+	g.applyPostProcess(screen, gs.Doom)
+}
 
+func (g *Game) ensureShaders() {
+	if g.shaders != nil {
+		return
+	}
+	ss, err := render.NewShaderSet()
+	if err == nil {
+		g.shaders = ss
+		return
+	}
+	log.Printf("shader compilation failed (vignette disabled): %v", err)
+	// Assign a sentinel non-nil value so we don't retry every frame.
+	g.shaders = &render.ShaderSet{}
+}
+
+func (g *Game) applyPostProcess(screen *ebiten.Image, doom int) {
 	if g.effects.EnableFog {
 		render.DrawFogOverlay(screen, g.shaders, g.effects.FogOpacity)
 	}
 	if g.effects.EnableGlow {
 		render.DrawGlowOverlay(screen, g.shaders, g.effects.GlowIntensity, float32(time.Since(g.startedAt).Seconds()))
 	}
-
-	// Post-process: doom vignette shader composited over the fully rendered frame.
-	if gs.Doom > 0 {
-		render.DrawDoomVignette(screen, g.shaders, float32(gs.Doom)/12)
+	if doom > 0 {
+		render.DrawDoomVignette(screen, g.shaders, float32(doom)/12)
 	}
 }
 
@@ -432,17 +436,22 @@ func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	// Draw a simple bar.
 	barW := 200.0
 	filled := float64(gs.Doom) / 12.0 * barW
-	bg := color.RGBA{R: 60, G: 60, B: 60, A: 255}
-	fg := color.RGBA{R: 200, G: 40, B: 40, A: 255}
-	if g.tokens != nil {
-		bg = ui.ResolveThemePack(g.tokens).FogTint
-		fg = ui.ResolveThemePack(g.tokens).Ambient
-		doomToken := g.tokens.GetColor("color-doom")
-		r, gg, b, a := doomToken.RGBA()
-		fg = color.RGBA{R: uint8(r >> 8), G: uint8(gg >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
-	}
+	bg, fg := g.doomBarColors()
 	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, barW, 14, bg)
 	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, filled, 14, fg)
+}
+
+func (g *Game) doomBarColors() (bg color.RGBA, fg color.RGBA) {
+	bg = color.RGBA{R: 60, G: 60, B: 60, A: 255}
+	fg = color.RGBA{R: 200, G: 40, B: 40, A: 255}
+	if g.tokens == nil {
+		return bg, fg
+	}
+	bg = ui.ResolveThemePack(g.tokens).FogTint
+	doomToken := g.tokens.GetColor("color-doom")
+	r, gg, b, a := doomToken.RGBA()
+	fg = color.RGBA{R: uint8(r >> 8), G: uint8(gg >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
+	return bg, fg
 }
 
 // drawPlayerPanel renders resource levels for all players on the right side.
@@ -457,29 +466,7 @@ func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID
 			continue
 		}
 		col := playerColours[i%len(playerColours)]
-		marker := " "
-		if pid == gs.CurrentPlayer {
-			marker = ">"
-			if g.icons != nil {
-				marker = g.icons.Get(ui.IconTurn)
-			}
-		}
-		me := ""
-		if pid == myID {
-			me = " (you)"
-		}
-		hp := "HP"
-		sn := "SN"
-		cl := "CL"
-		if g.icons != nil {
-			hp = g.icons.Get(ui.IconHealth)
-			sn = g.icons.Get(ui.IconSanity)
-			cl = g.icons.Get(ui.IconClues)
-		}
-		label := marker + " " + pid + me + "  " + hp + ":" + strconv.Itoa(p.Resources.Health) +
-			" " + sn + ":" + strconv.Itoa(p.Resources.Sanity) +
-			" " + cl + ":" + strconv.Itoa(p.Resources.Clues) +
-			" ACT:" + strconv.Itoa(p.ActionsRemaining)
+		label := g.playerPanelLabel(pid, gs.CurrentPlayer, myID, p)
 		label = trimToWidth(label, 360)
 
 		// Draw background highlight for current player.
@@ -494,6 +481,30 @@ func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID
 	if len(gs.TurnOrder) == 0 {
 		drawUIText(screen, "Waiting for players...", rightPanelX(), y, color.White)
 	}
+}
+
+func (g *Game) playerPanelLabel(pid, currentPlayer, myID string, p *ebclient.Player) string {
+	marker := " "
+	if pid == currentPlayer {
+		marker = ">"
+		if g.icons != nil {
+			marker = g.icons.Get(ui.IconTurn)
+		}
+	}
+	me := ""
+	if pid == myID {
+		me = " (you)"
+	}
+	hp, sn, cl := "HP", "SN", "CL"
+	if g.icons != nil {
+		hp = g.icons.Get(ui.IconHealth)
+		sn = g.icons.Get(ui.IconSanity)
+		cl = g.icons.Get(ui.IconClues)
+	}
+	return marker + " " + pid + me + "  " + hp + ":" + strconv.Itoa(p.Resources.Health) +
+		" " + sn + ":" + strconv.Itoa(p.Resources.Sanity) +
+		" " + cl + ":" + strconv.Itoa(p.Resources.Clues) +
+		" ACT:" + strconv.Itoa(p.ActionsRemaining)
 }
 
 // drawEventLog renders the last 8 events in the lower-right corner.
@@ -537,30 +548,39 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 	}
 
 	metrics := g.state.UXMetrics()
-	if metrics.HasFirstValidAction {
-		drawUIText(screen, "First valid action: "+metrics.TimeToFirstValidAction.Round(time.Millisecond).String(), 10, y,
-			color.RGBA{R: 180, G: 220, B: 255, A: 255})
-	} else {
-		drawUIText(screen, "First valid action: pending", 10, y, color.RGBA{R: 180, G: 220, B: 255, A: 255})
-	}
+	drawUIText(screen, g.firstActionStatusText(metrics), 10, y, color.RGBA{R: 180, G: 220, B: 255, A: 255})
 	y += 12
 	drawUIText(screen, "Invalid retries: "+strconv.Itoa(metrics.InvalidActionRetries), 10, y,
 		color.RGBA{R: 255, G: 200, B: 170, A: 255})
 	y += 12
-	if g.camera != nil {
-		mode := "topdown"
-		if g.camera.Mode() == ui.ViewModePseudo3D {
-			mode = "pseudo3d"
-		}
-		drawUIText(screen,
-			"Camera: "+mode+" dir="+strconv.Itoa(g.camera.Direction()+1)+"/8",
-			10, y, color.RGBA{R: 200, G: 220, B: 255, A: 255})
-	}
+	drawUIText(screen, g.cameraStatusText(), 10, y, color.RGBA{R: 200, G: 220, B: 255, A: 255})
+	g.drawEndBanner(screen, gs)
+}
 
-	// Win / lose banner.
+func (g *Game) firstActionStatusText(metrics ebclient.UXMetricsSnapshot) string {
+	if metrics.HasFirstValidAction {
+		return "First valid action: " + metrics.TimeToFirstValidAction.Round(time.Millisecond).String()
+	}
+	return "First valid action: pending"
+}
+
+func (g *Game) cameraStatusText() string {
+	if g.camera == nil {
+		return ""
+	}
+	mode := "topdown"
+	if g.camera.Mode() == ui.ViewModePseudo3D {
+		mode = "pseudo3d"
+	}
+	return "Camera: " + mode + " dir=" + strconv.Itoa(g.camera.Direction()+1) + "/8"
+}
+
+func (g *Game) drawEndBanner(screen *ebiten.Image, gs ebclient.GameState) {
 	if gs.WinCondition {
 		drawUIText(screen, "* INVESTIGATORS WIN! *", 10, screenHeight-20, color.RGBA{R: 140, G: 255, B: 140, A: 255})
-	} else if gs.LoseCondition {
+		return
+	}
+	if gs.LoseCondition {
 		drawUIText(screen, "* ANCIENT ONE AWAKENS - YOU LOSE *", 10, screenHeight-20, color.RGBA{R: 255, G: 140, B: 140, A: 255})
 	}
 }

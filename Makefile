@@ -1,12 +1,12 @@
 # Makefile — build, test, and lint targets for the bostonfear project.
 
-.PHONY: all build test test-display vet clean
+.PHONY: all build test test-display vet clean rebuild-wasm
 
 ## all: build the server and all clients.
 all: build
 
 ## build: compile all packages.
-build:
+build: rebuild-wasm
 	go build ./...
 
 ## test: run the standard test suite (no display required; CI-safe).
@@ -26,3 +26,8 @@ vet:
 ## clean: remove build artifacts.
 clean:
 	go clean ./...
+
+## rebuild-wasm: force rebuild the browser WASM binary.
+rebuild-wasm:
+	rm -f client/wasm/game.wasm
+	GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
