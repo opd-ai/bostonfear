@@ -60,17 +60,5 @@ func resolveWebServerURL() string {
 		proto = "wss"
 	}
 	host := loc.Get("host").String()
-	hostname := loc.Get("hostname").String()
-	port := loc.Get("port").String()
-
-	// Some environments fail DNS resolution for localhost in WASM network calls.
-	// Prefer the explicit loopback address in local browser sessions.
-	if hostname == "localhost" {
-		if port != "" {
-			host = "127.0.0.1:" + port
-		} else {
-			host = "127.0.0.1"
-		}
-	}
 	return fmt.Sprintf("%s://%s/ws", proto, host)
 }
