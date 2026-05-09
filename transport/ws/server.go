@@ -30,11 +30,17 @@ func SetupServer(listener net.Listener, handlers RouteHandlers) error {
 	}
 
 	server := &http.Server{Handler: mux}
+	addr := listener.Addr().String()
+	// Addr() on a TCP listener returns "[::]:port" for all-interfaces; normalise for display.
+	displayHost := "localhost"
+	if _, port, err := net.SplitHostPort(addr); err == nil {
+		addr = net.JoinHostPort(displayHost, port)
+	}
 	log.Printf("Arkham Horror server starting on %s", listener.Addr().String())
-	log.Printf("Game client: http://localhost%s/", listener.Addr().String())
-	log.Printf("WebSocket endpoint: ws://localhost%s/ws", listener.Addr().String())
-	log.Printf("Health check: http://localhost%s/health", listener.Addr().String())
-	log.Printf("Prometheus metrics: http://localhost%s/metrics", listener.Addr().String())
+	log.Printf("Game client: http://%s/", addr)
+	log.Printf("WebSocket endpoint: ws://%s/ws", addr)
+	log.Printf("Health check: http://%s/health", addr)
+	log.Printf("Prometheus metrics: http://%s/metrics", addr)
 
 	return server.Serve(listener)
 }
