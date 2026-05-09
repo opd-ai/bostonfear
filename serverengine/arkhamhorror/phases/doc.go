@@ -1,8 +1,9 @@
-// Package phases implements Arkham Horror turn structure: investigator phase (player actions),
-// mythos phase (enemy spawns, gate spreads, doom advancement), and resolution phase (check win/lose).
+// Package phases implements Arkham Horror turn structure orchestration.
 //
-// Each phase is a state machine that validates preconditions, applies transitions,
-// and posts state updates to the shared runtime.
+// The package owns phase sequencing and turn progression logic while the
+// serverengine facade supplies callbacks for concrete state mutation, metrics,
+// and compatibility with the existing public API.
 //
-// NOTE: This package is a scaffold. Implementation is deferred. See ROADMAP.md.
+// This keeps Arkham-specific phase flow under serverengine/arkhamhorror without
+// introducing circular dependencies on the compatibility layer.
 package phases

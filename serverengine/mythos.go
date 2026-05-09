@@ -9,6 +9,8 @@ import (
 	"log"
 	mathrand "math/rand"
 	"sync/atomic"
+
+	arkhamphases "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/phases"
 )
 
 // advanceTurn moves the CurrentPlayer pointer to the next active investigator.
@@ -16,71 +18,9 @@ import (
 // When all players complete a round, runMythosPhase is called before starting
 // the next round (AH3e §Mythos Phase).
 func (gs *GameServer) advanceTurn() {
-	if len(gs.gameState.TurnOrder) == 0 {
-		return
-	}
-
-	// Find current player index
-	currentIndex := -1
-	for i, playerID := range gs.gameState.TurnOrder {
-		if playerID == gs.gameState.CurrentPlayer {
-			currentIndex = i
-			break
-		}
-	}
-
-	// Walk forward through the turn order, skipping disconnected or defeated players.
-	// A full rotation without finding an active player means all players are gone.
-	total := len(gs.gameState.TurnOrder)
-	for i := 1; i <= total; i++ {
-		nextIndex := (currentIndex + i) % total
-		candidateID := gs.gameState.TurnOrder[nextIndex]
-		candidate, exists := gs.gameState.Players[candidateID]
-		if exists && candidate.Connected && !candidate.Defeated {
-			// If we wrapped back to or past the first player, run Mythos Phase.
-			if nextIndex <= currentIndex {
-				gs.runMythosPhase()
-			}
-			gs.gameState.CurrentPlayer = candidateID
-			candidate.ActionsRemaining = 2
-			return
-		}
-	}
-
-	// If there are still connected players but none can act, attempt Mythos
-	// recovery and retry once before parking in a waiting phase.
-	hasConnected := false
-	hasConnectedDefeated := false
-	for _, playerID := range gs.gameState.TurnOrder {
-		player, exists := gs.gameState.Players[playerID]
-		if !exists || !player.Connected {
-			continue
-		}
-		hasConnected = true
-		if player.Defeated {
-			hasConnectedDefeated = true
-		}
-	}
-
-	if !hasConnected {
-		return
-	}
-	if hasConnectedDefeated {
-		gs.runMythosPhase()
-	}
-
-	for i := 1; i <= total; i++ {
-		nextIndex := (currentIndex + i) % total
-		candidateID := gs.gameState.TurnOrder[nextIndex]
-		candidate, exists := gs.gameState.Players[candidateID]
-		if exists && candidate.Connected && !candidate.Defeated {
-			gs.gameState.CurrentPlayer = candidateID
-			candidate.ActionsRemaining = 2
-			return
-		}
-	}
-
-	gs.gameState.GamePhase = "waiting"
+	arkhamphases.AdvanceTurn(gs.gameState, arkhamphases.TurnCallbacks{
+		RunMythosPhase: gs.runMythosPhase,
+	})
 }
 
 // runMythosPhase executes the AH3e Mythos Phase after all investigators complete
@@ -96,129 +36,49 @@ func (gs *GameServer) advanceTurn() {
 //
 // Caller must hold gs.mutex.
 func (gs *GameServer) runMythosPhase() {
-	gs.gameState.GamePhase = "mythos"
-	gs.gameState.MythosEvents = gs.gameState.MythosEvents[:0]
-	gs.gameState.ActiveEvents = gs.gameState.ActiveEvents[:0]
-
-	// Recover defeated investigators who are still connected (RULES.md §Defeat/Recovery).
-	// Recovery happens at the start of each Mythos Phase so they re-enter the next round.
-	for id, p := range gs.gameState.Players {
-		if p.LostInTimeAndSpace && p.Connected {
-			gs.recoverInvestigator(id)
-		}
-	}
-
-	// Rebuild event deck when exhausted.
-	if len(gs.gameState.MythosEventDeck) == 0 {
-		gs.gameState.MythosEventDeck = defaultMythosEventDeck()
-	}
-
-	// Draw up to 2 events.
-	toDraw := 2
-	if len(gs.gameState.MythosEventDeck) < toDraw {
-		toDraw = len(gs.gameState.MythosEventDeck)
-	}
-	drawn := gs.gameState.MythosEventDeck[:toDraw]
-	gs.gameState.MythosEventDeck = gs.gameState.MythosEventDeck[toDraw:]
-
-	for _, evt := range drawn {
-		target := evt.LocationID
-		// Spread rule: if target already has a doom token, shift to first adjacent location.
-		if gs.gameState.LocationDoomTokens[target] > 0 {
-			if adjacent, ok := locationAdjacency[Location(target)]; ok && len(adjacent) > 0 {
-				target = string(adjacent[0])
-				evt.Spread = true
+	arkhamphases.RunMythosPhase(gs.gameState, arkhamphases.MythosCallbacks{
+		RecoverInvestigator: gs.recoverInvestigator,
+		DefaultEventDeck:    defaultMythosEventDeck,
+		AdjacentLocations: func(loc Location) []Location {
+			adjacent, ok := locationAdjacency[loc]
+			if !ok {
+				return nil
 			}
-		}
-		gs.gameState.LocationDoomTokens[target]++
-		gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
-		gs.gameState.MythosEvents = append(gs.gameState.MythosEvents, evt)
-		gs.gameState.ActiveEvents = append(gs.gameState.ActiveEvents, evt.Effect)
-		log.Printf("Mythos Phase: event placed at %s (spread=%v type=%s)", target, evt.Spread, evt.MythosEventType)
-		gs.resolveEventEffect(evt)
-		// Open a gate when a neighbourhood accumulates ≥ 2 doom tokens.
-		if gs.gameState.LocationDoomTokens[target] >= 2 {
-			gs.openGateAtLocation(Location(target))
-		}
-	}
-
-	// Draw and resolve mythos cup token.
-	gs.gameState.MythosToken = gs.drawMythosToken()
-	gs.resolveMythosToken(gs.gameState.MythosToken)
-
-	// Spawn enemies: 1 per 3 accumulated doom (e.g., doom=6 → 2 spawns), capped at maxEnemiesOnBoard.
-	gs.spawnEnemiesForDoom()
-
-	log.Printf("Mythos Phase complete: doom=%d token=%s activeEvents=%d", gs.gameState.Doom, gs.gameState.MythosToken, len(gs.gameState.ActiveEvents))
-	gs.gameState.GamePhase = "playing"
-	gs.checkGameEndConditions()
+			return adjacent
+		},
+		ResolveEventEffect:  gs.resolveEventEffect,
+		OpenGateAtLocation:  gs.openGateAtLocation,
+		DrawMythosToken:     gs.drawMythosToken,
+		ResolveMythosToken:  gs.resolveMythosToken,
+		SpawnEnemiesForDoom: gs.spawnEnemiesForDoom,
+		CheckGameEnd:        gs.checkGameEndConditions,
+	})
 }
 
 // resolveEventEffect applies the typed mechanical effect of a Mythos event.
 // Caller must hold gs.mutex.
 func (gs *GameServer) resolveEventEffect(evt MythosEvent) {
-	switch evt.MythosEventType {
-	case MythosEventAnomaly:
-		gs.spawnAnomaly(evt.LocationID)
-
-	case MythosEventFogMadness:
-		// All connected (and non-defeated) investigators lose 1 Sanity.
-		for _, p := range gs.gameState.Players {
-			if p.Connected && !p.Defeated {
-				p.Resources.Sanity = max(p.Resources.Sanity-1, 0)
-				gs.ValidateResources(&p.Resources)
-			}
-		}
-
-	case MythosEventClueDrought:
-		// All investigators lose 1 Clue (clues washed away).
-		for _, p := range gs.gameState.Players {
-			if !p.Defeated {
-				p.Resources.Clues = max(p.Resources.Clues-1, 0)
-			}
-		}
-
-	case MythosEventDoomSpread:
-		// Doom +1 per open gate (minimum +1 when no gates are open).
-		inc := len(gs.gameState.OpenGates)
-		if inc < 1 {
-			inc = 1
-		}
-		gs.gameState.Doom = min(gs.gameState.Doom+inc, 12)
-
-	case MythosEventResurgence:
-		// Each engaged enemy regains 1 Health, capped at its archetype MaxHealth.
-		for _, e := range gs.gameState.Enemies {
-			if len(e.Engaged) > 0 {
-				e.Health = min(e.Health+1, e.MaxHealth)
-			}
-		}
-	}
+	arkhamphases.ResolveEventEffect(gs.gameState, evt, arkhamphases.EventCallbacks{
+		SpawnAnomaly:            gs.spawnAnomaly,
+		ValidateResources:       gs.ValidateResources,
+		CheckInvestigatorDefeat: gs.CheckInvestigatorDefeat,
+		MaxSanity:               MaxSanity,
+	})
 }
 
 // drawMythosToken returns a random cup token for the Mythos Phase.
 // Uses mathrand.Intn for uniform random selection, matching rollDice behaviour.
 func (gs *GameServer) drawMythosToken() string {
-	tokens := []string{MythosTokenDoom, MythosTokenBlessing, MythosTokenCurse, MythosTokenBlank}
-	return string(tokens[mathrand.Intn(len(tokens))])
+	return arkhamphases.DrawMythosToken()
 }
 
 // resolveMythosToken applies the effect of the drawn Mythos cup token.
 // Caller must hold gs.mutex.
 func (gs *GameServer) resolveMythosToken(token string) {
-	switch token {
-	case MythosTokenDoom:
-		gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
-	case MythosTokenBlessing:
-		if cur, ok := gs.gameState.Players[gs.gameState.CurrentPlayer]; ok {
-			cur.Resources.Health = min(cur.Resources.Health+1, MaxHealth)
-		}
-	case MythosTokenCurse:
-		if cur, ok := gs.gameState.Players[gs.gameState.CurrentPlayer]; ok {
-			cur.Resources.Sanity = max(cur.Resources.Sanity-1, 0)
-			gs.CheckInvestigatorDefeat(gs.gameState.CurrentPlayer)
-		}
-	}
+	arkhamphases.ResolveMythosToken(gs.gameState, token, arkhamphases.TokenCallbacks{
+		CheckInvestigatorDefeat: gs.CheckInvestigatorDefeat,
+		MaxHealth:               MaxHealth,
+	})
 }
 
 // rescaleActDeck adjusts the clue thresholds of the Act deck to match the
