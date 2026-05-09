@@ -94,8 +94,6 @@ func (r *EmbeddedAtlasResolver) resolveFromManifest() {
 
 	manifest, err := ParseVisualManifest(manifestBytes)
 	if err != nil {
-		r.resolveErr = fmt.Errorf("parse embedded visual manifest: %w", err)
-		return
 	}
 
 	basePath := strings.TrimSpace(manifest.Content.Visuals.BasePath)
@@ -109,6 +107,8 @@ func (r *EmbeddedAtlasResolver) resolveFromManifest() {
 		componentKey, ok := requiredComponentKeys[id]
 		if !ok {
 			preflightIssues = append(preflightIssues, fmt.Sprintf("missing required key mapping for sprite id %d", id))
+			AssetMetrics().ComponentLoadFailures.Add(1)
+			AssetMetrics().FallbacksUsed.Add(1)
 			images[id] = solidPlaceholderImage(64, 64)
 			continue
 		}
@@ -116,6 +116,8 @@ func (r *EmbeddedAtlasResolver) resolveFromManifest() {
 		asset, exists := manifest.Content.Visuals.Components[componentKey]
 		if !exists {
 			preflightIssues = append(preflightIssues, fmt.Sprintf("manifest missing required component key %q", componentKey))
+			AssetMetrics().ComponentLoadFailures.Add(1)
+			AssetMetrics().FallbacksUsed.Add(1)
 			images[id] = fallbackImage(placeholderImage)
 			continue
 		}
@@ -124,6 +126,8 @@ func (r *EmbeddedAtlasResolver) resolveFromManifest() {
 		img := r.loadImageOrNil(componentPath)
 		if img == nil {
 			preflightIssues = append(preflightIssues, fmt.Sprintf("component %q missing/unreadable at %q", componentKey, componentPath))
+			AssetMetrics().ComponentLoadFailures.Add(1)
+			AssetMetrics().FallbacksUsed.Add(1)
 			images[id] = fallbackImage(placeholderImage)
 			continue
 		}
@@ -132,6 +136,8 @@ func (r *EmbeddedAtlasResolver) resolveFromManifest() {
 			cropped, cropErr := cropImage(img, asset.X, asset.Y, asset.W, asset.H)
 			if cropErr != nil {
 				preflightIssues = append(preflightIssues, fmt.Sprintf("component %q invalid crop rect: %v", componentKey, cropErr))
+				AssetMetrics().ComponentLoadFailures.Add(1)
+				AssetMetrics().FallbacksUsed.Add(1)
 				images[id] = fallbackImage(placeholderImage)
 				continue
 			}
@@ -143,6 +149,7 @@ func (r *EmbeddedAtlasResolver) resolveFromManifest() {
 
 	r.sheetPNG, r.coords, r.resolveErr = buildAtlasPNG(images)
 	if r.resolveErr != nil {
+		AssetMetrics().AtlasBuildErrors.Add(1)
 		r.resolveErr = fmt.Errorf("build atlas from manifest assets: %w", r.resolveErr)
 		return
 	}
