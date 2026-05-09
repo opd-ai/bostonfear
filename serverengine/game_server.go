@@ -60,8 +60,7 @@ type GameServer struct {
 	// The websocket transport adapter wraps ws connections as net.Conn, but the
 	// one-writer-at-a-time requirement still applies for each wrapped session.
 	// broadcastHandler and sendPingToPlayer can write to the same connection, so
-	// each connection
-	// needs its own write mutex.
+	// each connection needs its own write mutex.
 	wsWriteMu map[string]*sync.Mutex
 	wsMuMutex sync.Mutex // guards wsWriteMu map itself
 

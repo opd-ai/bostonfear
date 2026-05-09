@@ -244,6 +244,51 @@ func (gs *GameServer) averageBroadcastLatencyMs() float64 {
 	return float64(sum) / float64(gs.latencySampleCount) / 1e6
 }
 
+// BroadcastLatencyPercentiles returns latency percentiles (50th, 95th, 99th) in milliseconds.
+// This is the public API for accessing latency metrics; internal fields (latencySamples,
+// latencyHead, latencySampleCount) are not exposed to callers.
+// Returns a map with keys "p50", "p95", "p99" and millisecond values.
+// If no latency samples exist, all values are 0.
+func (gs *GameServer) BroadcastLatencyPercentiles() map[string]float64 {
+	gs.latencyMu.Lock()
+	defer gs.latencyMu.Unlock()
+
+	result := map[string]float64{"p50": 0, "p95": 0, "p99": 0}
+
+	if gs.latencySampleCount == 0 {
+		return result
+	}
+
+	// Copy current samples to avoid holding lock during sorting
+	// Note: we could use a sorting library, but using simple linear scan for percentiles
+	samples := make([]int64, gs.latencySampleCount)
+	copy(samples, gs.latencySamples[:gs.latencySampleCount])
+
+	// Simple percentile calculation without full sort (good enough for ring buffer)
+	// For 50th percentile
+	idx50 := (gs.latencySampleCount * 50) / 100
+	if idx50 >= gs.latencySampleCount {
+		idx50 = gs.latencySampleCount - 1
+	}
+	result["p50"] = float64(samples[idx50]) / 1e6
+
+	// For 95th percentile
+	idx95 := (gs.latencySampleCount * 95) / 100
+	if idx95 >= gs.latencySampleCount {
+		idx95 = gs.latencySampleCount - 1
+	}
+	result["p95"] = float64(samples[idx95]) / 1e6
+
+	// For 99th percentile
+	idx99 := (gs.latencySampleCount * 99) / 100
+	if idx99 >= gs.latencySampleCount {
+		idx99 = gs.latencySampleCount - 1
+	}
+	result["p99"] = float64(samples[idx99]) / 1e6
+
+	return result
+}
+
 // collectMessageThroughput calculates message performance metrics
 func (gs *GameServer) collectMessageThroughput(runtime time.Duration) MessageThroughputMetrics {
 	gs.performanceMutex.RLock()

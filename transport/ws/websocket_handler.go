@@ -12,10 +12,26 @@ import (
 
 // SessionEngine defines the transport-neutral session lifecycle surface expected
 // by the WebSocket transport adapter.
+//
 // Implementations must be safe for concurrent calls because each upgraded
-// session is handled in its own goroutine.
+// WebSocket connection runs HandleConnection in its own goroutine.
+//
+// SessionEngine is a minimal interface (2 methods) designed to decouple the game engine
+// from transport layer concerns. New transport adapters (TCP, in-process, gRPC) need
+// only implement these two methods to integrate with any SessionEngine.
+//
+// This interface is a subset of serverengine/common/contracts.SessionHandler.
+// It is transport-specific; for broader concerns (health checking, metrics),
+// use the Engine interface from serverengine/common/contracts.
 type SessionEngine interface {
+	// HandleConnection manages a player session via the provided net.Conn.
+	// conn must be non-nil and readable/writable. reconnectToken may be empty
+	// (new player) or non-empty (restore disconnected player).
+	// The method blocks until the connection closes or an error occurs.
 	HandleConnection(conn net.Conn, reconnectToken string) error
+
+	// AllowedOrigins returns the current list of permitted WebSocket upgrade origins.
+	// An empty or nil list indicates permissive mode (any origin accepted).
 	AllowedOrigins() []string
 }
 
