@@ -109,7 +109,18 @@ type GameServer struct {
 // NewGameServer creates a new game server instance using the provided Scenario
 // for setup and win/lose conditions. Pass DefaultScenario for standard AH3e play.
 func NewGameServer() *GameServer {
-	return newGameServerWithScenario(DefaultScenario)
+	return newGameServerWithScenario(resolveStartupScenario())
+}
+
+func resolveStartupScenario() Scenario {
+	selectedID := consumeStartupScenarioDefaultID()
+	if selectedID == "" {
+		return DefaultScenario
+	}
+
+	scenario := DefaultScenario
+	scenario.Name = selectedID
+	return scenario
 }
 
 // newGameServerWithScenario is the underlying constructor; used in tests to inject

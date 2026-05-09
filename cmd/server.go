@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/opd-ai/bostonfear/monitoring"
+	"github.com/opd-ai/bostonfear/serverengine"
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror"
 	arkhamcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
@@ -71,11 +72,8 @@ func runServer(cmd *cobra.Command) error {
 	if !ok {
 		return fmt.Errorf("unknown game module %q (available: %v)", gameID, registry.Keys())
 	}
-
-	if gameID == "arkhamhorror" {
-		if err := arkhamcontent.EnsureNightglassContentInstalled("."); err != nil {
-			return fmt.Errorf("install embedded arkham content: %w", err)
-		}
+	if err := prepareGameStartup(gameID, "."); err != nil {
+		return err
 	}
 
 	gameEngine, err := module.NewEngine()
@@ -130,6 +128,25 @@ func runServer(cmd *cobra.Command) error {
 		return fmt.Errorf("setup server: %w", err)
 	}
 
+	return nil
+}
+
+func prepareGameStartup(gameID, repoRoot string) error {
+	if gameID != "arkhamhorror" {
+		serverengine.SetStartupScenarioDefaultID("")
+		return fmt.Errorf("game module %q is registered but not runnable yet; choose arkhamhorror", gameID)
+	}
+
+	if err := arkhamcontent.EnsureNightglassContentInstalled(repoRoot); err != nil {
+		return fmt.Errorf("install embedded arkham content: %w", err)
+	}
+
+	rawScenarioID := strings.TrimSpace(viper.GetString("scenario.default_id"))
+	selectedScenarioID, err := arkhamcontent.ResolveNightglassScenarioID(repoRoot, rawScenarioID)
+	if err != nil {
+		return fmt.Errorf("resolve default scenario: %w", err)
+	}
+	serverengine.SetStartupScenarioDefaultID(selectedScenarioID)
 	return nil
 }
 

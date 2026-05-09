@@ -64,5 +64,5 @@ func (Module) Description() string {
 // Call engine.Start() to begin accepting player connections.
 // Configure engine.SetAllowedOrigins() before Start() to enable CORS filtering.
 func (Module) NewEngine() (contracts.Engine, error) {
-	return serverengine.NewGameServer(), nil
+	return &Engine{GameServer: serverengine.NewGameServer()}, nil
 }

@@ -4,11 +4,13 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	ebapp "github.com/opd-ai/bostonfear/client/ebiten/app"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // NewWebCommand wraps the WASM Ebitengine startup logic.
@@ -41,11 +43,32 @@ func runWeb() error {
 }
 
 func resolveWebServerURL() string {
+	return firstNonEmpty(
+		viper.GetString("web.server"),
+		serverURLFromGlobal(),
+		serverURLFromLocation(),
+	)
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func serverURLFromGlobal() string {
 	global := js.Global()
 	if v := global.Get("__serverURL"); v.Type() == js.TypeString {
 		return v.String()
 	}
+	return ""
+}
 
+func serverURLFromLocation() string {
+	global := js.Global()
 	loc := global.Get("window").Get("location")
 	proto := "ws"
 	if loc.Get("protocol").String() == "https:" {
