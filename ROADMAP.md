@@ -83,7 +83,7 @@
 **Why this is first**: It is a top-level README promise that affects all multiplayer users and trust in core functionality.
 
 - [x] Add a CI-selectable long soak test profile that drives 6 concurrent players for >=15 minutes with periodic actions and reconnect churn.
-- [ ] Gate on explicit pass/fail assertions: no deadlocks, no stuck turns, doom/resource bounds preserved, no goroutine leak growth trend, and bounded sync latency.
+- [x] Gate on explicit pass/fail assertions: no deadlocks, no stuck turns, doom/resource bounds preserved, no goroutine leak growth trend, and bounded sync latency.
 - [ ] Emit machine-readable soak metrics as artifacts (latency distribution, reconnect success ratio, action throughput, final game-state invariants).
 - [ ] Keep default CI fast by running long soak nightly or on a dedicated workflow trigger.
 - [ ] Validation: a reproducible CI artifact demonstrates sustained correctness for the full claimed duration.

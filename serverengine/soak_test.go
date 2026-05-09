@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -16,6 +17,7 @@ import (
 type soakTestMetrics struct {
 	startTime          time.Time
 	actionCount        atomic.Int64
+	maxActionLatencyMs atomic.Int64
 	doomMaxValue       atomic.Int32
 	playerDefeats      atomic.Int32
 	gameStateErrors    atomic.Int32
@@ -47,6 +49,7 @@ func TestStressTest_6Players(t *testing.T) {
 		profile.Duration, profile.ActionInterval, profile.ReconnectInterval, profile.ReconnectDowntime)
 
 	metrics := &soakTestMetrics{startTime: time.Now()}
+	initialGoroutines := runtime.NumGoroutine()
 
 	// Create server with default scenario
 	gs := NewGameServer()
@@ -90,7 +93,13 @@ func TestStressTest_6Players(t *testing.T) {
 	// Launch action goroutines for each player
 	var wg sync.WaitGroup
 	stopCh := make(chan struct{})
-	defer close(stopCh)
+	var stopOnce sync.Once
+	stop := func() {
+		stopOnce.Do(func() {
+			close(stopCh)
+		})
+	}
+	defer stop()
 
 	for _, playerID := range playerIDs {
 		wg.Add(1)
@@ -125,12 +134,17 @@ func TestStressTest_6Players(t *testing.T) {
 						action.Target = string(targets[rand.Intn(len(targets))])
 					}
 
+					actionStart := time.Now()
 					err := gs.processAction(action)
-					if err != nil && err.Error() != "not player "+pid+"'s turn (current: "+gs.gameState.CurrentPlayer+")" {
-						// Ignore "not your turn" errors (expected in multi-player); report others
-						if !isExpectedActionError(err) {
-							metrics.gameStateErrors.Add(1)
+					latencyMs := time.Since(actionStart).Milliseconds()
+					for {
+						old := metrics.maxActionLatencyMs.Load()
+						if latencyMs <= old || metrics.maxActionLatencyMs.CompareAndSwap(old, latencyMs) {
+							break
 						}
+					}
+					if err != nil && !isExpectedActionError(err) {
+						metrics.gameStateErrors.Add(1)
 					}
 					metrics.actionCount.Add(1)
 				}
@@ -181,6 +195,8 @@ func TestStressTest_6Players(t *testing.T) {
 	startTime := time.Now()
 	testTimer := time.NewTimer(profile.Duration)
 	defer testTimer.Stop()
+	lastCurrentPlayer := ""
+	turnStagnantSince := startTime
 
 	for {
 		select {
@@ -204,6 +220,33 @@ func TestStressTest_6Players(t *testing.T) {
 				metrics.gameStateErrors.Add(1)
 			}
 
+			for playerID, player := range stateCopy.Players {
+				if player.Resources.Health < 0 || player.Resources.Health > 10 {
+					t.Logf("FAIL: Health out of bounds for %s: %d", playerID, player.Resources.Health)
+					metrics.gameStateErrors.Add(1)
+				}
+				if player.Resources.Sanity < 0 || player.Resources.Sanity > 10 {
+					t.Logf("FAIL: Sanity out of bounds for %s: %d", playerID, player.Resources.Sanity)
+					metrics.gameStateErrors.Add(1)
+				}
+				if player.Resources.Clues < 0 || player.Resources.Clues > 5 {
+					t.Logf("FAIL: Clues out of bounds for %s: %d", playerID, player.Resources.Clues)
+					metrics.gameStateErrors.Add(1)
+				}
+			}
+
+			if stateCopy.GamePhase == "playing" {
+				if stateCopy.CurrentPlayer == lastCurrentPlayer {
+					if time.Since(turnStagnantSince) > 20*time.Second {
+						t.Logf("FAIL: Turn appears stuck on %s for %v", stateCopy.CurrentPlayer, time.Since(turnStagnantSince).Round(time.Second))
+						metrics.gameStateErrors.Add(1)
+					}
+				} else {
+					lastCurrentPlayer = stateCopy.CurrentPlayer
+					turnStagnantSince = time.Now()
+				}
+			}
+
 			actionCount := metrics.actionCount.Load()
 			elapsed := time.Since(startTime)
 			throughput := float64(actionCount) / elapsed.Seconds()
@@ -213,7 +256,7 @@ func TestStressTest_6Players(t *testing.T) {
 
 		case <-testTimer.C:
 			// Test duration completed
-			close(stopCh)
+			stop()
 			wg.Wait()
 
 			// Perform final validation
@@ -226,10 +269,14 @@ func TestStressTest_6Players(t *testing.T) {
 			finalActions := metrics.actionCount.Load()
 			throughput := float64(finalActions) / elapsed.Seconds()
 			errors := metrics.gameStateErrors.Load()
+			maxLatencyMs := metrics.maxActionLatencyMs.Load()
+			finalGoroutines := runtime.NumGoroutine()
 
 			t.Logf("\n=== STRESS TEST RESULTS (%v) ===", profile.Duration)
 			t.Logf("Total Actions: %d", finalActions)
 			t.Logf("Throughput: %.2f actions/sec", throughput)
+			t.Logf("Max Action Latency: %dms", maxLatencyMs)
+			t.Logf("Goroutines: start=%d end=%d", initialGoroutines, finalGoroutines)
 			t.Logf("Max Doom Reached: %d", metrics.doomMaxValue.Load())
 			t.Logf("Final Doom: %d", doomFinal)
 			t.Logf("Game State Errors: %d", errors)
@@ -242,6 +289,12 @@ func TestStressTest_6Players(t *testing.T) {
 			}
 			if errors > 10 {
 				t.Errorf("Too many game state errors: %d", errors)
+			}
+			if maxLatencyMs > 500 {
+				t.Errorf("action latency exceeded 500ms bound: %dms", maxLatencyMs)
+			}
+			if finalGoroutines > initialGoroutines+25 {
+				t.Errorf("goroutine growth exceeded threshold: start=%d end=%d", initialGoroutines, finalGoroutines)
 			}
 			if finalActions == 0 {
 				t.Errorf("No actions were processed")
@@ -317,6 +370,7 @@ func durationFromEnv(key string, fallback time.Duration) (time.Duration, error) 
 func isExpectedActionError(err error) bool {
 	msg := err.Error()
 	return err == nil ||
+		contains(msg, "not player") ||
 		contains(msg, "not your turn") ||
 		contains(msg, "not in playing state") ||
 		contains(msg, "no actions remaining") ||
