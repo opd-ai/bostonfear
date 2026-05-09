@@ -36,11 +36,11 @@ Primary improvement area: state visibility.
 
 ## Concise Remediation Checklist
 
-- [ ] Label all four locations directly on the board.
-- [ ] Visualize legal adjacency from the current player position.
-- [ ] Replace the static controls legend with a state-driven available-actions panel.
-- [ ] Show action costs and disable reasons in the HUD.
-- [ ] Render the actual dice faces and required success threshold after each roll.
+- [x] Label all four locations directly on the board.
+- [x] Visualize legal adjacency from the current player position.
+- [x] Replace the static controls legend with a state-driven available-actions panel.
+- [x] Show action costs and disable reasons in the HUD.
+- [x] Render the actual dice faces and required success threshold after each roll.
 - [ ] Surface human-readable invalid-action errors instead of only retry counts.
 - [ ] Add touch parity for the full supported action set.
 - [ ] Prevent touch action taps from also rotating or toggling the camera.
@@ -60,9 +60,9 @@ Primary improvement area: state visibility.
 - Fix: Draw location labels on-board and visualize legal adjacent destinations for the active player.
 - Validation: A first-time player should be able to name all four locations and identify legal moves without external documentation.
 - Remediation Checklist:
-  - [ ] Add board labels for Downtown, University, Rivertown, and Northside.
-  - [ ] Highlight the active player location.
-  - [ ] Draw adjacency connectors or current legal move highlights.
+  - [x] Add board labels for Downtown, University, Rivertown, and Northside.
+  - [x] Highlight the active player location.
+  - [x] Draw adjacency connectors or current legal move highlights.
 
 ### [HIGH] HUD shows static controls instead of current legal actions
 - File: `client/ebiten/app/game.go`, `client/ebiten/app/input.go`
@@ -74,10 +74,10 @@ Primary improvement area: state visibility.
 - Fix: Replace the static legend with a dynamic action panel derived from current game state.
 - Validation: The visible action list should change with turn ownership, resources, and location constraints.
 - Remediation Checklist:
-  - [ ] Show all supported actions in one UI surface.
-  - [ ] Disable unavailable actions visibly.
-  - [ ] Explain why an action is unavailable.
-  - [ ] Show remaining actions for the turn beside the action list.
+  - [x] Show all supported actions in one UI surface.
+  - [x] Disable unavailable actions visibly.
+  - [x] Explain why an action is unavailable.
+  - [x] Show remaining actions for the turn beside the action list.
 
 ### [HIGH] Dice resolution feedback omits the actual dice outcomes
 - File: `client/ebiten/app/game.go`, `client/ebiten/ui/results.go`
@@ -89,9 +89,9 @@ Primary improvement area: state visibility.
 - Fix: Add a dice row or icon strip showing each die face, successes achieved, and successes required.
 - Validation: After an investigate or ward action, the player should be able to explain the result from the UI alone.
 - Remediation Checklist:
-  - [ ] Render success, blank, and tentacle faces explicitly.
-  - [ ] Show `achieved / required` successes.
-  - [ ] Note doom increases caused by tentacles in the same result block.
+  - [x] Render success, blank, and tentacle faces explicitly.
+  - [x] Show `achieved / required` successes.
+  - [x] Note doom increases caused by tentacles in the same result block.
 
 ### [HIGH] Touch controls do not expose the full action set
 - File: `client/ebiten/app/input.go`

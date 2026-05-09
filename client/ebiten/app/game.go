@@ -44,6 +44,15 @@ var locationColours = map[ebclient.Location]color.RGBA{
 	"Northside":  {R: 100, G: 80, B: 140, A: 255},
 }
 
+// boardAdjacency mirrors the server's four-location movement graph so the UI
+// can highlight legal movement targets without querying the server for a list.
+var boardAdjacency = map[ebclient.Location][]ebclient.Location{
+	"Downtown":   {"University", "Rivertown"},
+	"University": {"Downtown", "Northside"},
+	"Rivertown":  {"Downtown", "Northside"},
+	"Northside":  {"University", "Rivertown"},
+}
+
 // playerColours cycles through distinctive colours for up to 6 players.
 var playerColours = []color.RGBA{
 	{R: 255, G: 220, B: 50, A: 255},
@@ -176,6 +185,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 
 	// Layer 0 — Board: location tiles.
 	g.enqueueBoard(gs)
+	g.drawBoardOverlay(screen, gs)
 
 	// Layer 1 — Tokens: investigator tokens on their location tiles.
 	g.enqueueTokens(gs, playerID)
@@ -334,10 +344,11 @@ func (g *Game) drawResultsPanel(screen *ebiten.Image) {
 	if g.results == nil || !g.results.IsVisible() {
 		return
 	}
-	ebitenutil.DrawRect(screen, 8, 24, 420, 54, color.RGBA{R: 30, G: 30, B: 40, A: 220})
+	ebitenutil.DrawRect(screen, 8, 24, 420, 78, color.RGBA{R: 30, G: 30, B: 40, A: 220})
 	drawUIText(screen, trimToWidth(g.results.OutcomeText(), 400), 14, 30, color.White)
 	drawUIText(screen, trimToWidth(g.results.ResourceDeltaText(), 400), 14, 44, color.RGBA{R: 210, G: 230, B: 255, A: 255})
 	drawUIText(screen, trimToWidth(g.results.DoomChangeText(), 400), 14, 58, color.RGBA{R: 255, G: 210, B: 180, A: 255})
+	drawUIText(screen, trimToWidth(g.results.DiceText(), 400), 14, 72, color.RGBA{R: 220, G: 240, B: 255, A: 255})
 }
 
 func (g *Game) drawOnboarding(screen *ebiten.Image) {
@@ -367,6 +378,95 @@ func (g *Game) enqueueBoard(gs ebclient.GameState) {
 		})
 		_ = gs // board layout is static; gs unused here
 	}
+}
+
+// drawBoardOverlay adds readable location labels and movement cues on top of
+// the board tiles. This keeps the four-neighbourhood map understandable even
+// when placeholder art is still in use.
+func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
+	currentPlayer, ok := gs.Players[gs.CurrentPlayer]
+	if !ok {
+		g.drawLocationLabels(screen)
+		return
+	}
+
+	currentLocation := currentPlayer.Location
+	legalMoves := boardAdjacency[currentLocation]
+	legalSet := make(map[ebclient.Location]struct{}, len(legalMoves))
+	for _, loc := range legalMoves {
+		legalSet[loc] = struct{}{}
+	}
+
+	centers := make(map[ebclient.Location][2]float64, len(locationRects))
+	for loc, rect := range locationRects {
+		cx, cy, _ := g.projectPoint(float64(rect.x+rect.w/2), float64(rect.y+rect.h/2))
+		centers[loc] = [2]float64{cx, cy}
+	}
+
+	if currentCenter, ok := centers[currentLocation]; ok {
+		for _, target := range legalMoves {
+			if targetCenter, ok := centers[target]; ok {
+				ebitenutil.DrawLine(screen, currentCenter[0], currentCenter[1], targetCenter[0], targetCenter[1], color.RGBA{R: 110, G: 230, B: 255, A: 160})
+			}
+		}
+	}
+
+	for loc, rect := range locationRects {
+		px, py, scale := g.projectPoint(float64(rect.x), float64(rect.y))
+		width := float64(rect.w) * scale
+		height := float64(rect.h) * scale
+		border := color.RGBA{R: 220, G: 220, B: 235, A: 120}
+		fill := color.RGBA{R: 10, G: 12, B: 20, A: 90}
+		switch {
+		case loc == currentLocation:
+			border = color.RGBA{R: 255, G: 220, B: 100, A: 235}
+			fill = color.RGBA{R: 110, G: 90, B: 20, A: 90}
+		case func() bool { _, ok := legalSet[loc]; return ok }():
+			border = color.RGBA{R: 90, G: 220, B: 255, A: 220}
+			fill = color.RGBA{R: 20, G: 50, B: 70, A: 90}
+		}
+
+		ebitenutil.DrawRect(screen, px, py, width, height, fill)
+		drawTileBorder(screen, px, py, width, height, border)
+
+		labelX, labelY := ui.ProjectLabelPosition(float64(rect.x), float64(rect.y), float64(rect.w), float64(rect.h), g.boardView)
+		label := string(loc)
+		labelW := float64(textWidth(label) + 8)
+		ebitenutil.DrawRect(screen, labelX-4, labelY-2, labelW, 16, color.RGBA{R: 8, G: 8, B: 16, A: 200})
+		drawUIText(screen, label, int(labelX), int(labelY), color.White)
+	}
+
+	if currentLocation != "" {
+		movesText := "Legal moves: none"
+		if len(legalMoves) > 0 {
+			movesText = "Legal moves: " + string(legalMoves[0])
+			for i := 1; i < len(legalMoves); i++ {
+				movesText += ", " + string(legalMoves[i])
+			}
+		}
+		ebitenutil.DrawRect(screen, 32, 540, 320, 22, color.RGBA{R: 8, G: 10, B: 18, A: 200})
+		drawUIText(screen, trimToWidth(movesText, 300), 40, 544, color.RGBA{R: 220, G: 240, B: 255, A: 255})
+	}
+}
+
+// drawLocationLabels renders a readable label for each neighborhood tile.
+func (g *Game) drawLocationLabels(screen *ebiten.Image) {
+	for loc, rect := range locationRects {
+		labelX, labelY := ui.ProjectLabelPosition(float64(rect.x), float64(rect.y), float64(rect.w), float64(rect.h), g.boardView)
+		label := string(loc)
+		labelW := float64(textWidth(label) + 8)
+		ebitenutil.DrawRect(screen, labelX-4, labelY-2, labelW, 16, color.RGBA{R: 8, G: 8, B: 16, A: 200})
+		drawUIText(screen, label, int(labelX), int(labelY), color.White)
+	}
+}
+
+// drawTileBorder draws a simple rectangular outline using four thin fills.
+func drawTileBorder(screen *ebiten.Image, x, y, w, h float64, clr color.RGBA) {
+	const thickness = 2.0
+	ebitenutil.DrawRect(screen, x, y, w, thickness, clr)
+	ebitenutil.DrawRect(screen, x, y+h-thickness, w, thickness, clr)
+	ebitenutil.DrawRect(screen, x, y, thickness, h, clr)
+	ebitenutil.DrawRect(screen, x+w-thickness, y, thickness, h, clr)
 }
 
 // enqueueTokens adds token-layer draw commands for each connected player.
@@ -525,36 +625,218 @@ func (g *Game) drawEventLog(screen *ebiten.Image) {
 	}
 }
 
-// drawInputHints renders the keyboard shortcut legend in the lower-left corner.
+// drawInputHints renders a state-driven action panel in the lower-left corner.
 func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID string) {
-	y := bottomPanelY()
-	drawUIText(screen, "-- Controls --", 10, y, color.White)
-	y += 12
+	panelX := 10
+	panelY := bottomPanelY()
+	panelW := 360
+	panelH := 130
+	ebitenutil.DrawRect(screen, float64(panelX-2), float64(panelY-2), float64(panelW), float64(panelH), color.RGBA{R: 10, G: 12, B: 20, A: 210})
+	drawUIText(screen, "-- Available Actions --", panelX, panelY, color.White)
+	panelY += 12
 
 	isMyTurn := gs.CurrentPlayer == myID && gs.GamePhase == "playing"
-	drawUIText(screen, g.turnStatusLabel(gs, myID, isMyTurn), 10, y, color.White)
-	y += 12
-
-	hints := []string{
-		"1 Move→Downtown  2 Move→University",
-		"3 Move→Rivertown 4 Move→Northside",
-		"G Gather  I Investigate  W Ward",
-		"[ / ] Rotate Camera  V Toggle Top-Down",
-		"H Skip Tutorial  ENTER Advance Tutorial",
-	}
-	for _, h := range hints {
-		drawUIText(screen, h, 10, y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
-		y += 12
-	}
+	drawUIText(screen, g.turnStatusLabel(gs, myID, isMyTurn), panelX, panelY, color.White)
+	panelY += 12
 
 	metrics := g.state.UXMetrics()
-	drawUIText(screen, g.firstActionStatusText(metrics), 10, y, color.RGBA{R: 180, G: 220, B: 255, A: 255})
-	y += 12
-	drawUIText(screen, "Invalid retries: "+strconv.Itoa(metrics.InvalidActionRetries), 10, y,
+	drawUIText(screen, "Actions left: "+strconv.Itoa(g.remainingActions(gs, myID)), panelX, panelY, color.RGBA{R: 180, G: 220, B: 255, A: 255})
+	panelY += 12
+	drawUIText(screen, g.firstActionStatusText(metrics), panelX, panelY, color.RGBA{R: 180, G: 220, B: 255, A: 255})
+	panelY += 12
+	drawUIText(screen, "Invalid retries: "+strconv.Itoa(metrics.InvalidActionRetries), panelX, panelY,
 		color.RGBA{R: 255, G: 200, B: 170, A: 255})
-	y += 12
-	drawUIText(screen, g.cameraStatusText(), 10, y, color.RGBA{R: 200, G: 220, B: 255, A: 255})
+	panelY += 12
+	drawUIText(screen, trimToWidth(g.invalidActionHint(metrics.LastInvalidReason), 350), panelX, panelY,
+		color.RGBA{R: 255, G: 220, B: 180, A: 255})
+	panelY += 12
+	drawUIText(screen, g.cameraStatusText(), panelX, panelY, color.RGBA{R: 200, G: 220, B: 255, A: 255})
+
+	actions := g.availableActions(gs, myID)
+	leftX := panelX
+	rightX := panelX + 180
+	startY := bottomPanelY() + 72
+	for i, action := range actions {
+		x := leftX
+		y := startY + (i%6)*10
+		if i >= 6 {
+			x = rightX
+		}
+		prefix := "[x]"
+		clr := color.RGBA{R: 255, G: 180, B: 160, A: 255}
+		if action.Available {
+			prefix = "[✓]"
+			clr = color.RGBA{R: 160, G: 255, B: 180, A: 255}
+		}
+		line := prefix + " " + action.Name
+		if action.Detail != "" {
+			line += " - " + action.Detail
+		}
+		drawUIText(screen, trimToWidth(line, 165), x, y, clr)
+	}
 	g.drawEndBanner(screen, gs)
+}
+
+type actionAvailability struct {
+	Name      string
+	Detail    string
+	Available bool
+}
+
+func (g *Game) availableActions(gs ebclient.GameState, myID string) []actionAvailability {
+	actions := make([]actionAvailability, 0, 10)
+	turnActive := gs.GamePhase == "playing" && gs.CurrentPlayer == myID
+	remaining := g.remainingActions(gs, myID)
+	currentLocation := g.playerLocation(gs, myID)
+	legalMoves := boardAdjacency[currentLocation]
+	coLocated := g.colocatedPlayer(gs, myID)
+	openGate := g.hasOpenGateAt(gs, currentLocation)
+	hasEnemy := g.hasEnemyAtLocation(gs, currentLocation)
+	sanity := g.playerSanity(gs, myID)
+
+	add := func(name, detail string, available bool) {
+		actions = append(actions, actionAvailability{Name: name, Detail: detail, Available: available})
+	}
+
+	moveDetail := ""
+	if len(legalMoves) > 0 {
+		moveDetail = "to " + string(legalMoves[0])
+		for i := 1; i < len(legalMoves); i++ {
+			moveDetail += ", " + string(legalMoves[i])
+		}
+	} else {
+		moveDetail = "no adjacent location"
+	}
+	add("Move", moveDetail, turnActive && remaining > 0)
+	add("Gather", "gain resources", turnActive && remaining > 0)
+	add("Investigate", "2-success clue test", turnActive && remaining > 0)
+	add("Ward", g.wardDetail(turnActive, remaining, sanity), turnActive && remaining > 0 && sanity > 1)
+	add("Focus", "gain focus", turnActive && remaining > 0)
+	add("Research", "improved clue test", turnActive && remaining > 0)
+	add("Trade", g.tradeDetail(turnActive, remaining, coLocated), turnActive && remaining > 0 && coLocated != "")
+	add("Component", "archetype ability", turnActive && remaining > 0)
+	add("Attack", g.attackDetail(turnActive, remaining, hasEnemy), turnActive && remaining > 0 && hasEnemy)
+	add("Evade", g.attackDetail(turnActive, remaining, hasEnemy), turnActive && remaining > 0 && hasEnemy)
+	add("Close Gate", g.closeGateDetail(turnActive, remaining, openGate), turnActive && remaining > 0 && openGate)
+
+	return actions
+}
+
+func (g *Game) remainingActions(gs ebclient.GameState, myID string) int {
+	if p, ok := gs.Players[myID]; ok {
+		return p.ActionsRemaining
+	}
+	return 0
+}
+
+func (g *Game) playerLocation(gs ebclient.GameState, myID string) ebclient.Location {
+	if p, ok := gs.Players[myID]; ok {
+		return p.Location
+	}
+	return ""
+}
+
+func (g *Game) playerSanity(gs ebclient.GameState, myID string) int {
+	if p, ok := gs.Players[myID]; ok {
+		return p.Resources.Sanity
+	}
+	return 0
+}
+
+func (g *Game) colocatedPlayer(gs ebclient.GameState, myID string) string {
+	me, ok := gs.Players[myID]
+	if !ok {
+		return ""
+	}
+	for otherID, other := range gs.Players {
+		if otherID != myID && other.Location == me.Location && !other.Defeated {
+			return otherID
+		}
+	}
+	return ""
+}
+
+func (g *Game) hasEnemyAtLocation(gs ebclient.GameState, loc ebclient.Location) bool {
+	for _, enemy := range gs.Enemies {
+		if enemy != nil && enemy.Location == loc {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Game) hasOpenGateAt(gs ebclient.GameState, loc ebclient.Location) bool {
+	for _, gate := range gs.OpenGates {
+		if gate.Location == loc {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Game) wardDetail(turnActive bool, remaining, sanity int) string {
+	if !turnActive {
+		return "wait for your turn"
+	}
+	if remaining <= 0 {
+		return "no actions left"
+	}
+	if sanity <= 1 {
+		return "need 1 sanity to spend"
+	}
+	return "costs 1 sanity"
+}
+
+func (g *Game) tradeDetail(turnActive bool, remaining int, colocated string) string {
+	if !turnActive {
+		return "wait for your turn"
+	}
+	if remaining <= 0 {
+		return "no actions left"
+	}
+	if colocated == "" {
+		return "need a co-located ally"
+	}
+	return "with " + colocated
+}
+
+func (g *Game) attackDetail(turnActive bool, remaining int, hasEnemy bool) string {
+	if !turnActive {
+		return "wait for your turn"
+	}
+	if remaining <= 0 {
+		return "no actions left"
+	}
+	if !hasEnemy {
+		return "need an enemy here"
+	}
+	return "enemy at location"
+}
+
+func (g *Game) closeGateDetail(turnActive bool, remaining int, openGate bool) string {
+	if !turnActive {
+		return "wait for your turn"
+	}
+	if remaining <= 0 {
+		return "no actions left"
+	}
+	if !openGate {
+		return "need an open gate here"
+	}
+	return "seal the gate"
+}
+
+func (g *Game) invalidActionHint(reason string) string {
+	switch reason {
+	case "":
+		return "Last invalid: none yet"
+	case "out-of-turn-or-disconnected":
+		return "Last invalid: wait for your turn or reconnect"
+	case "trade-no-colocated-player":
+		return "Last invalid: trade needs a co-located ally; move to the same location first"
+	default:
+		return "Last invalid: " + reason
+	}
 }
 
 func (g *Game) firstActionStatusText(metrics ebclient.UXMetricsSnapshot) string {
