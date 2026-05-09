@@ -104,11 +104,11 @@ Tasks:
 6. Verify no direct hardcoded paths remain in gameplay rendering code.
 
 Completion checklist:
-- [ ] All target components render PNG assets from YAML references.
-- [ ] No hardcoded component asset paths remain in render paths.
-- [ ] Startup preflight reports missing assets clearly.
-- [ ] Runtime fallback visuals are visible and non-blocking.
-- [ ] Coverage report confirms manifest key usage for all components.
+- [x] All target components render PNG assets from YAML references.
+- [x] No hardcoded component asset paths remain in render paths.
+- [x] Startup preflight reports missing assets clearly.
+- [x] Runtime fallback visuals are visible and non-blocking.
+- [x] Coverage report confirms manifest key usage for all components.
 
 Deliverables:
 - Updated render integration using resolver-based lookups.

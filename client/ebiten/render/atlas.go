@@ -6,7 +6,6 @@ package render
 
 import (
 	"bytes"
-	_ "embed"
 	"image"
 	"image/color"
 	"image/png"
@@ -14,12 +13,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-// spritesheetPNG is the 512×512 sprite-sheet atlas embedded at build time.
-// Artists replace assets/sprites.png to update visuals without any code change.
-//
-//go:embed assets/sprites.png
-var spritesheetPNG []byte
 
 // SpriteID identifies a named entry in the texture atlas.
 type SpriteID int

@@ -1,0 +1,55 @@
+content:
+  visuals:
+    version: 1
+    basePath: assets
+    placeholders:
+      missing: sprites.png
+    components:
+      board.background:
+        file: sprites.png
+        x: 0
+        y: 0
+        w: 64
+        h: 64
+      location.downtown:
+        file: sprites.png
+        x: 64
+        y: 0
+        w: 64
+        h: 64
+      location.university:
+        file: sprites.png
+        x: 128
+        y: 0
+        w: 64
+        h: 64
+      location.rivertown:
+        file: sprites.png
+        x: 192
+        y: 0
+        w: 64
+        h: 64
+      location.northside:
+        file: sprites.png
+        x: 256
+        y: 0
+        w: 64
+        h: 64
+      token.investigator.default:
+        file: sprites.png
+        x: 320
+        y: 0
+        w: 64
+        h: 64
+      hud.doom.marker:
+        file: sprites.png
+        x: 384
+        y: 0
+        w: 64
+        h: 64
+      ui.action.button.default:
+        file: sprites.png
+        x: 448
+        y: 0
+        w: 64
+        h: 64

@@ -38,6 +38,10 @@ type ComponentAsset struct {
 	Hover     string `yaml:"hover,omitempty"`
 	Pressed   string `yaml:"pressed,omitempty"`
 	Disabled  string `yaml:"disabled,omitempty"`
+	X         int    `yaml:"x,omitempty"`
+	Y         int    `yaml:"y,omitempty"`
+	W         int    `yaml:"w,omitempty"`
+	H         int    `yaml:"h,omitempty"`
 	ScaleMode string `yaml:"scaleMode,omitempty"`
 	Anchor    string `yaml:"anchor,omitempty"`
 }
@@ -133,9 +137,27 @@ func validateVisualManifest(manifest *VisualManifest, duplicates []string) []str
 		if err := validateOptionalPath(componentID, "disabled", asset.Disabled); err != nil {
 			issues = append(issues, err.Error())
 		}
+
+		if err := validateCropRect(componentID, asset); err != nil {
+			issues = append(issues, err.Error())
+		}
 	}
 
 	return issues
+}
+
+func validateCropRect(componentID string, asset ComponentAsset) error {
+	// No crop rectangle specified.
+	if asset.X == 0 && asset.Y == 0 && asset.W == 0 && asset.H == 0 {
+		return nil
+	}
+	if asset.X < 0 || asset.Y < 0 {
+		return fmt.Errorf("components.%s crop x/y must be non-negative", componentID)
+	}
+	if asset.W <= 0 || asset.H <= 0 {
+		return fmt.Errorf("components.%s crop w/h must be positive when crop is specified", componentID)
+	}
+	return nil
 }
 
 func validateOptionalPath(componentID, field, value string) error {
