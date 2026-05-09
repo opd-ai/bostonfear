@@ -229,14 +229,14 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 | Render rate | 60 FPS | Ebitengine default; ROADMAP.md Phase 5 |
 | Input latency | < 16 ms click → action send | 1-frame budget at 60 FPS |
 | State render lag | ≤ 1 frame after `gameState` receipt | README.md Performance Standards |
-| Reconnect token storage | `~/.bostonfear/session.json` | PLAN.md Step 5 |
+| Reconnect token storage | Browser `localStorage` or file-based per platform | README.md — "Session Persistence: The JS browser client reclaims its player slot automatically using a server-issued reconnect token (stored in `localStorage`)" |
 | Minimum window size | 1024×600 | Derived from logical 1280×720 at ~80% scale |
-| Max players | 6 | RULES.md — "1-6 player support"; `cmd/server/constants.go` |
-| State sync SLA | < 500 ms | README.md Performance Standards — "Sub-500ms state synchronization" |
-| Automatic reconnection retry | Every 5 seconds | README.md — "Automatic reconnection with 5-second retry" |
-| Reconnection grace period | 60 seconds | GAPS.md — orphaned-player grace period |
+| Max players | 6 | serverengine/game_constants.go — `MaxPlayers = 6` |
+| State sync SLA | < 500 ms | README.md Performance Standards — "Real-time game state synchronization"; ROADMAP.md Priority 1 broadcast latency gate |
+| Automatic reconnection retry | 5s initial, doubles per attempt, capped at 30s | README.md — "The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap)" |
+| Inactivity timeout | 30 seconds | README.md — "The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the doom counter is incremented and the connection is closed" |
 
 ---
 
 *This document is requirements-only — no implementation code. Cross-referenced with:
-`RULES.md`, `README.md`, `GAPS.md`, `PLAN.md`, `ROADMAP.md`.*
+`RULES.md` (serverengine/arkhamhorror/RULES.md), `README.md`, `ROADMAP.md`, `MECHANICS_FLOW.md`.*
