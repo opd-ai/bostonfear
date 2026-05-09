@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/opd-ai/bostonfear/serverengine"
 )
 
 // TestDecodeGameState_FromDataWrapper verifies that decodeGameState correctly
@@ -99,7 +101,7 @@ func TestApplyConnectionStatus_PreservesToken(t *testing.T) {
 		"type":     "connectionStatus",
 		"playerId": "player1",
 		"token":    "abc123",
-		"quality":  map[string]interface{}{"latency": 10, "rating": "excellent"},
+		"quality":  map[string]interface{}{"latencyMs": 10, "quality": "excellent"},
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -328,13 +330,50 @@ func TestRouteMessage_ConnectionStatus(t *testing.T) {
 		"type":     "connectionStatus",
 		"playerId": "p2",
 		"token":    "tok-route-test",
-		"quality":  map[string]interface{}{"latency": 25, "rating": "good"},
+		"quality":  map[string]interface{}{"latencyMs": 25, "quality": "good"},
 	}
 	data, _ := json.Marshal(payload)
 	client.routeMessage(data)
 
 	if state.PlayerID != "p2" {
 		t.Errorf("PlayerID = %q, want p2", state.PlayerID)
+	}
+}
+
+// TestRouteMessage_ConnectionStatus_ServerPayloadShape verifies the client can
+// consume a marshaled serverengine.ConnectionStatusMessage without schema drift.
+func TestRouteMessage_ConnectionStatus_ServerPayloadShape(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	state := NewLocalState("ws://localhost:8080/ws")
+	client := NewNetClient(state)
+
+	payload := serverengine.ConnectionStatusMessage{
+		Type:     "connectionStatus",
+		PlayerID: "p3",
+		Quality: serverengine.ConnectionQuality{
+			LatencyMs: 37,
+			Quality:   "good",
+		},
+		AllPlayerQualities: map[string]serverengine.ConnectionQuality{
+			"p3": {
+				LatencyMs: 37,
+				Quality:   "good",
+			},
+		},
+	}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	client.routeMessage(data)
+
+	if state.PlayerID != "p3" {
+		t.Errorf("PlayerID = %q, want p3", state.PlayerID)
+	}
+	if state.ConnectionRating != "good" {
+		t.Errorf("ConnectionRating = %q, want good", state.ConnectionRating)
 	}
 }
 

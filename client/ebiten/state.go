@@ -86,8 +86,8 @@ type (
 
 // ConnectionQuality mirrors the server's ConnectionQuality type.
 type ConnectionQuality struct {
-	Latency int    `json:"latency"`
-	Rating  string `json:"rating"`
+	LatencyMs float64 `json:"latencyMs"`
+	Quality   string  `json:"quality"`
 }
 
 // ConnectionStatusData mirrors the server's ConnectionStatusMessage.Data.
@@ -254,7 +254,7 @@ func (s *LocalState) UpdateGameEvent(gu GameUpdateData) {
 func (s *LocalState) UpdateConnectionStatus(cs ConnectionStatusData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.ConnectionRating = cs.Quality.Rating
+	s.ConnectionRating = cs.Quality.Quality
 }
 
 // SetConnected marks the WebSocket connection as up or down.
