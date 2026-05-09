@@ -2,13 +2,11 @@
 
 ## Assumptions and Constraints
 1. This plan is design and delivery planning only; no runtime behavior changes are applied here.
-2. Current UI is split across two clients:
-3. HTML Canvas client in [client/index.html](client/index.html) and [client/game.js](client/game.js).
-4. Go/Ebitengine client in [client/ebiten/app/game.go](client/ebiten/app/game.go), [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go), [client/ebiten/app/input.go](client/ebiten/app/input.go), and [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
-5. Current Ebitengine logical/render size is 800x600 and currently hard-wired in [client/ebiten/app/game.go](client/ebiten/app/game.go) and runtime setup in [cmd/desktop.go](cmd/desktop.go), [cmd/web_wasm.go](cmd/web_wasm.go).
-6. Shared message contract must remain stable and extend via backward-compatible fields in [protocol/protocol.go](protocol/protocol.go).
-7. Reusability must align with existing multi-game module architecture in [serverengine/common/contracts/module.go](serverengine/common/contracts/module.go), [serverengine/common/runtime/registry.go](serverengine/common/runtime/registry.go), and family modules like [serverengine/arkhamhorror/module.go](serverengine/arkhamhorror/module.go).
-8. Performance constraints:
+2. Current UI is the Go/Ebitengine client in [client/ebiten/app/game.go](client/ebiten/app/game.go), [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go), [client/ebiten/app/input.go](client/ebiten/app/input.go), and [client/ebiten/render/layers.go](client/ebiten/render/layers.go).
+3. Current Ebitengine logical/render size is 800x600 and currently hard-wired in [client/ebiten/app/game.go](client/ebiten/app/game.go) and runtime setup in [cmd/desktop.go](cmd/desktop.go), [cmd/web_wasm.go](cmd/web_wasm.go).
+4. Shared message contract must remain stable and extend via backward-compatible fields in [protocol/protocol.go](protocol/protocol.go).
+5. Reusability must align with existing multi-game module architecture in [serverengine/common/contracts/module.go](serverengine/common/contracts/module.go), [serverengine/common/runtime/registry.go](serverengine/common/runtime/registry.go), and family modules like [serverengine/arkhamhorror/module.go](serverengine/arkhamhorror/module.go).
+6. Performance constraints:
 9. Desktop/WASM target 60 FPS.
 10. Mobile/low-end fallback target 30 FPS with adaptive quality.
 11. UI feedback latency target under 100 ms for action acknowledgement.
@@ -34,7 +32,6 @@
 - [x] Reusable component candidates: `ui/inputmap` (screen-to-world transform, hitbox registry).
 - [x] Dependencies: Existing scene system in [client/ebiten/app/scenes.go](client/ebiten/app/scenes.go).
 - [x] Dependencies: Input routing in [client/ebiten/app/input.go](client/ebiten/app/input.go).
-- [x] Dependencies: Canvas resize behavior in [client/game.js](client/game.js).
 - [x] Acceptance criteria: Portrait, landscape, and widescreen snapshots show no clipped or overlapping critical UI.
 - [x] Acceptance criteria: All action targets meet minimum touch size.
 - [x] Acceptance criteria: Turn, doom, and resources remain visible at all supported sizes.
@@ -53,7 +50,7 @@
 - [x] Reusable component candidates: `ui/hud` (status rail, player strip, action rail primitives).
 - [x] Reusable component candidates: `ui/feedback` (toasts, confirmations, transient update queue).
 - [x] Reusable component candidates: `ui/components` (badges, pills, counters, segmented bars).
-- [x] Dependencies: Event stream from `gameUpdate`, `diceResult`, and `gameState` in [client/game.js](client/game.js) and [client/ebiten/net.go](client/ebiten/net.go).
+- [x] Dependencies: Event stream from `gameUpdate`, `diceResult`, and `gameState` in [client/ebiten/net.go](client/ebiten/net.go).
 - [x] Dependencies: Shared action semantics in [protocol/protocol.go](protocol/protocol.go).
 - [x] Acceptance criteria: Current turn, actions remaining, and available actions are identifiable in under 3 seconds.
 - [x] Acceptance criteria: Every user action gets immediate pending feedback and explicit result feedback.
@@ -136,7 +133,7 @@
 - [x] Reusable component candidates: `ui/turn` (active-turn and actions-remaining widgets).
 - [x] Reusable component candidates: `ui/state` (sync/reconnect/pending status banner).
 - [x] Reusable component candidates: `ui/results` (structured action outcome panel).
-- [ ] Dependencies: Reconnect/session semantics in [client/ebiten/state.go](client/ebiten/state.go) and [client/game.js](client/game.js).
+- [ ] Dependencies: Reconnect/session semantics in [client/ebiten/state.go](client/ebiten/state.go).
 - [ ] Dependencies: Event and protocol messages from [protocol/protocol.go](protocol/protocol.go).
 - [ ] Acceptance criteria: New player completes first full turn without external docs.
 - [ ] Acceptance criteria: Every action displays pending and resolved feedback with deltas.
