@@ -347,10 +347,13 @@ func (g *Game) drawResultsPanel(screen *ebiten.Image) {
 		return
 	}
 	ebitenutil.DrawRect(screen, 8, 24, 420, 78, color.RGBA{R: 30, G: 30, B: 40, A: 220})
-	drawUIText(screen, trimToWidth(g.results.OutcomeText(), 400), 14, 30, color.White)
-	drawUIText(screen, trimToWidth(g.results.ResourceDeltaText(), 400), 14, 44, color.RGBA{R: 210, G: 230, B: 255, A: 255})
-	drawUIText(screen, trimToWidth(g.results.DoomChangeText(), 400), 14, 58, color.RGBA{R: 255, G: 210, B: 180, A: 255})
-	drawUIText(screen, trimToWidth(g.results.DiceText(), 400), 14, 72, color.RGBA{R: 220, G: 240, B: 255, A: 255})
+
+	// Draw outcome, resource delta, doom change, and dice text with wrapping instead of truncation.
+	y := 30
+	y = drawWrappedText(screen, g.results.OutcomeText(), 400, 14, y, color.White) + 3
+	y = drawWrappedText(screen, g.results.ResourceDeltaText(), 400, 14, y, color.RGBA{R: 210, G: 230, B: 255, A: 255}) + 2
+	y = drawWrappedText(screen, g.results.DoomChangeText(), 400, 14, y, color.RGBA{R: 255, G: 210, B: 180, A: 255}) + 2
+	drawWrappedText(screen, g.results.DiceText(), 400, 14, y, color.RGBA{R: 220, G: 240, B: 255, A: 255})
 }
 
 func (g *Game) drawOnboarding(screen *ebiten.Image) {
@@ -362,9 +365,12 @@ func (g *Game) drawOnboarding(screen *ebiten.Image) {
 		return
 	}
 	ebitenutil.DrawRect(screen, 120, 90, 560, 96, color.RGBA{R: 12, G: 12, B: 22, A: 240})
-	drawUIText(screen, trimToWidth(step.Title, 540), 136, 102, color.RGBA{R: 230, G: 230, B: 255, A: 255})
-	drawUIText(screen, trimToWidth(step.Description, 540), 136, 120, color.White)
-	drawUIText(screen, "ENTER: next  H: skip tutorial", 136, 154, color.RGBA{R: 200, G: 200, B: 220, A: 255})
+
+	// Draw title and description with wrapping for better readability.
+	y := 102
+	y = drawWrappedText(screen, step.Title, 540, 136, y, color.RGBA{R: 230, G: 230, B: 255, A: 255}) + 3
+	y = drawWrappedText(screen, step.Description, 540, 136, y, color.White) + 3
+	drawUIText(screen, "ENTER: next  H: skip tutorial", 136, y, color.RGBA{R: 200, G: 200, B: 220, A: 255})
 }
 
 // enqueueBoard adds one board-layer draw command per location.
