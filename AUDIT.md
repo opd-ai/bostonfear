@@ -43,7 +43,7 @@ Primary improvement area: state visibility.
 - [x] Render the actual dice faces and required success threshold after each roll.
 - [x] Surface human-readable invalid-action errors instead of only retry counts.
 - [x] Add touch parity for the full supported action set.
-- [ ] Prevent touch action taps from also rotating or toggling the camera.
+- [x] Prevent touch action taps from also rotating or toggling the camera.
 - [ ] Promote player display names into the shared wire-visible UI identity.
 - [ ] Correct the WASM host status so it distinguishes client boot from server connectivity.
 - [ ] Upgrade text rendering and wrap long tutorial, event, and result text.
@@ -159,9 +159,9 @@ Primary improvement area: state visibility.
 - Fix: Consume touch input once or suppress camera gestures when the touch lands in an interactive gameplay region.
 - Validation: Needs runtime validation on touch hardware; action taps should never change the camera.
 - Remediation Checklist:
-  - [ ] Add touch-consumption or gesture-priority rules.
-  - [ ] Reserve camera gestures for non-interactive regions.
-  - [ ] Add a touch regression test or manual checklist.
+  - [x] Add touch-consumption or gesture-priority rules.
+  - [x] Reserve camera gestures for non-interactive regions.
+  - [x] Add a touch regression test or manual checklist.
 
 ### [MEDIUM] Character selection is mechanically opaque for first-time players
 - File: `client/ebiten/app/scenes.go`
