@@ -4,6 +4,8 @@ package serverengine
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -35,9 +37,14 @@ func TestStressTest_6Players(t *testing.T) {
 		t.Skip("Skipping stress test in short mode")
 	}
 
-	const duration = 30 * time.Second // 30-second stress test (CI-suitable)
 	const numPlayers = 6
-	const actionIntervalMs = 500 // ms between actions per player
+
+	profile, err := loadSoakProfile()
+	if err != nil {
+		t.Fatalf("failed to load soak profile: %v", err)
+	}
+	t.Logf("Soak profile: duration=%v actionInterval=%v reconnectInterval=%v reconnectDowntime=%v",
+		profile.Duration, profile.ActionInterval, profile.ReconnectInterval, profile.ReconnectDowntime)
 
 	metrics := &soakTestMetrics{startTime: time.Now()}
 
@@ -89,7 +96,7 @@ func TestStressTest_6Players(t *testing.T) {
 		wg.Add(1)
 		go func(pid string) {
 			defer wg.Done()
-			ticker := time.NewTicker(time.Duration(actionIntervalMs) * time.Millisecond)
+			ticker := time.NewTicker(profile.ActionInterval)
 			defer ticker.Stop()
 
 			for {
@@ -131,10 +138,49 @@ func TestStressTest_6Players(t *testing.T) {
 		}(playerID)
 	}
 
+	if profile.ReconnectInterval > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			reconnectTicker := time.NewTicker(profile.ReconnectInterval)
+			defer reconnectTicker.Stop()
+
+			for {
+				select {
+				case <-stopCh:
+					return
+				case <-reconnectTicker.C:
+					pid := playerIDs[rand.Intn(len(playerIDs))]
+					gs.mutex.Lock()
+					if p, ok := gs.gameState.Players[pid]; ok {
+						p.Connected = false
+					}
+					gs.mutex.Unlock()
+
+					timer := time.NewTimer(profile.ReconnectDowntime)
+					select {
+					case <-stopCh:
+						timer.Stop()
+						return
+					case <-timer.C:
+					}
+
+					gs.mutex.Lock()
+					if p, ok := gs.gameState.Players[pid]; ok {
+						p.Connected = true
+					}
+					gs.mutex.Unlock()
+				}
+			}
+		}()
+	}
+
 	// Monitor game state every 10 seconds
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	startTime := time.Now()
+	testTimer := time.NewTimer(profile.Duration)
+	defer testTimer.Stop()
 
 	for {
 		select {
@@ -165,7 +211,7 @@ func TestStressTest_6Players(t *testing.T) {
 				elapsed.Round(time.Second), actionCount, throughput, doom,
 				len(stateCopy.Players), stateCopy.GamePhase)
 
-		case <-time.After(duration):
+		case <-testTimer.C:
 			// Test duration completed
 			close(stopCh)
 			wg.Wait()
@@ -181,7 +227,7 @@ func TestStressTest_6Players(t *testing.T) {
 			throughput := float64(finalActions) / elapsed.Seconds()
 			errors := metrics.gameStateErrors.Load()
 
-			t.Logf("\n=== STRESS TEST RESULTS (30 seconds) ===")
+			t.Logf("\n=== STRESS TEST RESULTS (%v) ===", profile.Duration)
 			t.Logf("Total Actions: %d", finalActions)
 			t.Logf("Throughput: %.2f actions/sec", throughput)
 			t.Logf("Max Doom Reached: %d", metrics.doomMaxValue.Load())
@@ -203,6 +249,67 @@ func TestStressTest_6Players(t *testing.T) {
 			return
 		}
 	}
+}
+
+type soakProfile struct {
+	Duration          time.Duration
+	ActionInterval    time.Duration
+	ReconnectInterval time.Duration
+	ReconnectDowntime time.Duration
+}
+
+func loadSoakProfile() (soakProfile, error) {
+	profile := soakProfile{
+		Duration:          30 * time.Second,
+		ActionInterval:    500 * time.Millisecond,
+		ReconnectInterval: 20 * time.Second,
+		ReconnectDowntime: 2 * time.Second,
+	}
+
+	var err error
+	if profile.Duration, err = durationFromEnv("BOSTONFEAR_SOAK_DURATION", profile.Duration); err != nil {
+		return soakProfile{}, err
+	}
+	if profile.ActionInterval, err = durationFromEnv("BOSTONFEAR_SOAK_ACTION_INTERVAL", profile.ActionInterval); err != nil {
+		return soakProfile{}, err
+	}
+	if profile.ReconnectInterval, err = durationFromEnv("BOSTONFEAR_SOAK_RECONNECT_INTERVAL", profile.ReconnectInterval); err != nil {
+		return soakProfile{}, err
+	}
+	if profile.ReconnectDowntime, err = durationFromEnv("BOSTONFEAR_SOAK_RECONNECT_DOWNTIME", profile.ReconnectDowntime); err != nil {
+		return soakProfile{}, err
+	}
+
+	if profile.Duration <= 0 {
+		return soakProfile{}, fmt.Errorf("BOSTONFEAR_SOAK_DURATION must be > 0")
+	}
+	if profile.ActionInterval <= 0 {
+		return soakProfile{}, fmt.Errorf("BOSTONFEAR_SOAK_ACTION_INTERVAL must be > 0")
+	}
+	if profile.ReconnectInterval < 0 {
+		return soakProfile{}, fmt.Errorf("BOSTONFEAR_SOAK_RECONNECT_INTERVAL must be >= 0")
+	}
+	if profile.ReconnectDowntime <= 0 {
+		return soakProfile{}, fmt.Errorf("BOSTONFEAR_SOAK_RECONNECT_DOWNTIME must be > 0")
+	}
+
+	return profile, nil
+}
+
+func durationFromEnv(key string, fallback time.Duration) (time.Duration, error) {
+	raw, ok := os.LookupEnv(key)
+	if !ok || raw == "" {
+		return fallback, nil
+	}
+	parsed, err := time.ParseDuration(raw)
+	if err == nil {
+		return parsed, nil
+	}
+	seconds, intErr := strconv.Atoi(raw)
+	if intErr == nil {
+		return time.Duration(seconds) * time.Second, nil
+	}
+	return 0, fmt.Errorf("invalid %s=%q: %w", key, raw, err)
 }
 
 // isExpectedActionError returns true for errors that are expected in normal play

@@ -1,0 +1,53 @@
+name: Soak
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Soak profile to run"
+        required: true
+        default: short
+        type: choice
+        options:
+          - short
+          - long
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  soak:
+    name: Soak Test
+    runs-on: ubuntu-latest
+    env:
+      SOAK_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'long' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev xvfb
+      - name: Run soak profile
+        run: |
+          case "$SOAK_PROFILE" in
+            long)
+              duration="15m"
+              reconnect_interval="25s"
+              ;;
+            *)
+              duration="30s"
+              reconnect_interval="20s"
+              ;;
+          esac
+
+          echo "Running soak profile: $SOAK_PROFILE"
+          echo "Duration: $duration"
+
+          DISPLAY=:99 xvfb-run -a env \
+            BOSTONFEAR_SOAK_DURATION="$duration" \
+            BOSTONFEAR_SOAK_ACTION_INTERVAL="500ms" \
+            BOSTONFEAR_SOAK_RECONNECT_INTERVAL="$reconnect_interval" \
+            BOSTONFEAR_SOAK_RECONNECT_DOWNTIME="2s" \
+            go test -race -count=1 -run TestStressTest_6Players ./serverengine
