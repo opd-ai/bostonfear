@@ -50,4 +50,12 @@ jobs:
             BOSTONFEAR_SOAK_ACTION_INTERVAL="500ms" \
             BOSTONFEAR_SOAK_RECONNECT_INTERVAL="$reconnect_interval" \
             BOSTONFEAR_SOAK_RECONNECT_DOWNTIME="2s" \
-            go test -race -count=1 -run TestStressTest_6Players ./serverengine
+            BOSTONFEAR_SOAK_METRICS_FILE="/tmp/soak-metrics.json" \
+            go test -json -race -count=1 -run TestStressTest_6Players ./serverengine | tee /tmp/soak-test.json
+      - name: Upload soak artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-artifacts-${{ env.SOAK_PROFILE }}
+          path: |
+            /tmp/soak-test.json
+            /tmp/soak-metrics.json

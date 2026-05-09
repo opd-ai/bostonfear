@@ -2,6 +2,7 @@
 package serverengine
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -283,6 +284,21 @@ func TestStressTest_6Players(t *testing.T) {
 			t.Logf("Summary: Stress test ran for %v with %d players, %d total actions, %d errors",
 				elapsed.Round(time.Second), playerCount, finalActions, errors)
 
+			_ = writeSoakMetrics(soakResult{
+				Duration:          elapsed.Round(time.Second).String(),
+				Actions:           finalActions,
+				Throughput:        throughput,
+				MaxDoom:           metrics.doomMaxValue.Load(),
+				FinalDoom:         doomFinal,
+				GameStateErrors:   errors,
+				MaxActionLatency:  maxLatencyMs,
+				StartGoroutines:   initialGoroutines,
+				EndGoroutines:     finalGoroutines,
+				CompletedAtUnix:   time.Now().Unix(),
+				ProfileActionTick: profile.ActionInterval.String(),
+				ProfileReconnect:  profile.ReconnectInterval.String(),
+			})
+
 			// Assertions
 			if doomFinal < 0 || doomFinal > 12 {
 				t.Errorf("Doom out of bounds at end: %d", doomFinal)
@@ -309,6 +325,21 @@ type soakProfile struct {
 	ActionInterval    time.Duration
 	ReconnectInterval time.Duration
 	ReconnectDowntime time.Duration
+}
+
+type soakResult struct {
+	Duration          string  `json:"duration"`
+	Actions           int64   `json:"actions"`
+	Throughput        float64 `json:"throughput"`
+	MaxDoom           int32   `json:"maxDoom"`
+	FinalDoom         int     `json:"finalDoom"`
+	GameStateErrors   int32   `json:"gameStateErrors"`
+	MaxActionLatency  int64   `json:"maxActionLatencyMs"`
+	StartGoroutines   int     `json:"startGoroutines"`
+	EndGoroutines     int     `json:"endGoroutines"`
+	CompletedAtUnix   int64   `json:"completedAtUnix"`
+	ProfileActionTick string  `json:"profileActionInterval"`
+	ProfileReconnect  string  `json:"profileReconnectInterval"`
 }
 
 func loadSoakProfile() (soakProfile, error) {
@@ -363,6 +394,18 @@ func durationFromEnv(key string, fallback time.Duration) (time.Duration, error) 
 		return time.Duration(seconds) * time.Second, nil
 	}
 	return 0, fmt.Errorf("invalid %s=%q: %w", key, raw, err)
+}
+
+func writeSoakMetrics(result soakResult) error {
+	path := os.Getenv("BOSTONFEAR_SOAK_METRICS_FILE")
+	if path == "" {
+		return nil
+	}
+	payload, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, payload, 0o644)
 }
 
 // isExpectedActionError returns true for errors that are expected in normal play
