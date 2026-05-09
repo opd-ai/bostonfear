@@ -29,6 +29,11 @@
 // - ProceduralGenerator: seeded generator for fog/grain/sigil/ambient overlays
 // - SeedFromGameState: derives a stable seed from scenario-identifying state
 //
+// Camera and Board View:
+// - Camera: 8-direction orbit controls with top-down fallback mode
+// - BoardView: projection mapper that applies camera transforms to board nodes
+// - Labels: projected label anchor helpers for readability-aware placement
+//
 // Example:
 //
 //	profile := ui.ResolveProfile(width, height)

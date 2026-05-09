@@ -68,6 +68,8 @@ type Game struct {
 	effects     ui.EffectProfile
 	theme       ui.ThemePack
 	procedural  *ui.ProceduralGenerator
+	camera      *ui.Camera
+	boardView   *ui.BoardView
 	procSeed    uint64
 	procFrame   ui.ProceduralFrame
 	procAtFrame int64
@@ -102,8 +104,10 @@ func NewGame(serverURL string) *Game {
 		quality:   quality,
 		effects:   ui.EffectProfileForTier(quality),
 		theme:     ui.ResolveThemePack(ui.NewDefaultArkhamTheme()),
+		camera:    ui.NewCamera(),
 		startedAt: time.Now(),
 	}
+	g.boardView = ui.NewBoardView(g.camera, 210, 190)
 	g.activeScene = &SceneConnect{game: g}
 	return g
 }
@@ -244,10 +248,13 @@ func (g *Game) drawProceduralAtmosphere(screen *ebiten.Image) {
 // enqueueBoard adds one board-layer draw command per location.
 func (g *Game) enqueueBoard(gs ebclient.GameState) {
 	for loc, rect := range locationRects {
+		px, py, scale := g.projectPoint(float64(rect.x), float64(rect.y))
 		g.renderer.Enqueue(render.LayerBoard, render.DrawCmd{
 			Sprite: render.LocationSpriteID(string(loc)),
-			X:      float64(rect.x),
-			Y:      float64(rect.y),
+			X:      px,
+			Y:      py,
+			ScaleX: scale,
+			ScaleY: scale,
 		})
 		_ = gs // board layout is static; gs unused here
 	}
@@ -270,13 +277,23 @@ func (g *Game) enqueueTokens(gs ebclient.GameState, myID string) {
 			// Slightly enlarge own token to make it stand out.
 			col.A = 255
 		}
+		px, py, scale := g.projectPoint(float64(rect.x+4+offset*14), float64(rect.y+rect.h-16))
 		g.renderer.Enqueue(render.LayerTokens, render.DrawCmd{
 			Sprite: render.SpritePlayerToken,
-			X:      float64(rect.x + 4 + offset*14),
-			Y:      float64(rect.y + rect.h - 16),
+			X:      px,
+			Y:      py,
+			ScaleX: scale,
+			ScaleY: scale,
 			Tint:   col,
 		})
 	}
+}
+
+func (g *Game) projectPoint(x, y float64) (float64, float64, float64) {
+	if g.boardView == nil {
+		return x, y, 1.0
+	}
+	return g.boardView.ProjectPoint(x, y)
 }
 
 // enqueueDoomEffect adds an effect-layer doom-marker segment scaled to doom level.
@@ -386,6 +403,7 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 		"1 Move→Downtown  2 Move→University",
 		"3 Move→Rivertown 4 Move→Northside",
 		"G Gather  I Investigate  W Ward",
+		"[ / ] Rotate Camera  V Toggle Top-Down",
 	}
 	for _, h := range hints {
 		drawUIText(screen, h, 10, y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
@@ -402,6 +420,16 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 	y += 12
 	drawUIText(screen, "Invalid retries: "+strconv.Itoa(metrics.InvalidActionRetries), 10, y,
 		color.RGBA{R: 255, G: 200, B: 170, A: 255})
+	y += 12
+	if g.camera != nil {
+		mode := "topdown"
+		if g.camera.Mode() == ui.ViewModePseudo3D {
+			mode = "pseudo3d"
+		}
+		drawUIText(screen,
+			"Camera: "+mode+" dir="+strconv.Itoa(g.camera.Direction()+1)+"/8",
+			10, y, color.RGBA{R: 200, G: 220, B: 255, A: 255})
+	}
 
 	// Win / lose banner.
 	if gs.WinCondition {

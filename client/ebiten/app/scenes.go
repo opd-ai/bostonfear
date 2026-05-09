@@ -279,7 +279,50 @@ type SceneGame struct {
 // Update processes player input and handles per-tick game logic.
 func (s *SceneGame) Update() error {
 	s.game.input.Update()
+	s.handleCameraControls()
 	return nil
+}
+
+func (s *SceneGame) handleCameraControls() {
+	if s.game.camera == nil {
+		return
+	}
+
+	// Keyboard: [ and ] orbit, V toggles top-down fallback.
+	if inpututil.IsKeyJustPressed(ebiten.KeyBracketLeft) {
+		s.game.camera.OrbitCCW()
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyBracketRight) {
+		s.game.camera.OrbitCW()
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
+		s.game.camera.ToggleViewMode()
+	}
+
+	// Mouse: wheel orbits, middle-click toggles fallback mode.
+	_, wheelY := ebiten.Wheel()
+	if wheelY > 0 {
+		s.game.camera.OrbitCW()
+	}
+	if wheelY < 0 {
+		s.game.camera.OrbitCCW()
+	}
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonMiddle) {
+		s.game.camera.ToggleViewMode()
+	}
+
+	// Touch gesture: tap left third = CCW, right third = CW, center = toggle.
+	for _, id := range inpututil.JustPressedTouchIDs() {
+		x, _ := ebiten.TouchPosition(id)
+		switch {
+		case x < screenWidth/3:
+			s.game.camera.OrbitCCW()
+		case x > screenWidth*2/3:
+			s.game.camera.OrbitCW()
+		default:
+			s.game.camera.ToggleViewMode()
+		}
+	}
 }
 
 // Draw composites the full game board via the layered renderer.
