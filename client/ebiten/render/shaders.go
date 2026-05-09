@@ -65,11 +65,13 @@ func DrawDoomVignette(dst *ebiten.Image, shaders *ShaderSet, doomFraction float3
 		return
 	}
 	w, h := dst.Bounds().Dx(), dst.Bounds().Dy()
+	src := ebiten.NewImage(w, h)
+	src.DrawImage(dst, nil)
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]interface{}{
 		"DoomFraction": doomFraction,
 	}
-	op.Images[0] = dst
+	op.Images[0] = src
 	dst.DrawRectShader(w, h, shaders.Doom, op)
 }
 
@@ -80,11 +82,13 @@ func DrawFogOverlay(dst *ebiten.Image, shaders *ShaderSet, opacity float32) {
 		return
 	}
 	w, h := dst.Bounds().Dx(), dst.Bounds().Dy()
+	src := ebiten.NewImage(w, h)
+	src.DrawImage(dst, nil)
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]interface{}{
 		"Opacity": opacity,
 	}
-	op.Images[0] = dst
+	op.Images[0] = src
 	dst.DrawRectShader(w, h, shaders.Fog, op)
 }
 
@@ -95,11 +99,13 @@ func DrawGlowOverlay(dst *ebiten.Image, shaders *ShaderSet, intensity, timeSecon
 		return
 	}
 	w, h := dst.Bounds().Dx(), dst.Bounds().Dy()
+	src := ebiten.NewImage(w, h)
+	src.DrawImage(dst, nil)
 	op := &ebiten.DrawRectShaderOptions{}
 	op.Uniforms = map[string]interface{}{
 		"Intensity": intensity,
 		"Time":      timeSeconds,
 	}
-	op.Images[0] = dst
+	op.Images[0] = src
 	dst.DrawRectShader(w, h, shaders.Glow, op)
 }
