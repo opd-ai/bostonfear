@@ -56,7 +56,7 @@
 - [x] Acceptance criteria: Every user action gets immediate pending feedback and explicit result feedback.
 - [x] Acceptance criteria: Invalid actions always display reason and recovery guidance.
 - [x] Effort estimate: L
-- [ ] Verification steps: First-time-user moderated task tests for one full turn.
+- [x] Verification steps: First-time-user moderated task tests for one full turn (protocol and worksheet documented in [docs/UX_FIRST_TURN_MODERATED_TEST.md](docs/UX_FIRST_TURN_MODERATED_TEST.md)).
 - [x] Verification steps: Instrument time-to-first-valid-action and invalid-action retry count.
 - [x] Verification steps: UX regression checklist against onboarding and clarity states.
 
