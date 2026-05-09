@@ -70,15 +70,25 @@ var spriteCoords = [spriteCount]spriteRect{
 // any code change; the coordinate table in spriteCoords must be kept in sync
 // with the art layout.
 type Atlas struct {
-	image   *ebiten.Image
-	entries [spriteCount]spriteRect
-	sources [spriteCount]*ebiten.Image
+	image    *ebiten.Image
+	entries  [spriteCount]spriteRect
+	sources  [spriteCount]*ebiten.Image
+	resolver AtlasAssetResolver
 }
 
 // NewAtlas creates an Atlas by calling generateAtlas to build or load the
 // texture image. The returned Atlas is ready to use immediately.
 func NewAtlas() *Atlas {
+	return NewAtlasWithResolver(NewEmbeddedAtlasResolver())
+}
+
+// NewAtlasWithResolver creates an Atlas using the provided asset resolver.
+func NewAtlasWithResolver(resolver AtlasAssetResolver) *Atlas {
+	if resolver == nil {
+		resolver = NewEmbeddedAtlasResolver()
+	}
 	a := &Atlas{}
+	a.resolver = resolver
 	a.generateAtlas()
 	return a
 }
@@ -117,10 +127,21 @@ func (a *Atlas) DrawSprite(dst *ebiten.Image, id SpriteID, dx, dy, scaleX, scale
 // The fallback path generates solid-colour placeholders only when PNG decoding
 // fails (e.g. a corrupt embed), which preserves correctness during development.
 func (a *Atlas) generateAtlas() {
-	img, err := decodeSpritesheet(spritesheetPNG)
+	if a.resolver == nil {
+		a.resolver = NewEmbeddedAtlasResolver()
+	}
+
+	data, err := a.resolver.SpriteSheetPNG()
+	if err != nil {
+		log.Printf("render: resolver failed to provide sprite sheet, using placeholder atlas: %v", err)
+		a.generatePlaceholderAtlas()
+		return
+	}
+
+	img, err := decodeSpritesheet(data)
 	if err == nil {
 		a.image = img
-		a.entries = spriteCoords
+		a.entries = a.resolver.SpriteCoordinates()
 		a.initSources()
 		return
 	}
