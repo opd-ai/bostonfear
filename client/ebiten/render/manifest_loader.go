@@ -138,9 +138,7 @@ func validateVisualManifest(manifest *VisualManifest, duplicates []string) []str
 			issues = append(issues, err.Error())
 		}
 
-		if err := validateCropRect(componentID, asset); err != nil {
-			issues = append(issues, err.Error())
-		}
+		issues = appendIssueFromError(issues, validateCropRect(componentID, asset))
 	}
 
 	return issues
@@ -158,6 +156,13 @@ func validateCropRect(componentID string, asset ComponentAsset) error {
 		return fmt.Errorf("components.%s crop w/h must be positive when crop is specified", componentID)
 	}
 	return nil
+}
+
+func appendIssueFromError(issues []string, err error) []string {
+	if err == nil {
+		return issues
+	}
+	return append(issues, err.Error())
 }
 
 func validateOptionalPath(componentID, field, value string) error {

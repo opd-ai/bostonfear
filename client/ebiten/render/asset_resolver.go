@@ -52,9 +52,17 @@ func NewEmbeddedAtlasResolver() AtlasAssetResolver {
 
 // SpriteSheetPNG returns the manifest-resolved PNG sprite sheet bytes.
 func (r *EmbeddedAtlasResolver) SpriteSheetPNG() ([]byte, error) {
-	r.once.Do(r.resolveFromManifest)
-	if r.resolveErr != nil {
-		return nil, r.resolveErr
+	return r.sheetPNGOrErr()
+}
+
+// SpriteCoordinates returns coordinates matching SpriteSheetPNG output.
+func (r *EmbeddedAtlasResolver) SpriteCoordinates() [spriteCount]spriteRect {
+	return r.coordsOrFallback()
+}
+
+func (r *EmbeddedAtlasResolver) sheetPNGOrErr() ([]byte, error) {
+	if err := r.ensureResolved(); err != nil {
+		return nil, err
 	}
 	if len(r.sheetPNG) == 0 {
 		return nil, fmt.Errorf("embedded resolver produced empty sprite sheet")
@@ -62,13 +70,19 @@ func (r *EmbeddedAtlasResolver) SpriteSheetPNG() ([]byte, error) {
 	return r.sheetPNG, nil
 }
 
-// SpriteCoordinates returns coordinates matching SpriteSheetPNG output.
-func (r *EmbeddedAtlasResolver) SpriteCoordinates() [spriteCount]spriteRect {
-	r.once.Do(r.resolveFromManifest)
-	if r.resolveErr != nil {
+func (r *EmbeddedAtlasResolver) coordsOrFallback() [spriteCount]spriteRect {
+	if err := r.ensureResolved(); err != nil {
 		return spriteCoords
 	}
 	return r.coords
+}
+
+func (r *EmbeddedAtlasResolver) ensureResolved() error {
+	r.once.Do(r.resolveFromManifest)
+	if r.resolveErr != nil {
+		return r.resolveErr
+	}
+	return nil
 }
 
 func (r *EmbeddedAtlasResolver) resolveFromManifest() {

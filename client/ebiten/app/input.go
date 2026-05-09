@@ -74,10 +74,15 @@ func NewInputHandler(net *ebclient.NetClient, state *ebclient.LocalState) *Input
 			"gather", "investigate", "ward", "focus", "research", "trade", "component", "attack", "evade", "closegate",
 		},
 	}
-	if state != nil && len(h.focusOrder) > 0 {
-		state.SetFocusedActionHint(h.focusOrder[0])
-	}
+	h.setInitialFocusHint()
 	return h
+}
+
+func (h *InputHandler) setInitialFocusHint() {
+	if h.state == nil || len(h.focusOrder) == 0 {
+		return
+	}
+	h.state.SetFocusedActionHint(h.focusOrder[0])
 }
 
 // Update is called once per frame by the game loop.
@@ -87,44 +92,50 @@ func (h *InputHandler) Update() {
 	h.handleFocusNavigation()
 
 	gs, playerID, connected := h.state.Snapshot()
-	if !connected || gs.CurrentPlayer != playerID {
-		// Count blocked retries when the player attempts input out of turn/disconnected.
-		if hasActionInputAttempted() {
-			h.state.RecordInvalidActionRetry("out-of-turn-or-disconnected")
-		}
+	if h.blockedForTurn(gs, playerID, connected) {
 		return
 	}
 
 	h.handleFocusedActionActivate(gs, playerID)
-
-	// Handle keyboard input.
-	for _, kb := range keyBindings {
-		if inpututil.IsKeyJustPressed(kb.key) {
-			// Special handling for Trade: find a co-located player.
-			target := kb.target
-			if kb.action == "trade" {
-				target = h.findColocatedPlayer(gs, playerID)
-				if target == "" {
-					// No co-located player; treat as invalid retry.
-					h.state.RecordInvalidActionRetry("trade-no-colocated-player")
-					continue
-				}
-			}
-
-			h.sendPlayerAction(ebclient.PlayerActionMessage{
-				Type:     "playerAction",
-				PlayerID: playerID,
-				Action:   protocol.ActionType(kb.action),
-				Target:   target,
-			})
-		}
-	}
+	h.handleKeyboardInput(gs, playerID)
 
 	// Handle mouse input on desktop/browser.
 	h.handleMouseInput(gs, playerID)
 
 	// Handle touch input on mobile platforms.
 	h.handleTouchInput(gs, playerID)
+}
+
+func (h *InputHandler) blockedForTurn(gs ebclient.GameState, playerID string, connected bool) bool {
+	if connected && gs.CurrentPlayer == playerID {
+		return false
+	}
+	if hasActionInputAttempted() {
+		h.state.RecordInvalidActionRetry("out-of-turn-or-disconnected")
+	}
+	return true
+}
+
+func (h *InputHandler) handleKeyboardInput(gs ebclient.GameState, playerID string) {
+	for _, kb := range keyBindings {
+		if !inpututil.IsKeyJustPressed(kb.key) {
+			continue
+		}
+		target := kb.target
+		if kb.action == "trade" {
+			target = h.findColocatedPlayer(gs, playerID)
+			if target == "" {
+				h.state.RecordInvalidActionRetry("trade-no-colocated-player")
+				continue
+			}
+		}
+		h.sendPlayerAction(ebclient.PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: playerID,
+			Action:   protocol.ActionType(kb.action),
+			Target:   target,
+		})
+	}
 }
 
 func (h *InputHandler) handleFocusNavigation() {
@@ -338,18 +349,20 @@ func registerTouchActionHitBoxes(mapper *ui.InputMapper) {
 }
 
 func hasActionInputAttempted() bool {
+	return actionKeyJustPressed() ||
+		inpututil.IsKeyJustPressed(ebiten.KeyEnter) ||
+		inpututil.IsKeyJustPressed(ebiten.KeyTab) ||
+		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
+		len(inpututil.JustPressedTouchIDs()) > 0
+}
+
+func actionKeyJustPressed() bool {
 	for _, kb := range keyBindings {
 		if inpututil.IsKeyJustPressed(kb.key) {
 			return true
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeyTab) {
-		return true
-	}
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		return true
-	}
-	return len(inpututil.JustPressedTouchIDs()) > 0
+	return false
 }
 
 type touchLayout struct {
