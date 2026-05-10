@@ -1,9 +1,9 @@
-// Package model owns Arkham Horror-specific type aliases and constants (Location, InvestigatorType, etc.)
-// that encapsulate Arkham game family concerns.
+// Package model owns Arkham Horror-specific type aliases and constants
+// (Location, InvestigatorType, etc.) that encapsulate game-family concerns.
 //
-// During migration, these types will replace protocol wire types in serverengine game_constants.go
-// to create a clear boundary between protocol and domain logic.
+// Migration status: this package is active and used by Arkham rules/actions slices;
+// remaining protocol-to-domain boundary tightening is tracked as incremental work.
 //
 // Dependencies: serverengine/common (runtime contracts only).
-// Forbidden: Importing serverengine package (monolith).
+// Forbidden: importing serverengine package (monolith).
 package model

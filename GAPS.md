@@ -1,6 +1,7 @@
 # Implementation Gaps — 2026-05-09
 
 ## 1) Experimental Game Families Are Selectable But Not Runnable
+- Status (2026-05-09): [x] Completed decision: hidden-until-ready policy documented and enforced in server startup path.
 - Intended Behavior: Module-based runtime selection should allow registered families to initialize engines through a consistent contracts.Engine path.
 - Current State: Registration and selection are wired, but startup rejects non-Arkham modules and module NewEngine functions return unimplemented placeholders.
   - Evidence: cmd/server.go:60, cmd/server.go:135, serverengine/eldersign/module.go:44, serverengine/eldritchhorror/module.go:46, serverengine/finalhour/module.go:45, serverengine/common/runtime/unimplemented_engine.go:27.
@@ -14,6 +15,7 @@
 - Effort: large.
 
 ## 2) Broadcast Adapter Slice Is Defined But Not Executed
+- Status (2026-05-09): [x] Completed: adapter is now wired for gameState/gameUpdate/diceResult payload shaping.
 - Intended Behavior: S6 migration indicates broadcast payload shaping should be module-owned via adapters, reducing facade coupling.
 - Current State: Broadcast adapter interface/types exist, but no implementation is used in runtime broadcast code.
   - Evidence: serverengine/arkhamhorror/adapters/broadcast.go:7, docs/MODULE_MIGRATION_COMPLETION.md:40, docs/MODULE_MIGRATION_MAP.md:30, serverengine/broadcast.go:51.
@@ -27,6 +29,7 @@
 - Effort: medium.
 
 ## 3) Unreferenced Duplicate Movement Function
+- Status (2026-05-09): [x] Already resolved in current tree (no movement_fixed.go and no IsAdjacentFixed references found).
 - Intended Behavior: Single authoritative adjacency resolver for movement legality.
 - Current State: Duplicate function exists with no call sites.
   - Evidence: serverengine/arkhamhorror/rules/movement_fixed.go:12, and only self-reference for IsAdjacentFixed.
@@ -62,6 +65,7 @@
 - Effort: medium.
 
 ## 6) Platform Command Wiring Is Partially Reachable
+- Status (2026-05-09): [x] Already resolved in current tree (non-WASM web command is hidden with explicit unsupported-target error).
 - Intended Behavior: CLI should present commands that are executable on the current target, or clearly hide unavailable commands.
 - Current State: root registers web command universally; on non-wasm builds it is a guaranteed error path.
   - Evidence: cmd/root.go:31, cmd/web_nowasm.go:11.
@@ -74,6 +78,7 @@
 - Effort: small.
 
 ## 7) Missing Roadmap Artifact Breaks Planning Traceability
+- Status (2026-05-09): [x] Already resolved in current tree (ROADMAP.md exists at repository root).
 - Intended Behavior: Architecture and deferred scaffolds should point to a resolvable roadmap/tracker.
 - Current State: ROADMAP.md is referenced broadly but does not exist in repo root.
   - Evidence: README.md:13, README.md:275, docs/RULES.md:211, serverengine/arkhamhorror/actions/doc.go:8.

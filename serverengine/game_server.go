@@ -104,6 +104,9 @@ type GameServer struct {
 	// selectInvestigator/setDifficulty are allowed while this is false so
 	// sessions that auto-transition to playing can still perform pregame setup.
 	pregameLocked bool
+	// broadcastAdapter optionally shapes broadcast message payloads.
+	// If nil, methods fall back to inline construction. Set via SetBroadcastAdapter.
+	broadcastAdapter BroadcastPayloadAdapter
 }
 
 // NewGameServer creates a new game server instance using the provided Scenario
@@ -194,6 +197,15 @@ func (gs *GameServer) SetAllowedOrigins(origins []string) {
 	gs.mutex.Lock()
 	gs.allowedOrigins = normalized
 	gs.mutex.Unlock()
+}
+
+// SetBroadcastAdapter injects a module-owned payload adapter for shaping messages.
+// This allows the game-specific module to own the wire protocol format while
+// serverengine handles delivery.
+func (gs *GameServer) SetBroadcastAdapter(adapter BroadcastPayloadAdapter) {
+	gs.mutex.Lock()
+	defer gs.mutex.Unlock()
+	gs.broadcastAdapter = adapter
 }
 
 // AllowedOrigins returns a copy of the normalized allowed origin list used by
@@ -462,12 +474,34 @@ func (gs *GameServer) buildGameUpdateMessage(
 
 // broadcastActionResults sends the gameUpdate and optional diceResult to all clients.
 func (gs *GameServer) broadcastActionResults(update *GameUpdateMessage, diceResult *DiceResultMessage) {
-	if updateData, err := json.Marshal(update); err == nil {
-		gs.trySendBroadcast(updateData, "gameUpdate")
+	if adapter := gs.broadcastAdapter; adapter != nil {
+		gs.broadcastActionResultsWithAdapter(adapter, update, diceResult)
+		return
 	}
+
+	gs.marshalAndBroadcast(update, "gameUpdate")
 	if diceResult != nil {
-		diceData, _ := json.Marshal(diceResult)
-		gs.trySendBroadcast(diceData, "diceResult")
+		gs.marshalAndBroadcast(diceResult, "diceResult")
+	}
+}
+
+func (gs *GameServer) broadcastActionResultsWithAdapter(
+	adapter BroadcastPayloadAdapter,
+	update *GameUpdateMessage,
+	diceResult *DiceResultMessage,
+) {
+	gs.marshalAndBroadcast(adapter.ShapeActionResultPayload(update.Event, update.Result, update), "gameUpdate")
+	if diceResult != nil {
+		gs.marshalAndBroadcast(adapter.ShapeDiceResultPayload(diceResult), "diceResult")
+	}
+}
+
+func (gs *GameServer) marshalAndBroadcast(payload interface{}, msgType string) {
+	if payload == nil {
+		return
+	}
+	if data, err := json.Marshal(payload); err == nil {
+		gs.trySendBroadcast(data, msgType)
 	}
 }
 

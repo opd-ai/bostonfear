@@ -73,10 +73,7 @@ func (gs *GameServer) actionHandler() {
 func (gs *GameServer) broadcastGameState() {
 	gs.mutex.Lock()
 	gs.validateAndRecoverState()
-	gameStateMsg := map[string]interface{}{
-		"type": "gameState",
-		"data": gs.gameState,
-	}
+	gameStateMsg := gs.buildGameStatePayloadLocked()
 	data, err := json.Marshal(gameStateMsg)
 	gs.mutex.Unlock()
 
@@ -86,4 +83,15 @@ func (gs *GameServer) broadcastGameState() {
 	}
 
 	gs.trySendBroadcast(data, "gameState")
+}
+
+// buildGameStatePayloadLocked builds the gameState payload while gs.mutex is held.
+func (gs *GameServer) buildGameStatePayloadLocked() interface{} {
+	if adapter := gs.broadcastAdapter; adapter != nil {
+		return adapter.ShapeGameStatePayload(gs.gameState)
+	}
+	return map[string]interface{}{
+		"type": "gameState",
+		"data": gs.gameState,
+	}
 }

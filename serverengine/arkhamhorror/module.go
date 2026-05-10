@@ -36,6 +36,7 @@ package arkhamhorror
 
 import (
 	"github.com/opd-ai/bostonfear/serverengine"
+	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/adapters"
 	"github.com/opd-ai/bostonfear/serverengine/common/contracts"
 )
 
@@ -64,5 +65,8 @@ func (Module) Description() string {
 // Call engine.Start() to begin accepting player connections.
 // Configure engine.SetAllowedOrigins() before Start() to enable CORS filtering.
 func (Module) NewEngine() (contracts.Engine, error) {
-	return &Engine{GameServer: serverengine.NewGameServer()}, nil
+	gs := serverengine.NewGameServer()
+	// Inject arkhamhorror's broadcast adapter to own wire protocol message shaping.
+	gs.SetBroadcastAdapter(adapters.NewBroadcastAdapter())
+	return &Engine{GameServer: gs}, nil
 }

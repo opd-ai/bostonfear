@@ -17,6 +17,16 @@ type StateValidator interface {
 	GetCorruptionHistory() []CorruptionEvent
 }
 
+// BroadcastPayloadAdapter shapes message payloads for wire protocol transmission.
+// Game-family modules implement this interface to own the format of broadcast messages
+// while serverengine handles routing and delivery. Implementations must be safe for
+// concurrent use.
+type BroadcastPayloadAdapter interface {
+	ShapeGameStatePayload(state interface{}) interface{}
+	ShapeActionResultPayload(action string, result string, resources interface{}) interface{}
+	ShapeDiceResultPayload(diceResult interface{}) interface{}
+}
+
 // errBroadcastFull is returned by Broadcast when the channel is full.
 var errBroadcastFull = errors.New("broadcast channel full: payload dropped")
 

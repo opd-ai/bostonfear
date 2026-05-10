@@ -56,6 +56,20 @@ func runServer(cmd *cobra.Command) error {
 
 	// Non-Arkham game-family modules (eldersign, eldritchhorror, finalhour) are scaffolded
 	// but not yet runnable. They will be registered here once their engines are implemented.
+	//
+	// MODULE REGISTRATION POLICY (Hidden-Until-Ready)
+	// ================================================
+	// Decision: Non-Arkham modules remain unregistered until runnable server loops are complete.
+	// Rationale: The ROADMAP Priority 3 states "Register non-Arkham families in production
+	// paths only after runnable server loops exist." This prevents discovery of incomplete
+	// features in the CLI while maintaining clear extensibility patterns in the codebase.
+	//
+	// To enable a module, uncomment its registration and implement its Engine contract:
+	//   - registry.MustRegister(eldersign.NewModule())  // Requires Start, HandleConnection
+	//   - registry.MustRegister(eldritchhorror.NewModule())
+	//   - registry.MustRegister(finalhour.NewModule())
+	//
+	// See serverengine/arkhamhorror for a reference implementation.
 
 	gameID := strings.ToLower(strings.TrimSpace(viper.GetString("server.game")))
 	if gameID == "" {
@@ -64,6 +78,8 @@ func runServer(cmd *cobra.Command) error {
 	if gameID == "" {
 		gameID = "arkhamhorror"
 	}
+	// Default falls back to arkhamhorror. Users selecting unregistered games get
+	// "unknown game module" error — this is intentional until those modules are runnable.
 
 	module, ok := registry.Get(gameID)
 	if !ok {
