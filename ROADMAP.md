@@ -4,11 +4,11 @@
 
 **What it claims to do**: A multiplayer implementation of Arkham Horror featuring investigators managing resources while exploring locations and facing supernatural threats. Built with a Go WebSocket server and Go/Ebitengine clients (not JavaScript as the task description suggests) supporting desktop, web (WASM), and mobile platforms with 1-6 concurrent players. Players can join a game already in progress.
 
-**Target audience**: Intermediate developers learning client-server WebSocket architecture with cooperative gameplay mechanics; Arkham Horror board game enthusiasts seeking a digital implementation of AH3e rules.
+**Target audience**: Intermediate developers learning client-server WebSocket architecture with cooperative gameplay mechanics; enthusiasts of cooperative horror-themed investigative games.
 
 **Architecture**: 
 - **Core packages**: `serverengine` (game logic, 18 files, 200 exports), `protocol` (wire schema), `transport/ws` (HTTP/WebSocket upgrade), `monitoring` (health/metrics)
-- **Game module system**: `serverengine/arkhamhorror` (AH3e implementation), with scaffolded modules for `eldersign`, `eldritchhorror`, `finalhour`
+- **Game module system**: `serverengine/arkhamhorror` (horror investigation game mechanics), with scaffolded modules for `eldersign`, `eldritchhorror`, `finalhour`
 - **Client implementation**: `client/ebiten` (Go/Ebitengine cross-platform client), `cmd/desktop`, `cmd/web` (WASM), `cmd/mobile` (alpha bindings)
 - **Layer separation**: `serverengine/common` (reusable contracts), game-family modules, transport adapters, monitoring
 
@@ -163,14 +163,14 @@
 
 ---
 
-### Priority 5: Complete Arkham Horror 3rd Edition Rules Compliance (13/13 → Full AH3e Parity)
-**Impact**: Brings game mechanics from "playable demo" to full AH3e rulebook compliance.
+### Priority 5: Expand Horror Investigation Game Content (13/13 → Enhanced Gameplay Variety)
+**Impact**: Brings game mechanics from "playable demo" to full-featured gameplay with expanded original content.
 
-**Current Status**: 13/13 core rule systems implemented per `docs/RULES.md`, but several AH3e mechanics are simplified or stubbed:
+**Current Status**: 13/13 core rule systems implemented per `docs/RULES.md`, but several game mechanics are simplified or stubbed with placeholder content:
 
 - [ ] **Expand scenario system beyond default scenario**
   - [ ] Implement scenario selection UI in pregame phase
-  - [ ] Add 3 additional scenarios from AH3e core set (currently only default scenario exists)
+  - [ ] Add 3 additional original custom scenarios (currently only default scenario exists)
   - [ ] Support scenario-specific setup (custom starting doom, special rules, location modifiers)
   - **Files**: `serverengine/arkhamhorror/scenarios/`, `serverengine/arkhamhorror/content/nightglass/scenarios/`
   - **Validation**: Can select and play 4 different scenarios with distinct win/loss conditions
@@ -183,20 +183,20 @@
   - **Validation**: Encounter action draws from correct neighborhood deck, effects apply correctly
 
 - [ ] **Add investigator archetype selection**
-  - [ ] Implement 6 investigator archetypes with unique starting stats per AH3e core
+  - [ ] Implement 6 original investigator archetypes with unique starting stats and abilities
   - [ ] Add pregame investigator selection UI (before first normal action)
   - [ ] Lock selection after game starts (pregame phase → playing phase transition)
   - **Files**: `serverengine/arkhamhorror/model/investigator.go`, pregame UI in client
   - **Validation**: `TestProcessAction_SelectInvestigator` covers all 6 archetypes
 
 - [ ] **Implement full Mythos Phase event placement logic**
-  - [ ] Draw 2 events per Mythos Phase as per AH3e rules
+  - [ ] Draw multiple events per Mythos Phase with configurable event count
   - [ ] Apply event placement priority rules (location adjacency, doom spread)
-  - [ ] Resolve Mythos cup token effects (anomaly spawns, gate openings, clue placements)
+  - [ ] Resolve Mythos token effects (anomaly spawns, gate openings, clue placements)
   - **Files**: `serverengine/arkhamhorror/phases/mythos.go`
-  - **Validation**: `TestRulesMythosPhaseEventPlacement` verifies 2 events drawn and placed correctly
+  - **Validation**: `TestRulesMythosPhaseEventPlacement` verifies events drawn and placed correctly
 
-**Priority Justification**: These are the last missing pieces for full AH3e core set compliance. Current implementation is a "simplified demo" suitable for learning the engine, but full scenario/investigator/encounter variety is needed for long-term replayability.
+**Priority Justification**: These are the last missing pieces for full gameplay variety with original content. Current implementation is a "simplified demo" suitable for learning the engine, but expanded scenario/investigator/encounter variety with custom content is needed for long-term replayability.
 
 ---
 
@@ -260,7 +260,7 @@
 | 2 | Mobile Platform Maturity | Expands platform reach | Medium (CI + docs) | Medium |
 | 3 | Client Package Refactoring | Reduces maintenance burden | Medium (code organization) | Low |
 | 4 | Security & Dependency Scanning | Production readiness | Low (add workflows) | **High** (production) |
-| 5 | Full AH3e Rules Compliance | Game content completeness | High (game logic) | Low (already playable) |
+| 5 | Expand Original Game Content | Game content completeness | High (game logic) | Low (already playable) |
 | 6 | Observability Improvements | Operational visibility | Medium (metrics + logging) | Medium |
 | 7 | Documentation & ADRs | Developer experience | Low (writing) | Low |
 
@@ -302,6 +302,6 @@ The codebase demonstrates **excellent Go conventions** (interface-based design, 
 **Recommended Next Steps**:
 1. **Immediate**: Clarify client technology (Priority 1) and add security scanning (Priority 4)
 2. **Short-term (1-2 months)**: Complete mobile platform maturity (Priority 2)
-3. **Long-term (3-6 months)**: Refactor oversized client packages (Priority 3), full AH3e compliance (Priority 5)
+3. **Long-term (3-6 months)**: Refactor oversized client packages (Priority 3), expand original game content (Priority 5)
 
 The project is **production-ready for desktop and WASM deployments** with minor hardening (security scanning, origin validation enforcement). Mobile deployments require additional CI verification before beta release.
