@@ -23,7 +23,7 @@ type StateValidator interface {
 // concurrent use.
 type BroadcastPayloadAdapter interface {
 	ShapeGameStatePayload(state interface{}) interface{}
-	ShapeActionResultPayload(action string, result string, resources interface{}) interface{}
+	ShapeActionResultPayload(action, result string, resources interface{}) interface{}
 	ShapeDiceResultPayload(diceResult interface{}) interface{}
 }
 

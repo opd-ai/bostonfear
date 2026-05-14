@@ -4,81 +4,81 @@ package model
 
 // ResourceBounds defines the valid ranges for each resource type
 type ResourceBounds struct {
-HealthMax  int
-SanityMax  int
-CluesMax   int
-MoneyMax   int
-FocusMax   int
-RemnantMax int
+	HealthMax  int
+	SanityMax  int
+	CluesMax   int
+	MoneyMax   int
+	FocusMax   int
+	RemnantMax int
 }
 
 // ArkhamHorrorResourceBounds defines the official AH3e resource limits
 // These correspond to the constants in serverengine/game_constants.go
 var ArkhamHorrorResourceBounds = ResourceBounds{
-HealthMax:  10,
-SanityMax:  10,
-CluesMax:   5,
-MoneyMax:   99,
-FocusMax:   3,
-RemnantMax: 5,
+	HealthMax:  10,
+	SanityMax:  10,
+	CluesMax:   5,
+	MoneyMax:   99,
+	FocusMax:   3,
+	RemnantMax: 5,
 }
 
 // ClampResourceToBounds ensures a resource value stays within valid range
 func ClampResourceToBounds(value, min, max int) int {
-if value < min {
-return min
-}
-if value > max {
-return max
-}
-return value
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
 }
 
 // ClampHealth clamps a health value to [0, MaxHealth]
 func ClampHealth(value int) int {
-return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.HealthMax)
+	return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.HealthMax)
 }
 
 // ClampSanity clamps a sanity value to [0, MaxSanity]
 func ClampSanity(value int) int {
-return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.SanityMax)
+	return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.SanityMax)
 }
 
 // ClampClues clamps a clues value to [0, MaxClues]
 func ClampClues(value int) int {
-return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.CluesMax)
+	return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.CluesMax)
 }
 
 // ClampMoney clamps a money value to [0, MaxMoney]
 func ClampMoney(value int) int {
-return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.MoneyMax)
+	return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.MoneyMax)
 }
 
 // ClampFocus clamps a focus value to [0, MaxFocus]
 func ClampFocus(value int) int {
-return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.FocusMax)
+	return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.FocusMax)
 }
 
 // ClampRemnants clamps a remnants value to [0, MaxRemnants]
 func ClampRemnants(value int) int {
-return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.RemnantMax)
+	return ClampResourceToBounds(value, 0, ArkhamHorrorResourceBounds.RemnantMax)
 }
 
 // InvestigatorDefeated checks if an investigator is defeated
 // (Health or Sanity at 0 requires them to be moved to Lost in Time and Space)
 func InvestigatorDefeated(health, sanity int) bool {
-return health <= 0 || sanity <= 0
+	return health <= 0 || sanity <= 0
 }
 
 // S4: Investigator ability constants defined as module-owned data
 type InvestigatorAbility struct {
-Name          string
-HealthCost    int
-SanityCost    int
-ClueGain      int
-HealthGain    int
-SanityGain    int
-FocusGain     int
-DoomReduct    int
-DrawEncounter bool
+	Name          string
+	HealthCost    int
+	SanityCost    int
+	ClueGain      int
+	HealthGain    int
+	SanityGain    int
+	FocusGain     int
+	DoomReduct    int
+	DrawEncounter bool
 }

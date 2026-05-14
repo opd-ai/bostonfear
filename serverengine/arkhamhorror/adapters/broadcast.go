@@ -6,7 +6,7 @@ package adapters
 // without importing serverengine types, allowing arkhamhorror to own message shape.
 type BroadcastPayloadAdapter interface {
 	ShapeGameStatePayload(state interface{}) interface{} // Returns JSON-serializable payload
-	ShapeActionResultPayload(action string, result string, resources interface{}) interface{}
+	ShapeActionResultPayload(action, result string, resources interface{}) interface{}
 	ShapeDiceResultPayload(diceResult interface{}) interface{}
 }
 

@@ -2,8 +2,10 @@ package serverengine
 
 import "sync"
 
-var startupScenarioMu sync.Mutex
-var startupScenarioDefaultID string
+var (
+	startupScenarioMu        sync.Mutex
+	startupScenarioDefaultID string
+)
 
 // SetStartupScenarioDefaultID configures the next GameServer constructed in this
 // process to use the selected Nightglass scenario ID as its startup default.
