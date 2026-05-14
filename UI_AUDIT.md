@@ -1,7 +1,9 @@
 # Boston Fear Arkham Horror Game UI/UX Clarity Audit
 
+> **Note**: This audit framework references JavaScript client and HTML5 Canvas, but the project now uses Go/Ebitengine for all client platforms (desktop, WASM, mobile). This document is retained for historical reference. For current architecture, see README.md.
+
 ## Objective
-Autonomously audit all Boston Fear WebSocket server and JavaScript client UI code for defects that make the game interface hard to understand, hard to navigate, or hard to trust. Prioritize whether the UI is intuitive and obvious for a first-time player unfamiliar with Arkham Horror mechanics, then identify technical issues that undermine that goal.
+Autonomously audit all Boston Fear WebSocket server and Go/Ebitengine client UI code for defects that make the game interface hard to understand, hard to navigate, or hard to trust. Prioritize whether the UI is intuitive and obvious for a first-time player unfamiliar with Arkham Horror mechanics, then identify technical issues that undermine that goal.
 
 Produce a structured diagnostic report only. Do not modify files.
 
@@ -21,8 +23,8 @@ Boston Fear is a cooperative multiplayer Arkham Horror web game where players ma
 ## Scope
 Audit only code that participates in direct game UI rendering and player input:
 - WebSocket client message handlers and game state rendering
-- HTML5 Canvas game rendering code
-- JavaScript input capture and validation for player actions
+- Ebitengine game rendering code (client/ebiten/)
+- Go client input capture and validation for player actions
 - Turn order and action availability display
 - Resource level visualization and updates
 - Dice roll result display and feedback

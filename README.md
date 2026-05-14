@@ -79,6 +79,7 @@ go run ./cmd/desktop -server ws://localhost:8080/ws
 ```
 
 **Web WASM client** (alpha — builds successfully; placeholder sprites):
+> The WASM client is compiled from the same Go/Ebitengine codebase, not written in JavaScript.
 ```bash
 GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
 # Serve via any static HTTP server; Go server also supports WASM serving:
@@ -200,6 +201,18 @@ BOSTONFEAR_GAME=finalhour go run ./cmd/server
 - **Shader Effects**: Kage shaders for fog-of-war, doom vignette, and interactive highlights
 - **WASM Compatibility**: Same Go codebase compiled to WebAssembly for browser play
 - **WebSocket Connection**: Automatic reconnection with exponential backoff (5 s initial, doubles per attempt, 30 s cap)
+
+#### Design Rationale: Go/Ebitengine vs. JavaScript/Canvas
+This project exclusively uses **Go with Ebitengine** for all client platforms (desktop, WASM, mobile), rather than a traditional JavaScript + HTML5 Canvas implementation. This design choice provides:
+
+- **Type Safety**: Compile-time type checking prevents entire classes of runtime errors common in JavaScript clients
+- **Code Reuse**: Single Go codebase compiles to all target platforms (native desktop, WASM, mobile) with zero platform-specific implementations
+- **Performance**: Native desktop performance and efficient WASM compilation without JavaScript bridge overhead
+- **Maintainability**: One codebase to test, debug, and refactor instead of separate implementations per platform
+- **Cross-Platform Consistency**: Identical game logic and rendering behavior across all platforms
+- **Developer Experience**: Unified toolchain (Go compiler, standard library, race detector) for all platforms
+
+The WASM build compiles the Go client to WebAssembly—it is not a JavaScript reimplementation. The browser loads a ~2MB WASM binary that provides the same game experience as the native desktop client.
 
 ### JSON Message Protocol
 ```json

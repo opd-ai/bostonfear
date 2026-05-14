@@ -70,10 +70,10 @@
 **Decision Required**: Does the project need a vanilla JavaScript client, or is the Go/Ebitengine client the canonical implementation?
 
 - **Option A (Recommended)**: Update project README and documentation to explicitly state that the JavaScript client claim is **outdated** and the project exclusively uses Go/Ebitengine for cross-platform clients.
-  - [ ] Update `README.md` to remove any references to "JavaScript client" or "vanilla JavaScript"
-  - [ ] Clarify that the WASM client is compiled from Go, not written in JavaScript
-  - [ ] Document the decision to use Ebitengine instead of Canvas in a design rationale section
-  - [ ] Update all task/issue descriptions to reflect Go/Ebitengine as the canonical client technology
+  - [x] Update `README.md` to remove any references to "JavaScript client" or "vanilla JavaScript"
+  - [x] Clarify that the WASM client is compiled from Go, not written in JavaScript
+  - [x] Document the decision to use Ebitengine instead of Canvas in a design rationale section
+  - [x] Update all task/issue descriptions to reflect Go/Ebitengine as the canonical client technology
   - **Validation**: No mentions of "JavaScript client" remain in documentation except in historical/deprecated sections
 
 - **Option B (High Effort)**: Implement a parallel vanilla JavaScript + HTML5 Canvas client to match task description
@@ -91,23 +91,23 @@
 ### Priority 2: Complete Mobile Platform Maturity (Alpha → Beta)
 **Impact**: Mobile clients are scaffolded but lack CI testing and device runtime verification.
 
-- [ ] **Add mobile build verification to CI**
-  - [ ] Create `.github/workflows/mobile.yml` to verify `ebitenmobile bind` succeeds for Android and iOS
+- [x] **Add mobile build verification to CI**
+  - [x] Create `.github/workflows/mobile.yml` to verify `ebitenmobile bind` succeeds for Android and iOS
   - [ ] Add Android emulator test step (API 29+) to validate app startup and basic rendering
   - [ ] Add iOS simulator test step (Xcode 15+) to validate app startup and basic rendering
   - **Files to create**: `.github/workflows/mobile.yml`
   - **Validation**: CI workflow green, mobile builds succeed without warnings
 
-- [ ] **Document mobile deployment workflow**
-  - [ ] Create `docs/MOBILE_DEPLOYMENT.md` with step-by-step Android Studio and Xcode integration instructions
-  - [ ] Document server URL configuration for emulator vs. physical device (ws://10.0.2.2:8080/ws vs. LAN IP)
-  - [ ] Add troubleshooting section for common mobile networking issues (CORS, WebSocket upgrade failures)
+- [x] **Document mobile deployment workflow**
+  - [x] Create `docs/MOBILE_DEPLOYMENT.md` with step-by-step Android Studio and Xcode integration instructions
+  - [x] Document server URL configuration for emulator vs. physical device (ws://10.0.2.2:8080/ws vs. LAN IP)
+  - [x] Add troubleshooting section for common mobile networking issues (CORS, WebSocket upgrade failures)
   - **Validation**: A developer can follow the guide and deploy to a physical device in <30 minutes
 
-- [ ] **Expand touch input test coverage**
-  - [ ] Create `client/ebiten/app/touch_test.go` with touch gesture tests (tap, drag, long-press)
-  - [ ] Verify all 12 action types are accessible via touch targets (no mouse-only interactions)
-  - [ ] Test safe-area inset handling on notched displays (iOS)
+- [x] **Expand touch input test coverage**
+  - [x] Create `client/ebiten/app/touch_test.go` with touch gesture tests (tap, drag, long-press)
+  - [x] Verify all 12 action types are accessible via touch targets (no mouse-only interactions)
+  - [x] Test safe-area inset handling on notched displays (iOS)
   - **Validation**: All tests pass under `requires_display` tag
 
 **Priority Justification**: Mobile is claimed as an "alpha" feature in README, but scaffolding is complete. This work transitions it from experimental to production-ready, which expands the project's usable platform reach from 2 (desktop, WASM) to 4 (desktop, WASM, Android, iOS).
@@ -141,16 +141,16 @@
 ### Priority 4: Enhance Security and Dependency Hygiene
 **Impact**: Production deployments need security scanning and vulnerability monitoring.
 
-- [ ] **Add dependency vulnerability scanning**
-  - [ ] Create `.github/workflows/security.yml` using `govulncheck` to scan Go module dependencies
-  - [ ] Configure workflow to fail on HIGH/CRITICAL vulnerabilities
-  - [ ] Add monthly scheduled run to catch new CVEs
+- [x] **Add dependency vulnerability scanning**
+  - [x] Create `.github/workflows/security.yml` using `govulncheck` to scan Go module dependencies
+  - [x] Configure workflow to fail on HIGH/CRITICAL vulnerabilities
+  - [x] Add monthly scheduled run to catch new CVEs
   - **Validation**: CI fails if a dependency has a known vulnerability
 
-- [ ] **Add origin validation enforcement guide**
-  - [ ] Document `SetAllowedOrigins()` usage in `docs/PRODUCTION_HARDENING.md`
-  - [ ] Add example production configuration with specific allowed domains
-  - [ ] Warn that default (empty origins list) accepts any origin—only safe for local dev
+- [x] **Add origin validation enforcement guide**
+  - [x] Document `SetAllowedOrigins()` usage in `docs/PRODUCTION_HARDENING.md`
+  - [x] Add example production configuration with specific allowed domains
+  - [x] Warn that default (empty origins list) accepts any origin—only safe for local dev
   - **Validation**: Production deployment checklist includes origin configuration
 
 - [ ] **Add input validation tests for malformed protocol messages**

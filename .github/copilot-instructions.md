@@ -1,8 +1,10 @@
 # TASK DESCRIPTION:
-Build a functional Arkham Horror-themed multiplayer web game implementing all 5 core mechanics with Go WebSocket server and JavaScript client supporting 1-6 concurrent players following idiomatic Go conventions.
+Build a functional Arkham Horror-themed multiplayer web game implementing all 5 core mechanics with Go WebSocket server and Go/Ebitengine client supporting 1-6 concurrent players following idiomatic Go conventions.
 
 ## CONTEXT:
 Arkham Horror board game features investigators managing resources while exploring locations and facing supernatural threats. Target intermediate developers learning client-server WebSocket architecture with cooperative gameplay mechanics. Implementation prioritizes functional completeness, proper Go conventions, and interface-based design for enhanced testability.
+
+**Design Decision**: This project uses Go/Ebitengine for all client platforms (desktop, WASM, mobile) rather than JavaScript/Canvas. This provides type safety, code reuse across platforms, and consistent behavior. The WASM build compiles Go to WebAssembly—it is not a JavaScript reimplementation.
 
 ## INSTRUCTIONS:
 
@@ -46,15 +48,16 @@ A. **Go Server Implementation**:
    3. Broadcast state updates to all connected clients within 500ms using channel-based communication
    4. Handle connection drops with 30-second reconnection timeout using proper Go error handling patterns
 
-B. **JavaScript Client Implementation**:
+B. **Go/Ebitengine Client Implementation**:
    1. Establish WebSocket connection with automatic reconnection attempts every 5 seconds on failure
-   2. Render game state using HTML5 Canvas (800x600px minimum) showing player positions and current resources
+   2. Render game state using Ebitengine (1280×720 logical resolution) showing player positions and current resources
    3. Capture player input for available actions and transmit to server with player ID validation
    4. Display current player turn indicator and action availability status
+   5. Support cross-platform deployment (desktop, WASM, mobile) from single Go codebase
 
 ### 5. Required Project Structure
-A. **File Organization**: Create `/server/main.go`, `/client/index.html`, `/client/game.js`
-B. **Dependencies**: Go standard library + gorilla/websocket package, vanilla JavaScript only (no frameworks)
+A. **File Organization**: Create `/cmd/server/main.go`, `/cmd/desktop/main.go`, `/cmd/web/main.go`, `/client/ebiten/`
+B. **Dependencies**: Go standard library + gorilla/websocket package, hajimehoshi/ebiten/v2 for client rendering
 C. **Setup Documentation**: Include 3-step README with: dependency installation, server startup, client access commands
 
 ## FORMATTING REQUIREMENTS:

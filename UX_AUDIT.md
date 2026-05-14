@@ -1,5 +1,7 @@
 # Arkham Horror WebSocket Game - Network & Game State Audit (No-Edit, Autonomous)
 
+> **Note**: This audit framework references a JavaScript client, but the project now uses Go/Ebitengine for all client platforms (desktop, WASM, mobile). This document is retained for historical reference. For current architecture, see README.md.
+
 ## Mission
 Run a deep, autonomous audit of the Arkham Horror multiplayer game implementation with primary emphasis on WebSocket communication reliability, game state synchronization, mechanic integration correctness, and Go idiom compliance. Produce a structured diagnostic report only. Do not modify files.
 
@@ -9,13 +11,13 @@ Run a deep, autonomous audit of the Arkham Horror multiplayer game implementatio
 - No patches, no refactors, no file writes
 
 ## Repository Context (bostonfear)
-- Game uses Go WebSocket server with JavaScript client for 1-6 concurrent players
+- Game uses Go WebSocket server with Go/Ebitengine client for 1-6 concurrent players
 - Implementation depends on: reliable state synchronization, proper turn order enforcement, net interface abstraction, correct mechanic interactions (Location, Resources, Actions, Doom, Dice)
 - Focus on reliability: turn progression, action validation, dice resolution, doom counter updates, client-server consistency, and Go idiom adherence
 
 ## Scope Rules
-- Include only server files in `/server` implementing: WebSocket handlers, game state management, turn order, mechanic systems, and net.Conn/net.Listener interface usage
-- Include client files in `/client` managing: connection lifecycle, game state rendering, input capture, action transmission
+- Include only server files in `/cmd/server`, `/serverengine` implementing: WebSocket handlers, game state management, turn order, mechanic systems, and net.Conn/net.Listener interface usage
+- Include client files in `/client/ebiten` managing: connection lifecycle, game state rendering, input capture, action transmission
 - Include mechanic integration where systems interact: dice affecting doom, actions consuming resources, movement validating location adjacency
 - Exclude scaffold/template code unrelated to core game mechanics
 
