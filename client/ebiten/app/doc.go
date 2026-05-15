@@ -95,4 +95,36 @@
 // - Camera is applied via a transform matrix, not per-pixel offset
 // - AnimationFrame counter drives animation state transitions every Nt frames (configurable)
 // - Safe to update Game.state concurrently from WebSocket goroutine using a channel-based update
+//
+// Public API:
+//
+// The package exports a minimal surface for embedding the client in applications:
+//
+//	// Create and run the game
+//	game := app.NewGame("ws://localhost:8080/ws")
+//	defer game.Close()
+//	if err := ebiten.RunGame(game); err != nil {
+//		log.Fatal(err)
+//	}
+//
+// The Game type implements ebiten.Game interface (Update, Draw, Layout methods).
+// Callers should not invoke these methods directly; Ebitengine calls them automatically.
+//
+// For custom integrations, the InputHandler type can be used standalone:
+//
+//	state := ebclient.NewLocalState(serverURL)
+//	net := ebclient.NewNetClient(state)
+//	input := app.NewInputHandler(net, state)
+//	// Call input.Update() each frame to process keyboard/mouse/touch input
+//
+// Scene types (SceneConnect, SceneGame, SceneCharacterSelect, SceneGameOver) are
+// exported to allow custom scene implementations. The Scene interface defines the
+// contract:
+//
+//	type Scene interface {
+//		Update() error
+//		Draw(screen *ebiten.Image)
+//	}
+//
+// Custom scenes can be assigned to Game.activeScene for specialized UI flows.
 package app

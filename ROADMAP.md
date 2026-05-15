@@ -128,11 +128,11 @@
   - **Files to refactor**: `client/ebiten/ui/*.go` → subdirectories
   - **Validation**: `go-stats-generator` reports `ui` package size reduction to <10 files, <100 exports
 
-- [ ] **Reduce `app` package exported surface**
-  - [ ] Review `client/ebiten/app/game.go` 120 exported symbols; mark internal helpers as unexported
-  - [ ] Move scene-specific logic from `app/game.go` to `app/scenes.go`
-  - [ ] Document public API surface in `app/doc.go` with usage examples
-  - **Validation**: Exported symbol count drops from 120 to <50
+- [x] **Reduce `app` package exported surface**
+  - [x] Review `client/ebiten/app/game.go` 120 exported symbols; mark internal helpers as unexported
+  - [x] Move scene-specific logic from `app/game.go` to `app/scenes.go`
+  - [x] Document public API surface in `app/doc.go` with usage examples
+  - **Validation**: Exported symbol count drops from 120 to <50 (actual: ~20 exports; task was based on stale metrics; helper methods already unexported, scenes already separated, usage examples now added)
 
 **Priority Justification**: High export counts and file sprawl increase onboarding friction for new contributors and make refactoring error-prone. This is a code health issue, not a functional gap, but it's measurable and addresses a concrete metrics violation.
 
@@ -153,10 +153,10 @@
   - [x] Warn that default (empty origins list) accepts any origin—only safe for local dev
   - **Validation**: Production deployment checklist includes origin configuration
 
-- [ ] **Add input validation tests for malformed protocol messages**
-  - [ ] Create `serverengine/fuzz_test.go` with fuzzing test for `processAction()`
-  - [ ] Test malformed JSON, invalid action types, out-of-bounds resources, negative doom values
-  - [ ] Add boundary tests for max player count, max string lengths, max doom
+- [x] **Add input validation tests for malformed protocol messages**
+  - [x] Create `serverengine/fuzz_test.go` with fuzzing test for `processAction()`
+  - [x] Test malformed JSON, invalid action types, out-of-bounds resources, negative doom values
+  - [x] Add boundary tests for max player count, max string lengths, max doom
   - **Validation**: Fuzzing runs for 1 minute without panics; boundary tests pass
 
 **Priority Justification**: The project currently has **zero security scanning** in CI. While the README mentions configuring `allowedOrigins` for production, there's no enforcement or validation that it's actually set. Dependency vulnerabilities in gorilla/websocket or other packages would go undetected.
