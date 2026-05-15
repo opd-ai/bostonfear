@@ -30,6 +30,7 @@ const (
 	ActionCloseGate          = protocol.ActionCloseGate
 	ActionSelectInvestigator = protocol.ActionSelectInvestigator
 	ActionSetDifficulty      = protocol.ActionSetDifficulty
+	ActionSelectScenario     = protocol.ActionSelectScenario
 	ActionChat               = protocol.ActionChat
 )
 

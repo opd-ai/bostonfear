@@ -1,0 +1,148 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-15T00:00:00Z"
+records:
+  - id: "scn.nightglass.asylum-echoes"
+    name: "Asylum Echoes"
+    summary: "Contain spectral manifestations before they consume the abandoned institution."
+    enabled: true
+    version: 1
+    default: false
+    narrativePremise: "Shadowed memories haunt the corridors of Brindlehaven Asylum. Investigators must contain psychic echoes and stabilize ward anchors before the building collapses into a permanent nightmare loop."
+    dependencies:
+      requiredLocationIds:
+        - "loc.blackwater-docks"
+        - "loc.mirror-square"
+        - "loc.lantern-row"
+        - "loc.old-reservoir"
+        - "loc.bell-tower"
+        - "loc.ash-market"
+        - "loc.salt-archive"
+        - "loc.north-breakwater"
+      requiredResourceIds:
+        - "res.vitality"
+        - "res.composure"
+        - "res.leads"
+        - "res.focus"
+        - "res.salvage"
+        - "res.ward-charge"
+        - "res.nightfall"
+      requiredThreatIds:
+        - "thr.gutter-maw"
+        - "thr.bell-widow"
+        - "thr.breakwater-hulk"
+        - "thr.rift-sleet"
+      requiredEncounterIds:
+        - "enc.omen-low-tide"
+        - "enc.omen-lantern-gale"
+        - "enc.omen-archive-hum"
+        - "enc.crisis-anchor-slip"
+        - "enc.breakwater-signal-burst"
+    setup:
+      playerCount: {min: 1, max: 6}
+      startingLocationsByPlayerCount:
+        "1": ["loc.old-reservoir"]
+        "2": ["loc.old-reservoir", "loc.old-reservoir"]
+        "3": ["loc.old-reservoir", "loc.ash-market", "loc.old-reservoir"]
+        "4": ["loc.old-reservoir", "loc.ash-market", "loc.old-reservoir", "loc.ash-market"]
+        "5": ["loc.old-reservoir", "loc.ash-market", "loc.bell-tower", "loc.old-reservoir", "loc.ash-market"]
+        "6": ["loc.old-reservoir", "loc.ash-market", "loc.bell-tower", "loc.old-reservoir", "loc.ash-market", "loc.bell-tower"]
+      startingResources: {res.vitality: 7, res.composure: 9, res.leads: 0, res.focus: 2, res.salvage: 0}
+      startingGlobalResources: {res.nightfall: 2, res.ward-charge: 0}
+      initialThreatSpawns:
+        - when: "always"
+          threatId: "thr.bell-widow"
+          locationId: "loc.bell-tower"
+          count: 1
+        - when: "players>=3"
+          threatId: "thr.gutter-maw"
+          locationId: "loc.old-reservoir"
+          count: 1
+    phaseFlow:
+      - phaseId: "coordination"
+        description: "Reveal spectral echo and apply psychic pressure."
+      - phaseId: "investigatorTurns"
+        description: "Each investigator performs exactly two actions in turn order."
+      - phaseId: "escalation"
+        description: "Spawn echoes, increase nightfall, and resolve crisis."
+    actions:
+      available: ["move", "scavenge", "survey", "seal", "confront"]
+      perTurnLimit: 2
+      definitions:
+        move: {testStat: "finesse", threshold: 1}
+        scavenge: {testStat: "wit", threshold: 1}
+        survey: {testStat: "wit", thresholdByDifficulty: {easy: 1, standard: 2, hard: 3}}
+        seal:
+          testStat: "composure"
+          thresholdByDifficulty: {easy: 2, standard: 3, hard: 3}
+          costByDifficulty:
+            easy: {res.leads: 1, res.composure: 1}
+            standard: {res.leads: 2, res.composure: 2}
+            hard: {res.leads: 3, res.composure: 2}
+          onSuccess: [{effectType: "gainResource", params: {resourceId: "res.ward-charge", amount: 1}}]
+        confront: {testStat: "force", thresholdByDifficulty: {easy: 1, standard: 2, hard: 3}}
+      fractureRule:
+        description: "Each fracture result increases global nightfall by 1 regardless of action success."
+        globalResourceId: "res.nightfall"
+        amountPerFracture: 1
+    escalation:
+      steps:
+        - {effectType: "changeGlobal", params: {resourceId: "res.nightfall", amountFrom: "difficulty.escalationRate"}}
+        - {effectType: "spawnByNightfallTier", params: {tableId: "tbl.asylum-echoes.spawns"}}
+        - {effectType: "resolveEncounter", params: {deck: "crisis", count: 1}}
+        - {effectType: "conditionalSpawn", params: {ifFlag: "fracturesThisRound>=4", threatId: "thr.rift-sleet", count: 1}}
+      spawnTable:
+        id: "tbl.asylum-echoes.spawns"
+        tiers:
+          - minNightfall: 0
+            maxNightfall: 4
+            options: [{threatId: "thr.bell-widow", weight: 3}, {threatId: "thr.hollow-choir", weight: 2}]
+          - minNightfall: 5
+            maxNightfall: 8
+            options: [{threatId: "thr.gutter-maw", weight: 3}, {threatId: "thr.tar-echo", weight: 2}]
+          - minNightfall: 9
+            maxNightfall: 12
+            options: [{threatId: "thr.breakwater-hulk", weight: 2}, {threatId: "thr.rift-sleet", weight: 3}]
+    difficulty:
+      easy:
+        escalationRate: 1
+        surveyThreshold: 1
+        sealLeadCost: 1
+        threatHealthScalar: 0.75
+        victoryWardTarget: 5
+      standard:
+        escalationRate: 2
+        surveyThreshold: 2
+        sealLeadCost: 2
+        threatHealthScalar: 1.0
+        victoryWardTarget: 6
+      hard:
+        escalationRate: 3
+        surveyThreshold: 3
+        sealLeadCost: 3
+        threatHealthScalar: 1.3
+        victoryWardTarget: 7
+    objectives:
+      primary:
+        - id: "obj.echo-containment"
+          description: "Reach target ward-charge to stabilize the asylum."
+          completion: {resourceId: "res.ward-charge", gteFrom: "difficulty.victoryWardTarget"}
+        - id: "obj.psychic-anchor"
+          description: "Establish psychic anchor at Bell Tower."
+          completion:
+            actionId: "act.signal-sever"
+            locationId: "loc.bell-tower"
+            teamLeadsByPlayerCount: {"1": 2, "2": 3, "3": 4, "4": 5, "5": 6, "6": 7}
+    victoryConditions:
+      allOf: ["obj.echo-containment", "obj.psychic-anchor"]
+    defeatConditions:
+      anyOf:
+        - {resourceId: "res.nightfall", gte: 12, reason: "The asylum collapses into permanent nightmare."}
+        - {flag: "allInvestigatorsIncapacitated", equals: true, reason: "All investigators lost to psychic echoes."}
+        - {flag: "resonanceBreach", gte: 3, reason: "Ward network failure."}
+    fallbackBehavior:
+      ifMissingScenarioId: "load serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml defaultScenarioId"
+      ifInvalidScenarioId: "log warning and load serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml defaultScenarioId"
+      ifIndexDefaultMissing: "load first enabled scenario sorted by ID"
+      ifNoEnabledScenarios: "abort startup with content validation error"

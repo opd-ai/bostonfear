@@ -1049,3 +1049,67 @@ func TestProcessAction_Chat(t *testing.T) {
 		}
 	})
 }
+
+// --- TestProcessAction_SelectScenario ---
+// Verifies that a player can select a scenario during the pregame phase.
+
+func TestProcessAction_SelectScenario(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ValidScenarioInWaiting", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionSelectScenario,
+			Target:   "scn.nightglass.asylum-echoes",
+		})
+		if err != nil {
+			t.Fatalf("selectscenario in waiting phase returned error: %v", err)
+		}
+		if got := gs.gameState.ScenarioID; got != "scn.nightglass.asylum-echoes" {
+			t.Errorf("ScenarioID = %q, want %q", got, "scn.nightglass.asylum-echoes")
+		}
+	})
+
+	t.Run("EmptyScenarioReturnsError", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionSelectScenario,
+			Target:   "",
+		})
+		if err == nil {
+			t.Error("expected error for empty scenario ID, got nil")
+		}
+	})
+
+	t.Run("LockedAfterFirstAction", func(t *testing.T) {
+		gs := NewGameServer()
+		gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true, ActionsRemaining: 2}
+		gs.gameState.TurnOrder = []string{"p1"}
+		gs.gameState.CurrentPlayer = "p1"
+		gs.gameState.GamePhase = "playing"
+
+		// First perform a normal action to lock pregame
+		_ = gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionFocus,
+		})
+
+		// Now attempt to select scenario
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: "p1",
+			Action:   ActionSelectScenario,
+			Target:   "scn.nightglass.market-ritual",
+		})
+		if err == nil {
+			t.Error("expected error for scenario selection after first action, got nil")
+		}
+	})
+}

@@ -1,0 +1,148 @@
+schemaVersion: "1.0.0"
+contentPackId: "nightglass.core"
+language: "en-US"
+generatedAt: "2026-05-15T00:00:00Z"
+records:
+  - id: "scn.nightglass.archive-corruption"
+    name: "Archive Corruption"
+    summary: "Purge corrupted tomes before forbidden knowledge spreads city-wide."
+    enabled: true
+    version: 1
+    default: false
+    narrativePremise: "Salt Archive's forbidden section leaks corrupting influence. Investigators must identify contaminated texts, contain psychic contagion, and seal the archive vault before knowledge corruption spreads to the entire city."
+    dependencies:
+      requiredLocationIds:
+        - "loc.blackwater-docks"
+        - "loc.mirror-square"
+        - "loc.lantern-row"
+        - "loc.old-reservoir"
+        - "loc.bell-tower"
+        - "loc.ash-market"
+        - "loc.salt-archive"
+        - "loc.north-breakwater"
+      requiredResourceIds:
+        - "res.vitality"
+        - "res.composure"
+        - "res.leads"
+        - "res.focus"
+        - "res.salvage"
+        - "res.ward-charge"
+        - "res.nightfall"
+      requiredThreatIds:
+        - "thr.gutter-maw"
+        - "thr.bell-widow"
+        - "thr.breakwater-hulk"
+        - "thr.rift-sleet"
+      requiredEncounterIds:
+        - "enc.omen-low-tide"
+        - "enc.omen-lantern-gale"
+        - "enc.omen-archive-hum"
+        - "enc.crisis-anchor-slip"
+        - "enc.breakwater-signal-burst"
+    setup:
+      playerCount: {min: 1, max: 6}
+      startingLocationsByPlayerCount:
+        "1": ["loc.salt-archive"]
+        "2": ["loc.salt-archive", "loc.salt-archive"]
+        "3": ["loc.salt-archive", "loc.mirror-square", "loc.salt-archive"]
+        "4": ["loc.salt-archive", "loc.mirror-square", "loc.salt-archive", "loc.mirror-square"]
+        "5": ["loc.salt-archive", "loc.mirror-square", "loc.lantern-row", "loc.salt-archive", "loc.mirror-square"]
+        "6": ["loc.salt-archive", "loc.mirror-square", "loc.lantern-row", "loc.salt-archive", "loc.mirror-square", "loc.lantern-row"]
+      startingResources: {res.vitality: 9, res.composure: 6, res.leads: 1, res.focus: 3, res.salvage: 0}
+      startingGlobalResources: {res.nightfall: 1, res.ward-charge: 0}
+      initialThreatSpawns:
+        - when: "always"
+          threatId: "thr.hollow-choir"
+          locationId: "loc.salt-archive"
+          count: 1
+        - when: "players>=4"
+          threatId: "thr.bell-widow"
+          locationId: "loc.bell-tower"
+          count: 1
+    phaseFlow:
+      - phaseId: "coordination"
+        description: "Reveal corrupted texts and spreading knowledge contagion."
+      - phaseId: "investigatorTurns"
+        description: "Each investigator performs exactly two actions in turn order."
+      - phaseId: "escalation"
+        description: "Corruption spreads, spawn aberrations, resolve crisis."
+    actions:
+      available: ["move", "scavenge", "survey", "seal", "confront"]
+      perTurnLimit: 2
+      definitions:
+        move: {testStat: "finesse", threshold: 1}
+        scavenge: {testStat: "wit", threshold: 1}
+        survey: {testStat: "wit", thresholdByDifficulty: {easy: 1, standard: 3, hard: 3}}
+        seal:
+          testStat: "composure"
+          thresholdByDifficulty: {easy: 2, standard: 2, hard: 3}
+          costByDifficulty:
+            easy: {res.leads: 1, res.composure: 1}
+            standard: {res.leads: 2, res.composure: 2}
+            hard: {res.leads: 2, res.composure: 3}
+          onSuccess: [{effectType: "gainResource", params: {resourceId: "res.ward-charge", amount: 1}}]
+        confront: {testStat: "force", thresholdByDifficulty: {easy: 1, standard: 2, hard: 2}}
+      fractureRule:
+        description: "Each fracture result increases global nightfall by 1 regardless of action success."
+        globalResourceId: "res.nightfall"
+        amountPerFracture: 1
+    escalation:
+      steps:
+        - {effectType: "changeGlobal", params: {resourceId: "res.nightfall", amountFrom: "difficulty.escalationRate"}}
+        - {effectType: "spawnByNightfallTier", params: {tableId: "tbl.archive-corruption.spawns"}}
+        - {effectType: "resolveEncounter", params: {deck: "crisis", count: 1}}
+        - {effectType: "conditionalSpawn", params: {ifFlag: "fracturesThisRound>=3", threatId: "thr.tar-echo", count: 2}}
+      spawnTable:
+        id: "tbl.archive-corruption.spawns"
+        tiers:
+          - minNightfall: 0
+            maxNightfall: 4
+            options: [{threatId: "thr.hollow-choir", weight: 3}, {threatId: "thr.gutter-maw", weight: 2}]
+          - minNightfall: 5
+            maxNightfall: 8
+            options: [{threatId: "thr.bell-widow", weight: 3}, {threatId: "thr.tar-echo", weight: 2}]
+          - minNightfall: 9
+            maxNightfall: 12
+            options: [{threatId: "thr.rift-sleet", weight: 3}, {threatId: "thr.breakwater-hulk", weight: 2}]
+    difficulty:
+      easy:
+        escalationRate: 1
+        surveyThreshold: 1
+        sealLeadCost: 1
+        threatHealthScalar: 0.7
+        victoryWardTarget: 4
+      standard:
+        escalationRate: 2
+        surveyThreshold: 3
+        sealLeadCost: 2
+        threatHealthScalar: 1.0
+        victoryWardTarget: 5
+      hard:
+        escalationRate: 3
+        surveyThreshold: 3
+        sealLeadCost: 2
+        threatHealthScalar: 1.25
+        victoryWardTarget: 6
+    objectives:
+      primary:
+        - id: "obj.knowledge-containment"
+          description: "Reach ward charge target to contain corruption."
+          completion: {resourceId: "res.ward-charge", gteFrom: "difficulty.victoryWardTarget"}
+        - id: "obj.vault-seal"
+          description: "Perform archive vault seal at Salt Archive."
+          completion:
+            actionId: "act.signal-sever"
+            locationId: "loc.salt-archive"
+            teamLeadsByPlayerCount: {"1": 3, "2": 4, "3": 5, "4": 6, "5": 7, "6": 8}
+    victoryConditions:
+      allOf: ["obj.knowledge-containment", "obj.vault-seal"]
+    defeatConditions:
+      anyOf:
+        - {resourceId: "res.nightfall", gte: 12, reason: "Corrupted knowledge spreads city-wide."}
+        - {flag: "allInvestigatorsIncapacitated", equals: true, reason: "All investigators lost to psychic contamination."}
+        - {flag: "resonanceBreach", gte: 3, reason: "Archive containment collapse."}
+    fallbackBehavior:
+      ifMissingScenarioId: "load serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml defaultScenarioId"
+      ifInvalidScenarioId: "log warning and load serverengine/arkhamhorror/content/nightglass/scenarios/index.yaml defaultScenarioId"
+      ifIndexDefaultMissing: "load first enabled scenario sorted by ID"
+      ifNoEnabledScenarios: "abort startup with content validation error"

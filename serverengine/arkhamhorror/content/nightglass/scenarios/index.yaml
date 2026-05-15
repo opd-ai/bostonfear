@@ -1,7 +1,7 @@
 schemaVersion: "1.0.0"
 contentPackId: "nightglass.core"
 language: "en-US"
-generatedAt: "2026-05-09T00:00:00Z"
+generatedAt: "2026-05-15T00:00:00Z"
 defaultScenarioId: "scn.nightglass.harbor-signal"
 records:
   - id: "scn.nightglass.harbor-signal"
@@ -10,3 +10,21 @@ records:
     enabled: true
     version: 1
     file: "serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-harbor-signal.yaml"
+  - id: "scn.nightglass.asylum-echoes"
+    name: "Asylum Echoes"
+    summary: "Contain spectral manifestations before they consume the abandoned institution."
+    enabled: true
+    version: 1
+    file: "serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-asylum-echoes.yaml"
+  - id: "scn.nightglass.market-ritual"
+    name: "Market Ritual"
+    summary: "Disrupt a forbidden summoning before midnight marketplace transforms."
+    enabled: true
+    version: 1
+    file: "serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-market-ritual.yaml"
+  - id: "scn.nightglass.archive-corruption"
+    name: "Archive Corruption"
+    summary: "Purge corrupted tomes before forbidden knowledge spreads city-wide."
+    enabled: true
+    version: 1
+    file: "serverengine/arkhamhorror/content/nightglass/scenarios/nightglass-archive-corruption.yaml"

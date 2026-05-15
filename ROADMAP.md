@@ -168,10 +168,10 @@
 
 **Current Status**: 13/13 core rule systems implemented per `docs/RULES.md`, but several game mechanics are simplified or stubbed with placeholder content:
 
-- [ ] **Expand scenario system beyond default scenario**
-  - [ ] Implement scenario selection UI in pregame phase
-  - [ ] Add 3 additional original custom scenarios (currently only default scenario exists)
-  - [ ] Support scenario-specific setup (custom starting doom, special rules, location modifiers)
+- [x] **Expand scenario system beyond default scenario**
+  - [x] Implement scenario selection UI in pregame phase
+  - [x] Add 3 additional original custom scenarios (currently only default scenario exists)
+  - [x] Support scenario-specific setup (custom starting doom, special rules, location modifiers)
   - **Files**: `serverengine/arkhamhorror/scenarios/`, `serverengine/arkhamhorror/content/nightglass/scenarios/`
   - **Validation**: Can select and play 4 different scenarios with distinct win/loss conditions
 

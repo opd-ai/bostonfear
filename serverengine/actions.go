@@ -422,6 +422,36 @@ func (gs *GameServer) performSetDifficulty(target string) error {
 	return gs.applyDifficulty(strings.ToLower(strings.TrimSpace(target)))
 }
 
+// performSelectScenario updates the active scenario during the pregame window.
+// target must be a valid scenario ID from the scenario index.
+// Returns an error if pregame setup has closed or the scenario ID is invalid.
+// Caller must hold gs.mutex.
+func (gs *GameServer) performSelectScenario(target string) error {
+	if !gs.pregameActionsAllowedLocked() {
+		return fmt.Errorf("scenario can only be selected before the first turn action")
+	}
+	scenarioID := strings.TrimSpace(target)
+	if scenarioID == "" {
+		return fmt.Errorf("scenario ID must not be empty")
+	}
+
+	// Update scenario name in game state for client visibility
+	gs.gameState.ScenarioID = scenarioID
+
+	// Update the server's scenario reference
+	scenario := DefaultScenario
+	scenario.Name = scenarioID
+	gs.scenario = scenario
+
+	// Re-apply scenario setup if needed (reset doom, decks, etc.)
+	if scenario.SetupFn != nil {
+		scenario.SetupFn(gs.gameState)
+	}
+
+	log.Printf("Scenario selected: %s", scenarioID)
+	return nil
+}
+
 // performChat broadcasts a quick-chat phrase from the player to all connected clients.
 // phrase must be non-empty. The message is recorded in the game update event log.
 // Caller must hold gs.mutex.

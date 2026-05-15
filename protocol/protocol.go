@@ -39,6 +39,7 @@ const (
 	ActionCloseGate          ActionType = "closegate"
 	ActionSelectInvestigator ActionType = "selectinvestigator"
 	ActionSetDifficulty      ActionType = "setdifficulty"
+	ActionSelectScenario     ActionType = "selectscenario"
 	ActionChat               ActionType = "chat"
 )
 
@@ -228,6 +229,7 @@ type GameState struct {
 	LoseCondition      bool                       `json:"loseCondition"`
 	RequiredClues      int                        `json:"requiredClues"`
 	Difficulty         string                     `json:"difficulty"`
+	ScenarioID         string                     `json:"scenarioId"`
 	ActDeck            []ActCard                  `json:"actDeck"`
 	AgendaDeck         []AgendaCard               `json:"agendaDeck"`
 	MythosEventDeck    []MythosEvent              `json:"mythosEventDeck"`

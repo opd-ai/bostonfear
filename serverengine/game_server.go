@@ -137,6 +137,7 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 			GamePhase:          "waiting",
 			TurnOrder:          []string{},
 			GameStarted:        false,
+			ScenarioID:         scenario.Name,
 			Enemies:            make(map[string]*Enemy),
 			OpenGates:          []Gate{},
 			LocationDoomTokens: make(map[string]int),
@@ -348,6 +349,21 @@ func (gs *GameServer) processActionCore(action PlayerActionMessage) error {
 		gs.broadcastGameState()
 		return nil
 
+	case ActionSelectScenario:
+		gs.mutex.Lock()
+		_, exists := gs.gameState.Players[action.PlayerID]
+		if !exists {
+			gs.mutex.Unlock()
+			return fmt.Errorf("player %s not found", action.PlayerID)
+		}
+		err := gs.performSelectScenario(action.Target)
+		gs.mutex.Unlock()
+		if err != nil {
+			return err
+		}
+		gs.broadcastGameState()
+		return nil
+
 	case ActionChat:
 		gs.mutex.Lock()
 		_, exists := gs.gameState.Players[action.PlayerID]
@@ -440,7 +456,7 @@ func isValidActionType(a ActionType) bool {
 		ActionMove, ActionGather, ActionInvestigate, ActionCastWard,
 		ActionFocus, ActionResearch, ActionTrade,
 		ActionEncounter, ActionComponent, ActionAttack, ActionEvade, ActionCloseGate,
-		ActionSelectInvestigator, ActionSetDifficulty, ActionChat,
+		ActionSelectInvestigator, ActionSetDifficulty, ActionSelectScenario, ActionChat,
 	} {
 		if a == v {
 			return true
