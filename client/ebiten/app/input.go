@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/client/ebiten/ui"
+	"github.com/opd-ai/bostonfear/client/ebiten/ui/input"
 	"github.com/opd-ai/bostonfear/protocol"
 )
 
@@ -212,7 +213,7 @@ func handleTouchIDs(h *InputHandler, gs ebclient.GameState, playerID string, tou
 	}
 }
 
-func dispatchTouchID(h *InputHandler, gs ebclient.GameState, playerID string, mapper *ui.InputMapper, touchID ebiten.TouchID) bool {
+func dispatchTouchID(h *InputHandler, gs ebclient.GameState, playerID string, mapper *input.InputMapper, touchID ebiten.TouchID) bool {
 	x, y := ebiten.TouchPosition(touchID)
 	if x < 0 || y < 0 || x >= screenWidth || y >= screenHeight {
 		return false
@@ -279,15 +280,15 @@ func (h *InputHandler) sendPlayerAction(msg ebclient.PlayerActionMessage) {
 	h.net.SendAction(msg)
 }
 
-func buildTouchInputMapper(vp *ui.Viewport) *ui.InputMapper {
-	mapper := ui.NewInputMapper()
+func buildTouchInputMapper(vp *ui.Viewport) *input.InputMapper {
+	mapper := input.NewInputMapper()
 	registerTouchLocationHitBoxes(mapper, vp)
 	registerTouchActionHitBoxes(mapper)
 
 	return mapper
 }
 
-func registerTouchLocationHitBoxes(mapper *ui.InputMapper, vp *ui.Viewport) {
+func registerTouchLocationHitBoxes(mapper *input.InputMapper, vp *ui.Viewport) {
 	locationConstraints := map[protocol.Location]*ui.Constraint{
 		protocol.Downtown: {
 			Anchor:  ui.AnchorTopLeft,
@@ -324,7 +325,7 @@ func registerTouchLocationHitBoxes(mapper *ui.InputMapper, vp *ui.Viewport) {
 	}
 }
 
-func registerTouchActionHitBoxes(mapper *ui.InputMapper) {
+func registerTouchActionHitBoxes(mapper *input.InputMapper) {
 	actionGridOriginY := screenHeight - 220
 	actionGridCellWidth := 170
 	actionGridCellHeight := 44

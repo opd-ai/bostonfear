@@ -1,4 +1,6 @@
-package ui
+package feedback
+
+import "github.com/opd-ai/bostonfear/client/ebiten/ui"
 
 import "time"
 
@@ -37,7 +39,7 @@ type Feedback struct {
 	State FeedbackState
 
 	// Bounds define the on-screen position (computed at render time).
-	Bounds Rect
+	Bounds ui.Rect
 }
 
 // FeedbackType categorizes the kind of notification.
@@ -77,7 +79,7 @@ const (
 
 // ActionDelta summarizes the state changes resulting from an action.
 type ActionDelta struct {
-	Action         ActionType
+	Action         ui.ActionType
 	ActionLabel    string
 	DiceResults    []string // "success", "blank", "tentacle"
 	ResourceDelta  ResourceDelta
@@ -173,7 +175,7 @@ type Toast struct {
 	Message  string
 	Duration time.Duration
 	Severity Severity
-	Bounds   Rect
+	Bounds   ui.Rect
 }
 
 // Confirmation is a modal dialog requesting user confirmation for a significant action.
@@ -184,5 +186,5 @@ type Confirmation struct {
 	NoLabel     string
 	OnYes       func()
 	OnNo        func()
-	Bounds      Rect
+	Bounds      ui.Rect
 }

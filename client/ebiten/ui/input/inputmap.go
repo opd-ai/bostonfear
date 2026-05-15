@@ -1,8 +1,10 @@
-package ui
+package input
 
 import (
 	"image"
 	"sort"
+
+	uipkg "github.com/opd-ai/bostonfear/client/ebiten/ui"
 )
 
 // HitBox represents a clickable/touchable UI region with a semantic label and bounds.
@@ -110,11 +112,11 @@ func (im *InputMapper) ensureSorted() {
 
 // CoordinateTransformer adapts between physical and logical coordinate spaces.
 type CoordinateTransformer struct {
-	viewport *Viewport
+	viewport *uipkg.Viewport
 }
 
 // NewCoordinateTransformer creates a transformer for the given viewport.
-func NewCoordinateTransformer(v *Viewport) *CoordinateTransformer {
+func NewCoordinateTransformer(v *uipkg.Viewport) *CoordinateTransformer {
 	return &CoordinateTransformer{viewport: v}
 }
 

@@ -20,6 +20,9 @@ import (
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/client/ebiten/render"
 	"github.com/opd-ai/bostonfear/client/ebiten/ui"
+	"github.com/opd-ai/bostonfear/client/ebiten/ui/feedback"
+	"github.com/opd-ai/bostonfear/client/ebiten/ui/hud"
+	"github.com/opd-ai/bostonfear/client/ebiten/ui/onboarding"
 )
 
 // screenWidth and screenHeight define the logical resolution (800×600 minimum).
@@ -79,9 +82,9 @@ type Game struct {
 	theme       ui.ThemePack
 	tokens      *ui.DesignTokenRegistry
 	icons       *ui.IconRegistry
-	onboarding  *ui.OnboardingController
+	onboarding  *onboarding.OnboardingController
 	stateBanner *ui.StateVisibilityWidget
-	results     *ui.ResultsPanel
+	results     *hud.ResultsPanel
 	lastOutcome string
 	procedural  *ui.ProceduralGenerator
 	camera      *ui.Camera
@@ -123,9 +126,9 @@ func NewGame(serverURL string) *Game {
 		theme:       ui.ResolveThemePack(tokens),
 		tokens:      tokens,
 		icons:       ui.NewIconRegistry(),
-		onboarding:  ui.NewOnboardingController(ui.DefaultArkhamHorrorOnboarding()),
+		onboarding:  onboarding.NewOnboardingController(onboarding.DefaultArkhamHorrorOnboarding()),
 		stateBanner: ui.NewStateVisibilityWidget(),
-		results:     ui.NewResultsPanel(),
+		results:     hud.NewResultsPanel(),
 		camera:      ui.NewCamera(),
 		startedAt:   time.Now(),
 	}
@@ -299,13 +302,13 @@ func (g *Game) updateUXWidgets(gs ebclient.GameState, connected bool) {
 		return
 	}
 	g.lastOutcome = key
-	outcome := &ui.ActionOutcome{
+	outcome := &hud.ActionOutcome{
 		PlayerID:    update.PlayerID,
 		PlayerName:  g.playerDisplayName(gs, update.PlayerID),
 		ActionType:  update.Event,
 		Successful:  update.Result != "fail",
 		Description: update.Result,
-		ResourceDelta: ui.ResourceDelta{
+		ResourceDelta: feedback.ResourceDelta{
 			HealthDelta: update.ResourceDelta.Health,
 			SanityDelta: update.ResourceDelta.Sanity,
 			ClueDelta:   update.ResourceDelta.Clues,
@@ -324,7 +327,7 @@ func (g *Game) updateUXWidgets(gs ebclient.GameState, connected bool) {
 		case "ward", "closegate":
 			required = 3
 		}
-		outcome.DiceRoll = &ui.DiceRollResult{
+		outcome.DiceRoll = &hud.DiceRollResult{
 			Dice:     results,
 			Required: required,
 			Achieved: dice.Successes,

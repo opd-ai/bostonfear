@@ -1,6 +1,10 @@
-package ui
+package hud
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/opd-ai/bostonfear/client/ebiten/ui/feedback"
+)
 
 // ActionOutcome represents the result of a player action.
 type ActionOutcome struct {
@@ -10,8 +14,8 @@ type ActionOutcome struct {
 	ActionTarget   string
 	Successful     bool
 	Description    string
-	ResourceDelta  ResourceDelta // Reusing from feedback.go
-	LocationChange LocationChange
+	ResourceDelta  feedback.ResourceDelta // Reusing from feedback.go
+	LocationChange feedback.LocationChange
 	DiceRoll       *DiceRollResult
 }
 

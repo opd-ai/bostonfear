@@ -37,9 +37,11 @@ func TestTokenRegistryRequiredEntries(t *testing.T) {
 	requiredColors := []string{
 		"color-bg-dark", "color-surface", "color-health", "color-sanity", "color-clues", "color-doom",
 	}
+	fallback := Color{R: 255, G: 255, B: 255, A: 255} // Default white fallback from GetColor
 	for _, key := range requiredColors {
-		if tokens.GetColor(key) == nil {
-			t.Fatalf("missing required color token: %s", key)
+		col := tokens.GetColor(key)
+		if col.R == fallback.R && col.G == fallback.G && col.B == fallback.B && col.A == fallback.A {
+			t.Fatalf("missing required color token (got fallback): %s", key)
 		}
 	}
 	if tokens.GetTypography("body") == nil {

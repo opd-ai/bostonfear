@@ -1,4 +1,4 @@
-package ui
+package feedback
 
 import (
 	"math"

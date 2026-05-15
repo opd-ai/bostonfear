@@ -119,12 +119,12 @@
 
 **Root Cause**: `client/ebiten/ui` package mixes HUD, feedback, effects, onboarding, procedural generation, input mapping, and component rendering.
 
-- [ ] **Split `ui` package into domain-scoped sub-packages**
-  - [ ] Create `client/ebiten/ui/hud/` for HUD-specific components (health, sanity, doom, turn indicator)
-  - [ ] Create `client/ebiten/ui/feedback/` for toast, animations, and visual feedback
-  - [ ] Create `client/ebiten/ui/onboarding/` for tutorial and setup flows
-  - [ ] Create `client/ebiten/ui/input/` for input mapping and gesture recognition
-  - [ ] Leave `client/ebiten/ui/components.go` for shared primitives (buttons, labels, panels)
+- [x] **Split `ui` package into domain-scoped sub-packages**
+  - [x] Create `client/ebiten/ui/hud/` for HUD-specific components (health, sanity, doom, turn indicator)
+  - [x] Create `client/ebiten/ui/feedback/` for toast, animations, and visual feedback
+  - [x] Create `client/ebiten/ui/onboarding/` for tutorial and setup flows
+  - [x] Create `client/ebiten/ui/input/` for input mapping and gesture recognition
+  - [x] Leave `client/ebiten/ui/components.go` for shared primitives (buttons, labels, panels)
   - **Files to refactor**: `client/ebiten/ui/*.go` → subdirectories
   - **Validation**: `go-stats-generator` reports `ui` package size reduction to <10 files, <100 exports
 

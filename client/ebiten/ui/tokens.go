@@ -10,8 +10,8 @@ type DesignToken interface {
 
 // ColorToken represents a semantic color in the design system.
 type ColorToken struct {
-	Name  string      // e.g., "primary", "danger", "success"
-	Light color.Color // Color value
+	Name  string     // e.g., "primary", "danger", "success"
+	Light color.RGBA // color.RGBA value
 }
 
 // Value returns the RGBA color.
@@ -62,20 +62,20 @@ func NewDesignTokenRegistry() *DesignTokenRegistry {
 }
 
 // RegisterColor adds a color token.
-func (dtr *DesignTokenRegistry) RegisterColor(name string, col color.Color) {
+func (dtr *DesignTokenRegistry) RegisterColor(name string, col color.RGBA) {
 	if dtr != nil {
 		dtr.colors[name] = &ColorToken{Name: name, Light: col}
 	}
 }
 
 // GetColor retrieves a color token by name.
-func (dtr *DesignTokenRegistry) GetColor(name string) color.Color {
+func (dtr *DesignTokenRegistry) GetColor(name string) color.RGBA {
 	if dtr != nil {
 		if token, exists := dtr.colors[name]; exists {
 			return token.Light
 		}
 	}
-	return color.White // Default fallback.
+	return color.RGBA{R: 255, G: 255, B: 255, A: 255} // Default white fallback.
 }
 
 // RegisterSpacing adds a spacing token.
@@ -124,13 +124,13 @@ func (dtr *DesignTokenRegistry) MapSemantic(semanticName, tokenName string) {
 }
 
 // GetSemanticColor resolves a semantic name to a color.
-func (dtr *DesignTokenRegistry) GetSemanticColor(semanticName string) color.Color {
+func (dtr *DesignTokenRegistry) GetSemanticColor(semanticName string) color.RGBA {
 	if dtr != nil {
 		if tokenName, exists := dtr.semantics[semanticName]; exists {
 			return dtr.GetColor(tokenName)
 		}
 	}
-	return color.White // Fallback.
+	return color.RGBA{R: 255, G: 255, B: 255, A: 255} // Fallback.
 }
 
 // NewDefaultArkhamTheme creates a dark, eldritch-themed token registry.

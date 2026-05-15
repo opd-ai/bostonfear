@@ -115,3 +115,73 @@ var (
 	ColorClue    = Color{R: 33, G: 150, B: 243, A: 255}
 	ColorDoom    = Color{R: 244, G: 67, B: 54, A: 255}
 )
+
+// ActionType identifies what action can be performed.
+type ActionType int
+
+const (
+	ActionMove ActionType = iota
+	ActionGather
+	ActionInvestigate
+	ActionCastWard
+	ActionFocus
+	ActionResearch
+	ActionTrade
+	ActionEncounter
+	ActionComponent
+	ActionAttack
+	ActionEvade
+	ActionCloseGate
+)
+
+// String returns the string name of an action type.
+func (a ActionType) String() string {
+	switch a {
+	case ActionMove:
+		return "Move"
+	case ActionGather:
+		return "Gather"
+	case ActionInvestigate:
+		return "Investigate"
+	case ActionCastWard:
+		return "Cast Ward"
+	case ActionFocus:
+		return "Focus"
+	case ActionResearch:
+		return "Research"
+	case ActionTrade:
+		return "Trade"
+	case ActionEncounter:
+		return "Encounter"
+	case ActionComponent:
+		return "Component"
+	case ActionAttack:
+		return "Attack"
+	case ActionEvade:
+		return "Evade"
+	case ActionCloseGate:
+		return "Close Gate"
+	default:
+		return "Unknown"
+	}
+}
+
+// ResourceType identifies what kind of resource is displayed.
+type ResourceType int
+
+const (
+	ResourceClue ResourceType = iota
+	ResourceHealth
+	ResourceSanity
+	ResourceFocus
+)
+
+// ActionHintType identifies what action the hint suggests.
+type ActionHintType int
+
+const (
+	ActionHintMove ActionHintType = iota
+	ActionHintInvestigate
+	ActionHintGather
+	ActionHintWard
+)

@@ -1,4 +1,6 @@
-package ui
+package hud
+
+import "github.com/opd-ai/bostonfear/client/ebiten/ui"
 
 // HUD represents the overall heads-up display layout with three major zones.
 type HUD struct {
@@ -11,7 +13,7 @@ type HUD struct {
 	// ActionRail occupies the bottom of the screen and provides action buttons.
 	ActionRail ActionRail
 
-	Viewport *Viewport
+	Viewport *ui.Viewport
 }
 
 // StatusRail displays turn information, doom counter, and win condition progress at the top.
@@ -20,7 +22,7 @@ type StatusRail struct {
 	CurrentTurnDisplay *PlayerTurnIndicator
 
 	// DoomDisplay shows the current doom level and max threshold
-	DoomDisplay *DoomDisplay
+	DoomDisplay *ui.DoomDisplay
 
 	// ObjectiveDisplay shows the collected clues progress toward win condition
 	ObjectiveDisplay *ObjectiveCard
@@ -28,7 +30,7 @@ type StatusRail struct {
 	// PlayerStrip shows icons/avatars for all connected players
 	PlayerStrip *PlayerStrip
 
-	Bounds Rect
+	Bounds ui.Rect
 }
 
 // PlayerTurnIndicator shows the current acting player and action count.
@@ -38,7 +40,7 @@ type PlayerTurnIndicator struct {
 	MaxActions        int
 	IsCurrentPlayer   bool
 	CurrentPlayerName string
-	Bounds            Rect
+	Bounds            ui.Rect
 }
 
 // ObjectiveCard displays the clue collection goal.
@@ -46,13 +48,13 @@ type ObjectiveCard struct {
 	CollectedClues int
 	RequiredClues  int
 	PlayerCount    int
-	Bounds         Rect
+	Bounds         ui.Rect
 }
 
 // PlayerStrip shows small avatars/indicators for all players in turn order.
 type PlayerStrip struct {
 	Players []*PlayerAvatar
-	Bounds  Rect
+	Bounds  ui.Rect
 }
 
 // PlayerAvatar represents a single player in the player strip.
@@ -64,8 +66,8 @@ type PlayerAvatar struct {
 	Sanity      int
 	IsActive    bool
 	IsCurrent   bool
-	Color       Color
-	Bounds      Rect
+	Color       ui.Color
+	Bounds      ui.Rect
 }
 
 // BoardZone occupies the center of the screen and shows the game board.
@@ -73,7 +75,7 @@ type BoardZone struct {
 	LocationGrids    []*LocationGrid // 4 neighborhoods
 	PlayerTokens     []*PlayerToken
 	InteractionHints []*InteractionHint
-	Bounds           Rect
+	Bounds           ui.Rect
 }
 
 // LocationGrid represents a single location on the board with encounter/resource info.
@@ -83,126 +85,56 @@ type LocationGrid struct {
 	EncounterText string
 	Resources     []ResourceIcon
 	Enemies       []EnemyToken
-	Bounds        Rect
+	Bounds        ui.Rect
 }
 
 // ResourceIcon shows a specific resource at a location (clues, health, sanity, etc).
 type ResourceIcon struct {
-	Type   ResourceType
+	Type   ui.ResourceType
 	Count  int
-	Bounds Rect
+	Bounds ui.Rect
 }
-
-// ResourceType identifies what kind of resource is displayed.
-type ResourceType int
-
-const (
-	ResourceClue ResourceType = iota
-	ResourceHealth
-	ResourceSanity
-	ResourceFocus
-)
 
 // EnemyToken represents a supernatural threat at a location.
 type EnemyToken struct {
 	EnemyName string
 	Health    int
-	Bounds    Rect
+	Bounds    ui.Rect
 }
 
 // PlayerToken represents a player's physical position on the board.
 type PlayerToken struct {
 	PlayerID     string
 	Location     string
-	Color        Color
+	Color        ui.Color
 	IsActive     bool
 	IsCurrent    bool
 	HealthStatus int // for visual feedback
-	Bounds       Rect
+	Bounds       ui.Rect
 }
 
 // InteractionHint provides visual guidance for available actions.
 type InteractionHint struct {
-	ActionType ActionHintType
+	ActionType ui.ActionHintType
 	TargetID   string
 	Text       string
-	Bounds     Rect
+	Bounds     ui.Rect
 }
-
-// ActionHintType identifies what action the hint suggests.
-type ActionHintType int
-
-const (
-	ActionHintMove ActionHintType = iota
-	ActionHintInvestigate
-	ActionHintGather
-	ActionHintWard
-)
 
 // ActionRail displays available actions at the bottom of the screen.
 type ActionRail struct {
 	ActionButtons []*ActionButton
-	Bounds        Rect
+	Bounds        ui.Rect
 }
 
 // ActionButton represents a single action the player can take.
 type ActionButton struct {
-	Action     ActionType
+	Action     ui.ActionType
 	Label      string
 	Icon       string
 	IsEnabled  bool
 	IsPending  bool
 	IsSelected bool
 	Tooltip    string
-	Bounds     Rect
-}
-
-// ActionType identifies what action can be performed.
-type ActionType int
-
-const (
-	ActionMove ActionType = iota
-	ActionGather
-	ActionInvestigate
-	ActionCastWard
-	ActionFocus
-	ActionResearch
-	ActionTrade
-	ActionEncounter
-	ActionComponent
-	ActionAttack
-	ActionEvade
-	ActionCloseGate
-)
-
-// ActionTypeString returns the string name of an action type.
-func (a ActionType) String() string {
-	switch a {
-	case ActionMove:
-		return "Move"
-	case ActionGather:
-		return "Gather"
-	case ActionInvestigate:
-		return "Investigate"
-	case ActionCastWard:
-		return "Cast Ward"
-	case ActionFocus:
-		return "Focus"
-	case ActionResearch:
-		return "Research"
-	case ActionTrade:
-		return "Trade"
-	case ActionEncounter:
-		return "Encounter"
-	case ActionComponent:
-		return "Component"
-	case ActionAttack:
-		return "Attack"
-	case ActionEvade:
-		return "Evade"
-	case ActionCloseGate:
-		return "Close Gate"
-	default:
-		return "Unknown"
-	}
+	Bounds     ui.Rect
 }
