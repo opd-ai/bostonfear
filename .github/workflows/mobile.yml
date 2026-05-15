@@ -42,6 +42,44 @@ jobs:
           echo "SUCCESS: Android AAR built successfully"
           ls -lh /tmp/bostonfear.aar
 
+  mobile-test-android:
+    name: Android Emulator Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: |
+          sdkmanager "ndk;25.2.9519653"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+      - name: Install ebitenmobile
+        run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
+      - name: Initialize ebitenmobile
+        run: ebitenmobile init
+      - name: Run Android emulator tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          script: |
+            echo "Running mobile binding tests on Android emulator..."
+            cd cmd/mobile
+            go test -tags android -v -timeout 5m
+      - name: Validate test results
+        run: |
+          echo "SUCCESS: Android emulator tests completed"
+
   mobile-bind-ios:
     name: iOS Bind
     runs-on: macos-latest
@@ -64,3 +102,50 @@ jobs:
           fi
           echo "SUCCESS: iOS XCFramework built successfully"
           ls -lh /tmp/BostonFear.xcframework
+
+  mobile-test-ios:
+    name: iOS Simulator Tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Install ebitenmobile
+        run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
+      - name: Initialize ebitenmobile
+        run: ebitenmobile init
+      - name: List available simulators
+        run: xcrun simctl list devices available
+      - name: Boot iOS simulator
+        run: |
+          # Get the latest iOS runtime and a compatible device
+          RUNTIME=$(xcrun simctl list runtimes iOS -j | jq -r '.runtimes[-1].identifier')
+          DEVICE_TYPE=$(xcrun simctl list devicetypes iPhone -j | jq -r '.devicetypes[] | select(.name | contains("iPhone 15")) | .identifier' | head -n1)
+          if [ -z "$DEVICE_TYPE" ]; then
+            DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-14"
+          fi
+          echo "Creating simulator with device type: $DEVICE_TYPE and runtime: $RUNTIME"
+          UDID=$(xcrun simctl create "BostonFear-Test" "$DEVICE_TYPE" "$RUNTIME")
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID"
+          echo "Waiting for simulator to boot..."
+          xcrun simctl bootstatus "$UDID"
+      - name: Run iOS simulator tests
+        run: |
+          echo "Running mobile binding tests on iOS simulator..."
+          cd cmd/mobile
+          # Set GOOS and GOARCH for iOS simulator (x86_64 or arm64)
+          export GOOS=ios
+          export CGO_ENABLED=1
+          go test -tags ios -v -timeout 5m
+      - name: Shutdown simulator
+        if: always()
+        run: |
+          if [ ! -z "$SIMULATOR_UDID" ]; then
+            xcrun simctl shutdown "$SIMULATOR_UDID" || true
+            xcrun simctl delete "$SIMULATOR_UDID" || true
+          fi
+      - name: Validate test results
+        run: |
+          echo "SUCCESS: iOS simulator tests completed"

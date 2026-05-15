@@ -93,8 +93,8 @@
 
 - [x] **Add mobile build verification to CI**
   - [x] Create `.github/workflows/mobile.yml` to verify `ebitenmobile bind` succeeds for Android and iOS
-  - [ ] Add Android emulator test step (API 29+) to validate app startup and basic rendering
-  - [ ] Add iOS simulator test step (Xcode 15+) to validate app startup and basic rendering
+  - [x] Add Android emulator test step (API 29+) to validate app startup and basic rendering
+  - [x] Add iOS simulator test step (Xcode 15+) to validate app startup and basic rendering
   - **Files to create**: `.github/workflows/mobile.yml`
   - **Validation**: CI workflow green, mobile builds succeed without warnings
 
