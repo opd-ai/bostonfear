@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"log"
 	mathrand "math/rand"
+	"strings"
 	"sync/atomic"
 
+	arkcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 	arkhamphases "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/phases"
 )
 
@@ -40,11 +42,19 @@ func (gs *GameServer) runMythosPhase() {
 		RecoverInvestigator: gs.recoverInvestigator,
 		DefaultEventDeck:    defaultMythosEventDeck,
 		AdjacentLocations: func(loc Location) []Location {
-			adjacent, ok := locationAdjacency[loc]
-			if !ok {
-				return nil
+			// Convert Location to lowercase string to look up in the content module's map.
+			locStr := strings.ToLower(string(loc))
+			adjacentStrs := arkcontent.LocationAdjacency[locStr]
+
+			// Convert back to proper Location type format for consistency.
+			result := make([]Location, 0, len(adjacentStrs))
+			for _, adjStr := range adjacentStrs {
+				// LocationAdjacency provides lowercase names, but Location type is uppercase.
+				// Convert to match the protocol's Location enum format (e.g. "Downtown" not "downtown").
+				upperName := strings.ToUpper(adjStr[:1]) + adjStr[1:]
+				result = append(result, Location(upperName))
 			}
-			return adjacent
+			return result
 		},
 		ResolveEventEffect:  gs.resolveEventEffect,
 		OpenGateAtLocation:  gs.openGateAtLocation,

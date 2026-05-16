@@ -241,10 +241,6 @@ func buildLatencyPercentiles(percentiles map[string]float64) string {
 	if p50, ok := percentiles["p50"]; ok {
 		lines = append(lines, fmt.Sprintf("arkham_horror_broadcast_latency_percentiles_ms{quantile=\"0.50\"} %.4f", p50))
 	}
-	if p90, ok := percentiles["p90"]; ok {
-		lines = append(lines, fmt.Sprintf("arkham_horror_broadcast_latency_percentiles_ms{quantile=\"0.90\"} %.4f", p90))
-	}
-	// Note: the implementation returns p95 and p99, not p90
 	if p95, ok := percentiles["p95"]; ok {
 		lines = append(lines, fmt.Sprintf("arkham_horror_broadcast_latency_percentiles_ms{quantile=\"0.95\"} %.4f", p95))
 	}

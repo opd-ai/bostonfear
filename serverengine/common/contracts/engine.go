@@ -86,8 +86,8 @@ type MetricsCollector interface {
 	// doom level (0-12). Used by Prometheus metrics to track doom progression patterns.
 	GetDoomHistogram() map[int]int64
 
-	// GetLatencyPercentiles returns broadcast latency percentiles (P50, P90, P95, P99) in milliseconds.
-	// Keys are "p50", "p90", "p95", "p99". Used by Prometheus metrics for latency monitoring.
+	// GetLatencyPercentiles returns broadcast latency percentiles (P50, P95, P99) in milliseconds.
+	// Keys are "p50", "p95", "p99". Used by Prometheus metrics for latency monitoring.
 	GetLatencyPercentiles() map[string]float64
 }
 

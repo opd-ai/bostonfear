@@ -19,6 +19,12 @@ const (
 //go:embed nightglass/**
 var nightglassEmbeddedFS embed.FS
 
+// NightglassFS returns the embedded Nightglass content filesystem.
+// Callers can use fs.ReadFile or fs.WalkDir to access embedded content.
+func NightglassFS() embed.FS {
+	return nightglassEmbeddedFS
+}
+
 // EnsureNightglassContentInstalled copies embedded Nightglass content files into
 // the module-scoped runtime content directory when files are missing.
 //

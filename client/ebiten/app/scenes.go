@@ -373,7 +373,8 @@ func (s *SceneGame) Draw(screen *ebiten.Image) {
 }
 
 // SceneCharacterSelect is shown after connection but before the game begins,
-// allowing the player to choose their investigator archetype from 6 options.
+// allowing the player to choose their investigator archetype from 6 options
+// and select a difficulty level.
 // It transitions to SceneGame once the selection is confirmed.
 type SceneCharacterSelect struct {
 	game *Game
@@ -385,6 +386,10 @@ type SceneCharacterSelect struct {
 		display     string // "Researcher", "Detective", etc.
 		description string // "Gathers clues and unravels mysteries" etc.
 	}
+
+	// selectedDifficulty tracks the player's difficulty choice: "easy", "standard", or "hard".
+	// Empty string means not yet selected.
+	selectedDifficulty string
 }
 
 // NewSceneCharacterSelect creates a new character selection scene.
@@ -406,7 +411,7 @@ func NewSceneCharacterSelect(g *Game) *SceneCharacterSelect {
 	}
 }
 
-// Update checks for key presses 1-6 and sends the selection to the server.
+// Update checks for key presses 1-6 (investigator) and E/S/H (difficulty) and sends selections to the server.
 func (s *SceneCharacterSelect) Update() error {
 	gs, playerID, _ := s.game.state.Snapshot()
 
@@ -414,6 +419,24 @@ func (s *SceneCharacterSelect) Update() error {
 	if player, exists := gs.Players[playerID]; exists && player.InvestigatorType != "" {
 		// Selection already made, state will transition to SceneGame in the next updateScene call.
 		return nil
+	}
+
+	// Handle difficulty selection with E (easy), S (standard), H (hard).
+	difficultyKeys := map[ebiten.Key]string{
+		ebiten.KeyE: "easy",
+		ebiten.KeyS: "standard",
+		ebiten.KeyH: "hard",
+	}
+	for key, difficulty := range difficultyKeys {
+		if inpututil.IsKeyJustPressed(key) && s.selectedDifficulty != difficulty {
+			s.selectedDifficulty = difficulty
+			s.game.net.SendAction(ebclient.PlayerActionMessage{
+				Type:     "playerAction",
+				PlayerID: playerID,
+				Action:   protocol.ActionSetDifficulty,
+				Target:   difficulty,
+			})
+		}
 	}
 
 	keys := []ebiten.Key{
@@ -474,8 +497,20 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 	}
 
 	drawUIText(screen, "", screenWidth/2-100, screenHeight/2+130, color.White) // Spacing
-	drawUIText(screen, "Selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-100, screenHeight/2+145, color.White)
-	drawUIText(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+160, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+
+	// Draw difficulty selection.
+	drawUIText(screen, "Select Difficulty:", screenWidth/2-120, screenHeight/2+140, color.White)
+	drawUIText(screen, "[E] Easy  [S] Standard  [H] Hard", screenWidth/2-120, screenHeight/2+155, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+
+	// Highlight selected difficulty.
+	if s.selectedDifficulty != "" {
+		diffColor := color.RGBA{R: 255, G: 215, B: 100, A: 255} // Gold
+		drawUIText(screen, "Current: "+strings.ToTitle(s.selectedDifficulty), screenWidth/2-120, screenHeight/2+170, diffColor)
+	}
+
+	drawUIText(screen, "", screenWidth/2-100, screenHeight/2+190, color.White) // Spacing
+	drawUIText(screen, "Selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-100, screenHeight/2+205, color.White)
+	drawUIText(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+220, color.RGBA{R: 180, G: 180, B: 180, A: 255})
 }
 
 // SceneGameOver is shown when the game reaches a win or lose condition.

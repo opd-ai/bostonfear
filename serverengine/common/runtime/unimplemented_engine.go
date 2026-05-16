@@ -104,5 +104,5 @@ func (e *UnimplementedEngine) GetDoomHistogram() map[int]int64 {
 }
 
 func (e *UnimplementedEngine) GetLatencyPercentiles() map[string]float64 {
-	return map[string]float64{"p50": 0, "p90": 0, "p95": 0, "p99": 0}
+	return map[string]float64{"p50": 0, "p95": 0, "p99": 0}
 }

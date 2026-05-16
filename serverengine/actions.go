@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	arkcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 )
 
 // performMove executes the Move action: validates adjacency and updates player location.
@@ -460,6 +462,11 @@ func (gs *GameServer) performSelectScenario(target string) error {
 	scenarioID := strings.TrimSpace(target)
 	if scenarioID == "" {
 		return fmt.Errorf("scenario ID must not be empty")
+	}
+
+	// Validate against the embedded Nightglass scenario index.
+	if !arkcontent.IsValidScenarioID(scenarioID) {
+		return fmt.Errorf("unknown or disabled scenario ID: %q", scenarioID)
 	}
 
 	// Update scenario name in game state for client visibility

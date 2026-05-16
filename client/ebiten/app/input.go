@@ -24,6 +24,7 @@ var touchActionMap = map[string]protocol.ActionType{
 	"component":   protocol.ActionComponent,
 	"attack":      protocol.ActionAttack,
 	"evade":       protocol.ActionEvade,
+	"encounter":   protocol.ActionEncounter,
 }
 
 // actionKey maps a keyboard key to the action string sent to the server.
@@ -53,6 +54,7 @@ var keyBindings = []actionKey{
 	{ebiten.KeyA, "attack", ""},      // A — Attack (engaged enemy)
 	{ebiten.KeyE, "evade", ""},       // E — Evade (from engaged enemy)
 	{ebiten.KeyX, "closegate", ""},   // X — Close Gate (seal gate at location)
+	{ebiten.KeyN, "encounter", ""},   // N — Encounter (draw location encounter card)
 }
 
 // InputHandler processes keyboard input each frame and sends actions to the server.

@@ -748,6 +748,7 @@ func (g *Game) availableActions(gs ebclient.GameState, myID string) []actionAvai
 	add("Attack", g.attackDetail(turnActive, remaining, hasEnemy), turnActive && remaining > 0 && hasEnemy)
 	add("Evade", g.attackDetail(turnActive, remaining, hasEnemy), turnActive && remaining > 0 && hasEnemy)
 	add("Close Gate", g.closeGateDetail(turnActive, remaining, openGate), turnActive && remaining > 0 && openGate)
+	add("Encounter", "draw location encounter card", turnActive && remaining > 0)
 
 	return actions
 }

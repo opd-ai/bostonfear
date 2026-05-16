@@ -175,13 +175,6 @@ func defaultAgendaDeck() []AgendaCard {
 	}
 }
 
-var locationAdjacency = map[Location][]Location{
-	Downtown:   {University, Rivertown},
-	University: {Downtown, Northside},
-	Rivertown:  {Downtown, Northside},
-	Northside:  {University, Rivertown},
-}
-
 // Mythos cup token identifiers (AH3e §Mythos Phase).
 const (
 	MythosTokenDoom     = "doom"     // increment global doom by 1

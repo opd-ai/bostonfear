@@ -2,6 +2,7 @@ package content
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -79,4 +80,37 @@ func scenarioEnabled(records []scenarioRecord, id string) bool {
 		}
 	}
 	return false
+}
+
+// ResolveEmbeddedScenarioID resolves a scenario ID against the embedded Nightglass
+// index without requiring the content to be installed on disk. It applies the same
+// 4-step fallback chain as ResolveNightglassScenarioID.
+func ResolveEmbeddedScenarioID(configuredID string) (string, error) {
+	embeddedFS := NightglassFS()
+	indexPath := NightglassEmbeddedRoot + "/scenarios/index.yaml"
+	data, err := fs.ReadFile(embeddedFS, indexPath)
+	if err != nil {
+		return "", fmt.Errorf("read embedded scenario index: %w", err)
+	}
+
+	var index scenarioIndex
+	if err := yaml.Unmarshal(data, &index); err != nil {
+		return "", fmt.Errorf("decode embedded scenario index: %w", err)
+	}
+
+	selected, ok := selectNightglassScenarioID(index, configuredID)
+	if !ok {
+		return "", fmt.Errorf("no enabled scenarios found in embedded Nightglass index")
+	}
+	return selected, nil
+}
+
+// IsValidScenarioID reports whether the given ID exists in the embedded Nightglass
+// index and is enabled. Use this for server-side validation of selectscenario actions.
+func IsValidScenarioID(id string) bool {
+	resolved, err := ResolveEmbeddedScenarioID(id)
+	if err != nil {
+		return false
+	}
+	return resolved == id
 }
