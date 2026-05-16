@@ -2,10 +2,11 @@ package serverengine
 
 import (
 	"encoding/json"
-	"log"
 	"net"
 	"sync/atomic"
 	"time"
+
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 type connectionTarget struct {
@@ -34,7 +35,7 @@ func (gs *GameServer) broadcastHandler() {
 			targets := gs.snapshotConnections()
 			for _, target := range targets {
 				if err := gs.writeToConn(target.conn, target.addr, message); err != nil {
-					log.Printf("Broadcast error: %v", err)
+					logging.Error("Broadcast error", "error", err, "address", target.addr)
 					atomic.AddInt64(&gs.errorCount, 1)
 				} else {
 					gs.trackMessage("sent")
@@ -43,7 +44,7 @@ func (gs *GameServer) broadcastHandler() {
 			// Record how long this broadcast round took for latency metrics.
 			gs.recordBroadcastLatency(time.Since(writeStart))
 		case <-gs.shutdownCh:
-			log.Printf("Broadcast handler shutting down")
+			logging.Info("Broadcast handler shutting down")
 			return
 		}
 	}
@@ -56,11 +57,11 @@ func (gs *GameServer) actionHandler() {
 		case action := <-gs.actionCh:
 			gs.trackMessage("received")
 			if err := gs.processAction(action); err != nil {
-				log.Printf("Action processing error: %v", err)
+				logging.Error("Action processing error", "error", err, "playerID", action.PlayerID, "action", action.Action)
 				atomic.AddInt64(&gs.errorCount, 1)
 			}
 		case <-gs.shutdownCh:
-			log.Printf("Action handler shutting down")
+			logging.Info("Action handler shutting down")
 			return
 		}
 	}
@@ -78,7 +79,7 @@ func (gs *GameServer) broadcastGameState() {
 	gs.mutex.Unlock()
 
 	if err != nil {
-		log.Printf("Game state marshal error: %v", err)
+		logging.Error("Game state marshal error", "error", err)
 		return
 	}
 

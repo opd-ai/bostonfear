@@ -7,10 +7,10 @@ package serverengine
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/actions"
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/model"
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // ValidateResources ensures resources stay within bounds.
@@ -43,8 +43,7 @@ func (gs *GameServer) CheckInvestigatorDefeat(playerID string) {
 		player.Location = Downtown
 		player.Resources.Health = MaxHealth / 2
 		player.Resources.Sanity = MaxSanity / 2
-		log.Printf("Investigator %s defeated — lost in time and space (reset to Downtown)",
-			playerID)
+		logging.Info("Investigator defeated — lost in time and space (reset to Downtown)", "playerID", playerID)
 	}
 }
 
@@ -59,7 +58,7 @@ func (gs *GameServer) recoverInvestigator(playerID string) {
 	}
 	player.Defeated = false
 	player.LostInTimeAndSpace = false
-	log.Printf("Investigator %s recovered", playerID)
+	logging.Info("Investigator recovered", "playerID", playerID)
 }
 
 // dispatchAction routes the action to its specific handler and returns the results.

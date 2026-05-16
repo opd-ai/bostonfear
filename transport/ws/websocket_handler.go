@@ -1,13 +1,13 @@
 package ws
 
 import (
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // SessionEngine defines the transport-neutral session lifecycle surface expected
@@ -42,11 +42,11 @@ func NewWebSocketHandler(engine SessionEngine) http.Handler {
 	upgrader.CheckOrigin = makeCheckOrigin(engine)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("New WebSocket connection attempt from %s", r.RemoteAddr)
+		logging.Info("New WebSocket connection attempt", "remoteAddr", r.RemoteAddr)
 
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Printf("WebSocket upgrade error: %v", err)
+			logging.Error("WebSocket upgrade error", "error", err)
 			return
 		}
 
@@ -58,7 +58,7 @@ func NewWebSocketHandler(engine SessionEngine) http.Handler {
 
 		go func() {
 			if err := engine.HandleConnection(conn, reconnectToken); err != nil {
-				log.Printf("Connection handling error: %v", err)
+				logging.Error("Connection handling error", "error", err)
 			}
 		}()
 	})
@@ -79,14 +79,14 @@ func ValidateOrigin(r *http.Request, allowedHosts []string) bool {
 
 	u, err := url.Parse(origin)
 	if err != nil || u.Host == "" {
-		log.Printf("WebSocket upgrade rejected: malformed origin %q", origin)
+		logging.Warn("WebSocket upgrade rejected: malformed origin", "origin", origin)
 		return false
 	}
 
 	switch strings.ToLower(u.Scheme) {
 	case "http", "https", "ws", "wss":
 	default:
-		log.Printf("WebSocket upgrade rejected: unsupported scheme in origin %q", origin)
+		logging.Warn("WebSocket upgrade rejected: unsupported scheme in origin", "origin", origin)
 		return false
 	}
 
@@ -97,7 +97,7 @@ func ValidateOrigin(r *http.Request, allowedHosts []string) bool {
 		}
 	}
 
-	log.Printf("WebSocket upgrade rejected: origin %q not in allowed list", origin)
+	logging.Warn("WebSocket upgrade rejected: origin not in allowed list", "origin", origin)
 	return false
 }
 

@@ -7,13 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
 	arkhamrules "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/rules"
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // GameServer manages the central game state for the Arkham Horror multiplayer game,
@@ -295,7 +295,7 @@ func (gs *GameServer) StartWithContext(ctx context.Context) error {
 	// Start zombie-player reaper
 	go gs.cleanupDisconnectedPlayers()
 
-	log.Printf("Game server started with broadcast and action handlers")
+	logging.Info("Game server started with broadcast and action handlers")
 	return nil
 }
 
@@ -538,6 +538,6 @@ func (gs *GameServer) marshalAndBroadcast(payload interface{}, msgType string) {
 // trySendBroadcast enqueues data via the Broadcaster interface, logging a warning on drop.
 func (gs *GameServer) trySendBroadcast(data []byte, msgType string) {
 	if err := gs.broadcaster.Broadcast(data); err != nil {
-		log.Printf("Broadcast channel full, dropping %s", msgType)
+		logging.Warn("Broadcast channel full, dropping message", "messageType", msgType)
 	}
 }

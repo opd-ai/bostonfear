@@ -2,8 +2,9 @@ package serverengine
 
 import (
 	"fmt"
-	"log"
 	"time"
+
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // GameStateValidator provides comprehensive game state validation and recovery
@@ -186,7 +187,7 @@ func validatePlayerLocation(playerID string, loc Location) []ValidationError {
 
 // RecoverGameState attempts to recover from identified corruption
 func (v *GameStateValidator) RecoverGameState(gs *GameState, errors []ValidationError) (*GameState, error) {
-	log.Printf("Attempting game state recovery for %d validation errors", len(errors))
+	logging.Info("Attempting game state recovery", "errorCount", len(errors))
 
 	recoveredState := v.copyGameState(gs)
 
@@ -224,14 +225,14 @@ func recoverDoomBounds(gs *GameState) {
 	} else if gs.Doom > 12 {
 		gs.Doom = 12
 	}
-	log.Printf("Recovered: Clamped doom counter to %d", gs.Doom)
+	logging.Info("Recovered: Clamped doom counter", "doom", gs.Doom)
 }
 
 // recoverMissingCurrentPlayer sets the first player in turn order as the current player.
 func recoverMissingCurrentPlayer(gs *GameState) {
 	if len(gs.TurnOrder) > 0 {
 		gs.CurrentPlayer = gs.TurnOrder[0]
-		log.Printf("Recovered: Set current player to %s", gs.CurrentPlayer)
+		logging.Info("Recovered: Set current player", "playerID", gs.CurrentPlayer)
 	}
 }
 
@@ -240,7 +241,7 @@ func recoverInvalidCurrentPlayer(gs *GameState) {
 	for _, playerID := range gs.TurnOrder {
 		if _, exists := gs.Players[playerID]; exists {
 			gs.CurrentPlayer = playerID
-			log.Printf("Recovered: Reset current player to %s", playerID)
+			logging.Info("Recovered: Reset current player", "playerID", playerID)
 			return
 		}
 	}
@@ -251,7 +252,7 @@ func recoverPlayerResources(gs *GameState) {
 	for _, player := range gs.Players {
 		clampResources(&player.Resources)
 	}
-	log.Printf("Recovered: Fixed player resource bounds")
+	logging.Info("Recovered: Fixed player resource bounds")
 }
 
 // clampResources ensures Health, Sanity, and Clues stay within their valid bounds.
@@ -281,7 +282,7 @@ func recoverPlayerLocations(gs *GameState) {
 	for _, player := range gs.Players {
 		if len(validatePlayerLocation(player.ID, player.Location)) > 0 {
 			player.Location = Downtown
-			log.Printf("Recovered: Reset player %s location to Downtown", player.ID)
+			logging.Info("Recovered: Reset player location to Downtown", "playerID", player.ID)
 		}
 	}
 }
@@ -295,7 +296,7 @@ func recoverPlayerActions(gs *GameState) {
 			player.ActionsRemaining = 2
 		}
 	}
-	log.Printf("Recovered: Fixed player actions remaining")
+	logging.Info("Recovered: Fixed player actions remaining")
 }
 
 // logCorruption records corruption events for analysis

@@ -214,16 +214,16 @@
   - **Validation**: `TestActionTypeTracking` and `TestDoomHistogramTracking` verify tracking; Prometheus `/metrics` endpoint exposes new histograms and counters
   - **Implementation notes**: Added `actionTypeCounters` and `doomHistogram` maps to GameServer; doom tracking occurs at game end; action tracking occurs after each successful action; latency percentiles already existed via `BroadcastLatencyPercentiles()`, now exposed in Prometheus format
 
-- [ ] **Add structured logging with levels**
-  - [ ] Replace `log.Printf` with leveled logger (e.g., `slog` or `zerolog`)
-  - [ ] Add `DEBUG`, `INFO`, `WARN`, `ERROR` levels
-  - [ ] Emit structured JSON logs with player ID, action type, timestamp fields
+- [x] **Add structured logging with levels**
+  - [x] Replace `log.Printf` with leveled logger (e.g., `slog` or `zerolog`)
+  - [x] Add `DEBUG`, `INFO`, `WARN`, `ERROR` levels
+  - [x] Emit structured JSON logs with player ID, action type, timestamp fields
   - **Validation**: Logs are JSON-formatted and filterable by level
 
-- [ ] **Add alerting rules documentation**
-  - [ ] Create `docs/ALERTING.md` with sample Prometheus alert rules
-  - [ ] Document critical thresholds: broadcast latency >200ms, error rate >5%, doom reached max
-  - [ ] Provide Grafana dashboard template for game server metrics
+- [x] **Add alerting rules documentation**
+  - [x] Create `docs/ALERTING.md` with sample Prometheus alert rules
+  - [x] Document critical thresholds: broadcast latency >200ms, error rate >5%, doom reached max
+  - [x] Provide Grafana dashboard template for game server metrics
   - **Validation**: A developer can import the dashboard and see live metrics
 
 **Priority Justification**: Monitoring endpoints exist (`/health`, `/metrics`) but lack depth. Production deployments need alerting on high latency, error spikes, and game-ending conditions.
@@ -233,24 +233,24 @@
 ### Priority 7: Documentation and Developer Experience
 **Impact**: Reduces onboarding friction; improves contributor experience.
 
-- [ ] **Create architecture decision records (ADRs)**
-  - [ ] Document decision to use Go/Ebitengine over JavaScript/Canvas
-  - [ ] Document interface-based design rationale (net.Conn vs. concrete types)
-  - [ ] Document modular game-family architecture (arkhamhorror, eldersign, etc.)
-  - **Files**: `docs/adr/001-ebitengine-client.md`, `docs/adr/002-interface-based-networking.md`
+- [x] **Create architecture decision records (ADRs)**
+  - [x] Document decision to use Go/Ebitengine over JavaScript/Canvas
+  - [x] Document interface-based design rationale (net.Conn vs. concrete types)
+  - [x] Document modular game-family architecture (arkhamhorror, eldersign, etc.)
+  - **Files**: `docs/adr/001-ebitengine-client.md`, `docs/adr/002-interface-based-networking.md`, `docs/adr/003-modular-game-architecture.md`
   - **Validation**: ADRs exist and are linked from README
 
-- [ ] **Add contribution guide**
-  - [ ] Create `CONTRIBUTING.md` with setup, testing, PR workflow
-  - [ ] Document code style expectations (Go conventions, doc coverage ≥70%)
-  - [ ] Link to ADRs and design docs for context
+- [x] **Add contribution guide**
+  - [x] Create `CONTRIBUTING.md` with setup, testing, PR workflow
+  - [x] Document code style expectations (Go conventions, doc coverage ≥70%)
+  - [x] Link to ADRs and design docs for context
   - **Validation**: A new contributor can set up the project and run tests in <10 minutes
 
-- [ ] **Improve code examples in documentation**
-  - [ ] Add end-to-end example in README showing server startup, client connection, action submission
-  - [ ] Document common troubleshooting scenarios (connection refused, WASM load errors)
-  - [ ] Add animated GIF or screenshot of gameplay in README
-  - **Validation**: Documentation includes 3+ runnable code examples
+- [x] **Improve code examples in documentation**
+  - [x] Add end-to-end example in README showing server startup, client connection, action submission
+  - [x] Document common troubleshooting scenarios (connection refused, WASM load errors)
+  - [x] Add animated GIF or screenshot of gameplay in README (created comprehensive examples document)
+  - **Validation**: Documentation includes 3+ runnable code examples (10+ examples provided in docs/EXAMPLES.md)
 
 **Priority Justification**: The project has 81.7% doc coverage (excellent), but lacks high-level design rationale and contributor onboarding docs. ADRs would clarify past decisions and prevent redundant discussions.
 

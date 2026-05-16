@@ -8,11 +8,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 const (
@@ -72,7 +73,7 @@ func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.
 	defer close(done)
 	defer func() {
 		if err := conn.Close(); err != nil {
-			log.Printf("Error closing connection: %v", err)
+			logging.Error("Error closing connection", "error", err)
 		}
 	}()
 	addrStr := conn.RemoteAddr().String()
@@ -83,12 +84,12 @@ func (gs *GameServer) HandleConnectionWithContext(ctx context.Context, conn net.
 
 	// Initial timeout before first client message arrives.
 	if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
-		log.Printf("Failed to set read deadline: %v", err)
+		logging.Error("Failed to set read deadline", "error", err)
 	}
 
 	if reconnectToken != "" {
 		if restoredID := gs.restorePlayerByToken(reconnectToken, conn, connectionDisplayName(conn)); restoredID != "" {
-			log.Printf("Player %s reconnected via token", restoredID)
+			logging.Info("Player reconnected via token", "playerID", restoredID)
 			gs.trackConnection("reconnect", restoredID, 0)
 			gs.trackPlayerSession(restoredID, "reconnect")
 			gs.initializeConnectionQuality(restoredID)
@@ -185,7 +186,7 @@ func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string,
 			gs.rescaleActDeck(len(gs.gameState.Players))
 		}
 	} else if gs.gameState.GameStarted && gs.gameState.GamePhase == "playing" {
-		log.Printf("Player %s joined game in progress (turn order position %d)", playerID, len(gs.gameState.TurnOrder))
+		logging.Info("Player joined game in progress", "playerID", playerID, "turnOrderPosition", len(gs.gameState.TurnOrder))
 		// Rescale act-deck win thresholds to include the new investigator
 		// (4 clues/investigator per README win table). Without this, a late join
 		// leaves the threshold at the original player count's value.
@@ -232,7 +233,7 @@ func (gs *GameServer) runMessageLoop(ctx context.Context, conn net.Conn, playerI
 		}
 
 		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
-			log.Printf("Failed to set read deadline: %v", err)
+			logging.Error("Failed to set read deadline", "error", err)
 		}
 
 		n, err := conn.Read(buf)
@@ -241,14 +242,14 @@ func (gs *GameServer) runMessageLoop(ctx context.Context, conn net.Conn, playerI
 				break
 			}
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				log.Printf("Connection timeout for player %s", playerID)
+				logging.Warn("Connection timeout for player", "playerID", playerID)
 				gs.mutex.Lock()
 				gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
 				gs.checkGameEndConditions()
 				gs.mutex.Unlock()
 				gs.broadcastGameState()
 			} else {
-				log.Printf("WebSocket read error: %v", err)
+				logging.Error("WebSocket read error", "error", err, "playerID", playerID)
 			}
 			break
 		}
@@ -275,13 +276,13 @@ func (gs *GameServer) handleIncomingMessage(ctx context.Context, data []byte, pl
 			gs.handlePongMessage(pingMsg, receiveTime)
 			return true
 		}
-		log.Printf("Message unmarshal error: %v", err)
+		logging.Error("Message unmarshal error", "error", err, "playerID", playerID)
 		atomic.AddInt64(&gs.errorCount, 1)
 		return true
 	}
 
 	if actionMsg.PlayerID != playerID {
-		log.Printf("Invalid player ID in action: expected %s, got %s", playerID, actionMsg.PlayerID)
+		logging.Warn("Invalid player ID in action", "expected", playerID, "got", actionMsg.PlayerID)
 		atomic.AddInt64(&gs.errorCount, 1)
 		return true
 	}
@@ -388,7 +389,7 @@ func (gs *GameServer) reapDisconnectedPlayers(now time.Time) []string {
 		if !isStaleDisconnectedPlayer(p, now) {
 			continue
 		}
-		log.Printf("Reaping zombie player %s (disconnected at %v)", id, p.DisconnectedAt)
+		logging.Info("Reaping zombie player", "playerID", id, "disconnectedAt", p.DisconnectedAt)
 		delete(gs.gameState.Players, id)
 		reaped = append(reaped, id)
 		removeFromTurnOrder(&gs.gameState.TurnOrder, id)

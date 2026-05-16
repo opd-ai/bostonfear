@@ -4,9 +4,10 @@
 package serverengine
 
 import (
-	"log"
 	"sync/atomic"
 	"time"
+
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 
 	"github.com/opd-ai/bostonfear/monitoringdata"
 )
@@ -39,17 +40,17 @@ func (gs *GameServer) validateAndRecoverState() {
 	if len(errors) == 0 {
 		return
 	}
-	log.Printf("Game state validation errors detected: %d errors", len(errors))
+	logging.Warn("Game state validation errors detected", "errorCount", len(errors))
 
 	for _, err := range errors {
 		if err.Severity == "CRITICAL" || err.Severity == "HIGH" {
-			log.Printf("Attempting game state recovery...")
+			logging.Info("Attempting game state recovery")
 			recovered, recoveryErr := gs.validator.RecoverGameState(gs.gameState, errors)
 			if recoveryErr == nil {
 				gs.gameState = recovered
-				log.Printf("Game state successfully recovered")
+				logging.Info("Game state successfully recovered")
 			} else {
-				log.Printf("Game state recovery failed: %v", recoveryErr)
+				logging.Error("Game state recovery failed", "error", recoveryErr)
 				atomic.AddInt64(&gs.errorCount, 1)
 			}
 			return

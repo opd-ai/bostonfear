@@ -3,10 +3,11 @@ package ws
 import (
 	"context"
 	"errors"
-	"log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // RouteHandlers groups the HTTP handlers needed by the server transport layer.
@@ -49,18 +50,18 @@ func SetupServerWithContext(ctx context.Context, listener net.Listener, handlers
 	if _, port, err := net.SplitHostPort(addr); err == nil {
 		addr = net.JoinHostPort(displayHost, port)
 	}
-	log.Printf("Arkham Horror server starting on %s", listener.Addr().String())
-	log.Printf("Game client: http://%s/", addr)
-	log.Printf("WebSocket endpoint: ws://%s/ws", addr)
-	log.Printf("Health check: http://%s/health", addr)
-	log.Printf("Prometheus metrics: http://%s/metrics", addr)
+	logging.Info("Arkham Horror server starting", "address", listener.Addr().String())
+	logging.Info("Game client", "url", "http://"+addr+"/")
+	logging.Info("WebSocket endpoint", "url", "ws://"+addr+"/ws")
+	logging.Info("Health check", "url", "http://"+addr+"/health")
+	logging.Info("Prometheus metrics", "url", "http://"+addr+"/metrics")
 
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("HTTP server shutdown error: %v", err)
+			logging.Error("HTTP server shutdown error", "error", err)
 		}
 	}()
 

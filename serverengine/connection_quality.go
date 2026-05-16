@@ -3,9 +3,10 @@ package serverengine
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // ConnectionQuality represents real-time connection quality metrics for a single player.
@@ -122,7 +123,7 @@ func (gs *GameServer) recalcPacketLoss(q *ConnectionQuality) {
 	}
 	missed := q.pingsSent - q.pongsReceived
 	if missed < 0 {
-		log.Printf("recalcPacketLoss: pongsReceived (%d) > pingsSent (%d); resetting",
+		logging.Warn("recalcPacketLoss: pongsReceived > pingsSent; resetting",
 			q.pongsReceived, q.pingsSent)
 		q.pingsSent = q.pongsReceived
 		missed = 0
@@ -169,7 +170,7 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 
 	pingData, err := json.Marshal(pingMsg)
 	if err != nil {
-		log.Printf("Error marshaling ping message: %v", err)
+		logging.Error("Error marshaling ping message", "error", err)
 		return
 	}
 
@@ -182,7 +183,7 @@ func (gs *GameServer) sendPingToPlayer(playerID string) {
 	gs.qualityMutex.Unlock()
 
 	if err := gs.writeToConn(conn, connAddr, pingData); err != nil {
-		log.Printf("Error sending ping to player %s: %v", playerID, err)
+		logging.Error("Error sending ping to player", "playerID", playerID, "error", err)
 		gs.qualityMutex.Lock()
 		if quality, exists := gs.connectionQualities[playerID]; exists {
 			quality.Quality = "poor"
@@ -223,14 +224,14 @@ func (gs *GameServer) broadcastConnectionQuality() {
 
 		statusData, err := json.Marshal(statusMsg)
 		if err != nil {
-			log.Printf("Error marshaling connection status: %v", err)
+			logging.Error("Error marshaling connection status", "error", err)
 			continue
 		}
 
 		select {
 		case gs.broadcastCh <- statusData:
 		default:
-			log.Printf("Broadcast channel full, dropping quality update for %s", playerID)
+			logging.Warn("Broadcast channel full, dropping quality update", "playerID", playerID)
 		}
 	}
 }
