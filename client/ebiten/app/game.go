@@ -745,10 +745,16 @@ func (g *Game) drawMoveChips(screen *ebiten.Image, gs ebclient.GameState, myID s
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), 2, float64(move.rect.Dy()), border)
 		ebitenutil.DrawRect(screen, float64(move.rect.Max.X-2), float64(move.rect.Min.Y), 2, float64(move.rect.Dy()), border)
 		drawUIText(screen, string(move.target), move.rect.Min.X+10, move.rect.Min.Y+5, color.White)
-		if key := moveShortcutHints[move.target]; key != "" {
-			drawUIText(screen, "["+key+"]", move.rect.Max.X-30, move.rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
-		}
+		drawMoveShortcutHint(screen, move)
 	}
+}
+
+func drawMoveShortcutHint(screen *ebiten.Image, move moveChip) {
+	key := moveShortcutHints[move.target]
+	if key == "" {
+		return
+	}
+	drawUIText(screen, "["+key+"]", move.rect.Max.X-30, move.rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
 }
 
 func moveChipStyle(target, focused, hovered, pressed string) (color.RGBA, color.RGBA) {

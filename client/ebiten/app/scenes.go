@@ -617,13 +617,9 @@ func (s *SceneGame) isInteractiveTouch(id ebiten.TouchID) bool {
 	if !isWithinScreenBounds(x, y) {
 		return false
 	}
-	if s.touchHitsGameplayControl(x, y) {
-		return true
-	}
-	if newCameraControls().hitTest(x, y) != cameraControlNone {
-		return true
-	}
-	return s.touchHitsOnboardingControl(x, y)
+	return s.touchHitsGameplayControl(x, y) ||
+		s.touchHitsCameraControl(x, y) ||
+		s.touchHitsOnboardingControl(x, y)
 }
 
 func isWithinScreenBounds(x, y int) bool {
@@ -641,6 +637,10 @@ func (s *SceneGame) touchHitsGameplayControl(x, y int) bool {
 	}
 	mapper := buildTouchInputMapper(vp)
 	return mapper.HitTest(float64(x), float64(y)) != nil
+}
+
+func (s *SceneGame) touchHitsCameraControl(x, y int) bool {
+	return newCameraControls().hitTest(x, y) != cameraControlNone
 }
 
 func (s *SceneGame) touchHitsOnboardingControl(x, y int) bool {
