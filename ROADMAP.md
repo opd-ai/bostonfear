@@ -174,7 +174,7 @@
   - [x] Implement scenario selection UI in pregame phase
   - [x] Add 3 additional original custom scenarios (currently only default scenario exists)
   - [x] Support scenario-specific setup (custom starting doom, special rules, location modifiers)
-  - **Files**: `serverengine/arkhamhorror/scenarios/`, `serverengine/arkhamhorror/content/nightglass/scenarios/`
+  - **Files**: `serverengine/arkhamhorror/scenarios/`, `serverengine/arkhamhorror/rontent/nightglass/scenarios/`
   - **Validation**: Can select and play 4 different scenarios with distinct win/loss conditions
 
 - [x] **Implement encounter card deck rotation**
