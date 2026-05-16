@@ -70,6 +70,7 @@ type InputHandler struct {
 	focusOrder       []string
 	focusIndex       int
 	lastActionSentAt time.Time
+	lastPressedAt    time.Time
 }
 
 // NewInputHandler creates an InputHandler wired to the given client and state.
@@ -79,7 +80,7 @@ func NewInputHandler(net *ebclient.NetClient, state *ebclient.LocalState) *Input
 		state: state,
 		focusOrder: []string{
 			"Downtown", "University", "Rivertown", "Northside",
-			"gather", "investigate", "ward", "focus", "research", "trade", "component", "attack", "evade", "closegate",
+			"gather", "investigate", "ward", "focus", "research", "trade", "component", "attack", "evade", "closegate", "encounter",
 		},
 	}
 	h.setInitialFocusHint()
@@ -100,6 +101,8 @@ func (h *InputHandler) Update() {
 	h.handleFocusNavigation()
 
 	gs, playerID, connected := h.state.Snapshot()
+	h.updateHoverHint(gs, playerID)
+	h.maybeExpirePressedHint()
 	if h.blockedForTurn(gs, playerID, connected) {
 		return
 	}
@@ -137,6 +140,7 @@ func (h *InputHandler) handleKeyboardInput(gs ebclient.GameState, playerID strin
 				continue
 			}
 		}
+		h.markPressedHint(kb.targetOrAction())
 		h.sendPlayerAction(ebclient.PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: playerID,
@@ -166,6 +170,7 @@ func (h *InputHandler) handleFocusedActionActivate(gs ebclient.GameState, player
 		return
 	}
 	id := h.focusOrder[h.focusIndex]
+	h.markPressedHint(id)
 	_ = h.dispatchTouchHitBox(gs, playerID, id)
 }
 
@@ -240,6 +245,7 @@ func dispatchTouchID(h *InputHandler, gs ebclient.GameState, playerID string, ma
 func (h *InputHandler) dispatchMoveChip(gs ebclient.GameState, playerID string, x, y int) bool {
 	for _, chip := range legalMoveChips(gs, playerID, 10, bottomPanelY()-28) {
 		if image.Pt(x, y).In(chip.rect) {
+			h.markPressedHint(string(chip.target))
 			h.sendPlayerAction(ebclient.PlayerActionMessage{
 				Type:     "playerAction",
 				PlayerID: playerID,
@@ -259,6 +265,7 @@ func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id s
 			h.state.RecordInvalidActionRetry("trade-no-colocated-player")
 			return true
 		}
+		h.markPressedHint(id)
 		h.sendPlayerAction(ebclient.PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: playerID,
@@ -270,6 +277,7 @@ func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id s
 
 	switch protocol.Location(id) {
 	case protocol.Downtown, protocol.University, protocol.Rivertown, protocol.Northside:
+		h.markPressedHint(id)
 		h.sendPlayerAction(ebclient.PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: playerID,
@@ -280,6 +288,7 @@ func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id s
 	}
 
 	if action, exists := touchActionMap[id]; exists {
+		h.markPressedHint(id)
 		h.sendPlayerAction(ebclient.PlayerActionMessage{
 			Type:     "playerAction",
 			PlayerID: playerID,
@@ -303,6 +312,63 @@ func (h *InputHandler) sendPlayerAction(msg ebclient.PlayerActionMessage) {
 	h.lastActionSentAt = now
 	h.state.RecordValidActionSent()
 	h.net.SendAction(msg)
+}
+
+func (h *InputHandler) updateHoverHint(gs ebclient.GameState, playerID string) {
+	if h.state == nil {
+		return
+	}
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth,
+		PhysicalHeight: screenHeight,
+		Scale:          1.0,
+		SafeArea:       ui.SafeArea{},
+	}
+	mapper := buildTouchInputMapper(vp)
+	x, y := ebiten.CursorPosition()
+	hitBox := mapper.HitTest(float64(x), float64(y))
+	if hitBox != nil {
+		h.state.SetHoveredActionHint(hitBox.ID)
+		return
+	}
+	for _, chip := range legalMoveChips(gs, playerID, 10, bottomPanelY()-28) {
+		if image.Pt(x, y).In(chip.rect) {
+			h.state.SetHoveredActionHint(string(chip.target))
+			return
+		}
+	}
+	h.state.SetHoveredActionHint("")
+}
+
+func (h *InputHandler) markPressedHint(id string) {
+	if h.state == nil {
+		return
+	}
+	h.lastPressedAt = time.Now()
+	h.state.SetPressedActionHint(id)
+}
+
+func (h *InputHandler) maybeExpirePressedHint() {
+	if h.state == nil {
+		return
+	}
+	if h.lastPressedAt.IsZero() {
+		return
+	}
+	if time.Since(h.lastPressedAt) < 150*time.Millisecond {
+		return
+	}
+	h.state.SetPressedActionHint("")
+	h.lastPressedAt = time.Time{}
+}
+
+func (k actionKey) targetOrAction() string {
+	if k.action == "move" {
+		return k.target
+	}
+	return k.action
 }
 
 func buildTouchInputMapper(vp *ui.Viewport) *input.InputMapper {

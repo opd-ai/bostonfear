@@ -163,6 +163,8 @@ type LocalState struct {
 	invalidActionRetries int
 	lastInvalidReason    string
 	focusedActionHint    string
+	hoveredActionHint    string
+	pressedActionHint    string
 }
 
 // NewLocalState creates an initialised LocalState ready for use.
@@ -238,6 +240,36 @@ func (s *LocalState) SetFocusedActionHint(hint string) {
 func (s *LocalState) FocusedActionHint() string {
 	s.mu.RLock()
 	hint := s.focusedActionHint
+	s.mu.RUnlock()
+	return hint
+}
+
+// SetHoveredActionHint stores the currently hovered pointer target hint.
+func (s *LocalState) SetHoveredActionHint(hint string) {
+	s.mu.Lock()
+	s.hoveredActionHint = strings.TrimSpace(hint)
+	s.mu.Unlock()
+}
+
+// HoveredActionHint returns the current hovered pointer target hint.
+func (s *LocalState) HoveredActionHint() string {
+	s.mu.RLock()
+	hint := s.hoveredActionHint
+	s.mu.RUnlock()
+	return hint
+}
+
+// SetPressedActionHint stores the most recently pressed pointer/keyboard target hint.
+func (s *LocalState) SetPressedActionHint(hint string) {
+	s.mu.Lock()
+	s.pressedActionHint = strings.TrimSpace(hint)
+	s.mu.Unlock()
+}
+
+// PressedActionHint returns the current pressed target hint.
+func (s *LocalState) PressedActionHint() string {
+	s.mu.RLock()
+	hint := s.pressedActionHint
 	s.mu.RUnlock()
 	return hint
 }

@@ -420,6 +420,56 @@ type SceneGame struct {
 	game *Game
 }
 
+type onboardingControls struct {
+	next image.Rectangle
+	skip image.Rectangle
+}
+
+type cameraControls struct {
+	left   image.Rectangle
+	right  image.Rectangle
+	toggle image.Rectangle
+}
+
+type cameraControlID int
+
+const (
+	cameraControlNone cameraControlID = iota
+	cameraControlLeft
+	cameraControlRight
+	cameraControlToggle
+)
+
+func newOnboardingControls() onboardingControls {
+	return onboardingControls{
+		next: image.Rect(404, 154, 516, 182),
+		skip: image.Rect(528, 154, 664, 182),
+	}
+}
+
+func newCameraControls() cameraControls {
+	y := bottomPanelY() - 28
+	return cameraControls{
+		left:   image.Rect(374, y, 454, y+24),
+		right:  image.Rect(462, y, 542, y+24),
+		toggle: image.Rect(550, y, 692, y+24),
+	}
+}
+
+func (c cameraControls) hitTest(x, y int) cameraControlID {
+	pt := image.Pt(x, y)
+	switch {
+	case pt.In(c.left):
+		return cameraControlLeft
+	case pt.In(c.right):
+		return cameraControlRight
+	case pt.In(c.toggle):
+		return cameraControlToggle
+	default:
+		return cameraControlNone
+	}
+}
+
 // Update processes player input and handles per-tick game logic.
 func (s *SceneGame) Update() error {
 	s.game.input.Update()
@@ -435,6 +485,7 @@ func (s *SceneGame) handleOnboarding() {
 	if !s.game.onboarding.IsActive() && !s.game.onboarding.IsCompleted() {
 		s.game.onboarding.Start()
 	}
+	s.handleOnboardingPointerInput()
 	if inpututil.IsKeyJustPressed(ebiten.KeyH) {
 		s.game.onboarding.Skip()
 		return
@@ -445,9 +496,43 @@ func (s *SceneGame) handleOnboarding() {
 	s.game.onboarding.Update()
 }
 
+func (s *SceneGame) handleOnboardingPointerInput() {
+	if s.game.onboarding == nil || !s.game.onboarding.IsActive() {
+		return
+	}
+	controls := newOnboardingControls()
+	handleOnboardingActivate := func(x, y int) {
+		pt := image.Pt(x, y)
+		switch {
+		case pt.In(controls.next):
+			s.game.onboarding.AdvanceStep()
+		case pt.In(controls.skip):
+			s.game.onboarding.Skip()
+		}
+	}
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		handleOnboardingActivate(x, y)
+	}
+	for _, touchID := range inpututil.JustPressedTouchIDs() {
+		x, y := ebiten.TouchPosition(touchID)
+		if x < 0 || y < 0 {
+			continue
+		}
+		handleOnboardingActivate(x, y)
+	}
+}
+
 func (s *SceneGame) handleCameraControls() {
 	if s.game.camera == nil {
 		return
+	}
+	controls := newCameraControls()
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		if s.applyCameraControl(controls.hitTest(x, y)) {
+			return
+		}
 	}
 
 	// Keyboard: [ and ] orbit, V toggles top-down fallback.
@@ -476,13 +561,34 @@ func (s *SceneGame) handleCameraControls() {
 	s.handleTouchCameraControls()
 }
 
+func (s *SceneGame) applyCameraControl(control cameraControlID) bool {
+	switch control {
+	case cameraControlLeft:
+		s.game.camera.OrbitCCW()
+		return true
+	case cameraControlRight:
+		s.game.camera.OrbitCW()
+		return true
+	case cameraControlToggle:
+		s.game.camera.ToggleViewMode()
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *SceneGame) handleTouchCameraControls() {
 	// Touch gesture: only touches outside gameplay hit boxes may orbit or toggle.
+	controls := newCameraControls()
 	for _, id := range inpututil.JustPressedTouchIDs() {
 		if s.isInteractiveTouch(id) {
 			continue
 		}
 		x, _ := ebiten.TouchPosition(id)
+		tx, ty := ebiten.TouchPosition(id)
+		if s.applyCameraControl(controls.hitTest(tx, ty)) {
+			continue
+		}
 		switch {
 		case x < screenWidth/3:
 			s.game.camera.OrbitCCW()
@@ -508,7 +614,20 @@ func (s *SceneGame) isInteractiveTouch(id ebiten.TouchID) bool {
 		SafeArea:       ui.SafeArea{},
 	}
 	mapper := buildTouchInputMapper(vp)
-	return mapper.HitTest(float64(x), float64(y)) != nil
+	if mapper.HitTest(float64(x), float64(y)) != nil {
+		return true
+	}
+	if newCameraControls().hitTest(x, y) != cameraControlNone {
+		return true
+	}
+	if s.game.onboarding != nil && s.game.onboarding.IsActive() {
+		onboardingButtons := newOnboardingControls()
+		pt := image.Pt(x, y)
+		if pt.In(onboardingButtons.next) || pt.In(onboardingButtons.skip) {
+			return true
+		}
+	}
+	return false
 }
 
 // Draw composites the full game board via the layered renderer.
@@ -833,21 +952,78 @@ type SceneGameOver struct {
 	game *Game
 }
 
+type gameOverLayout struct {
+	playAgain image.Rectangle
+	toLobby   image.Rectangle
+}
+
+func newGameOverLayout() gameOverLayout {
+	return gameOverLayout{
+		playAgain: image.Rect(screenWidth/2-172, screenHeight/2+54, screenWidth/2-16, screenHeight/2+92),
+		toLobby:   image.Rect(screenWidth/2+16, screenHeight/2+54, screenWidth/2+188, screenHeight/2+92),
+	}
+}
+
+func (l gameOverLayout) hitTest(x, y int) string {
+	pt := image.Pt(x, y)
+	switch {
+	case pt.In(l.playAgain):
+		return "play"
+	case pt.In(l.toLobby):
+		return "lobby"
+	default:
+		return ""
+	}
+}
+
 // Update checks for Enter or Space key to restart the game.
 // When pressed, it resets the local state and initiates reconnection.
 func (s *SceneGameOver) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		s.game.state.Reset()
-		s.game.net.Connect()
-		s.game.activeScene = &SceneConnect{game: s.game}
+		s.restartGame()
+	}
+
+	layout := newGameOverLayout()
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		s.activateGameOverControl(layout.hitTest(x, y))
+	}
+	for _, touchID := range inpututil.JustPressedTouchIDs() {
+		x, y := ebiten.TouchPosition(touchID)
+		if x < 0 || y < 0 {
+			continue
+		}
+		s.activateGameOverControl(layout.hitTest(x, y))
 	}
 	return nil
+}
+
+func (s *SceneGameOver) activateGameOverControl(control string) {
+	switch control {
+	case "play":
+		s.restartGame()
+	case "lobby":
+		s.returnToLobby()
+	}
+}
+
+func (s *SceneGameOver) restartGame() {
+	s.game.state.Reset()
+	s.game.net.Connect()
+	s.game.activeScene = &SceneConnect{game: s.game}
+}
+
+func (s *SceneGameOver) returnToLobby() {
+	s.game.state.Reset()
+	s.game.state.ClearDisplayName()
+	s.game.activeScene = &SceneConnect{game: s.game}
 }
 
 // Draw renders the game-over overlay with the outcome message and restart prompt.
 func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	gs, _, _ := s.game.state.Snapshot()
+	layout := newGameOverLayout()
 
 	if gs.WinCondition {
 		screen.Fill(color.RGBA{R: 10, G: 30, B: 10, A: 255})
@@ -858,7 +1034,25 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 		drawUIText(screen, "* ANCIENT ONE AWAKENS - YOU LOSE *", screenWidth/2-140, screenHeight/2-10, color.RGBA{R: 255, G: 140, B: 140, A: 255})
 		drawUIText(screen, "Doom has consumed Arkham.", screenWidth/2-80, screenHeight/2+10, color.White)
 	}
-	drawUIText(screen, "Press ENTER to play again - Close window to exit.", screenWidth/2-150, screenHeight/2+30, color.White)
+	playFill := color.RGBA{R: 60, G: 92, B: 140, A: 255}
+	playBorder := color.RGBA{R: 206, G: 222, B: 255, A: 255}
+	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), float64(layout.playAgain.Dx()), float64(layout.playAgain.Dy()), playFill)
+	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), float64(layout.playAgain.Dx()), 2, playBorder)
+	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Max.Y-2), float64(layout.playAgain.Dx()), 2, playBorder)
+	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), 2, float64(layout.playAgain.Dy()), playBorder)
+	ebitenutil.DrawRect(screen, float64(layout.playAgain.Max.X-2), float64(layout.playAgain.Min.Y), 2, float64(layout.playAgain.Dy()), playBorder)
+	drawUIText(screen, "PLAY AGAIN", layout.playAgain.Min.X+30, layout.playAgain.Min.Y+11, color.White)
+
+	lobbyFill := color.RGBA{R: 52, G: 54, B: 70, A: 255}
+	lobbyBorder := color.RGBA{R: 184, G: 192, B: 225, A: 255}
+	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), float64(layout.toLobby.Dx()), float64(layout.toLobby.Dy()), lobbyFill)
+	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), float64(layout.toLobby.Dx()), 2, lobbyBorder)
+	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Max.Y-2), float64(layout.toLobby.Dx()), 2, lobbyBorder)
+	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), 2, float64(layout.toLobby.Dy()), lobbyBorder)
+	ebitenutil.DrawRect(screen, float64(layout.toLobby.Max.X-2), float64(layout.toLobby.Min.Y), 2, float64(layout.toLobby.Dy()), lobbyBorder)
+	drawUIText(screen, "RETURN TO LOBBY", layout.toLobby.Min.X+18, layout.toLobby.Min.Y+11, color.White)
+
+	drawUIText(screen, "ENTER/SPACE: play again", screenWidth/2-102, screenHeight/2+104, color.White)
 }
 
 // updateScene evaluates current state and transitions to the appropriate scene.

@@ -58,6 +58,27 @@ var boardAdjacency = map[ebclient.Location][]ebclient.Location{
 	"Northside":  {"University", "Rivertown"},
 }
 
+var moveShortcutHints = map[ebclient.Location]string{
+	"Downtown":   "1",
+	"University": "2",
+	"Rivertown":  "3",
+	"Northside":  "4",
+}
+
+var actionShortcutHints = map[string]string{
+	"gather":      "G",
+	"investigate": "I",
+	"ward":        "W",
+	"focus":       "F",
+	"research":    "R",
+	"trade":       "T",
+	"component":   "C",
+	"attack":      "A",
+	"evade":       "E",
+	"closegate":   "X",
+	"encounter":   "N",
+}
+
 // playerColours cycles through distinctive colours for up to 6 players.
 var playerColours = []color.RGBA{
 	{R: 255, G: 220, B: 50, A: 255},
@@ -209,6 +230,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.drawResultsPanel(screen)
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
+	g.drawCameraControls(screen)
 	g.drawOnboarding(screen)
 	g.applyPostProcess(screen, gs.Doom)
 }
@@ -368,13 +390,66 @@ func (g *Game) drawOnboarding(screen *ebiten.Image) {
 	if step == nil {
 		return
 	}
+	controls := newOnboardingControls()
 	ebitenutil.DrawRect(screen, 120, 90, 560, 96, color.RGBA{R: 12, G: 12, B: 22, A: 240})
 
 	// Draw title and description with wrapping for better readability.
 	y := 102
 	y = drawWrappedText(screen, step.Title, 540, 136, y, color.RGBA{R: 230, G: 230, B: 255, A: 255}) + 3
-	y = drawWrappedText(screen, step.Description, 540, 136, y, color.White) + 3
-	drawUIText(screen, "ENTER: next  H: skip tutorial", 136, y, color.RGBA{R: 200, G: 200, B: 220, A: 255})
+	y = drawWrappedText(screen, step.Description, 540, 136, y, color.White) + 1
+	drawUIText(screen, "Use NEXT/SKIP buttons or ENTER/H shortcuts", 136, y, color.RGBA{R: 200, G: 200, B: 220, A: 255})
+
+	nextFill := color.RGBA{R: 58, G: 78, B: 114, A: 245}
+	nextBorder := color.RGBA{R: 210, G: 225, B: 255, A: 255}
+	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Min.Y), float64(controls.next.Dx()), float64(controls.next.Dy()), nextFill)
+	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Min.Y), float64(controls.next.Dx()), 2, nextBorder)
+	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Max.Y-2), float64(controls.next.Dx()), 2, nextBorder)
+	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Min.Y), 2, float64(controls.next.Dy()), nextBorder)
+	ebitenutil.DrawRect(screen, float64(controls.next.Max.X-2), float64(controls.next.Min.Y), 2, float64(controls.next.Dy()), nextBorder)
+	drawUIText(screen, "NEXT", controls.next.Min.X+36, controls.next.Min.Y+8, color.White)
+
+	skipFill := color.RGBA{R: 78, G: 46, B: 48, A: 245}
+	skipBorder := color.RGBA{R: 245, G: 195, B: 195, A: 255}
+	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Min.Y), float64(controls.skip.Dx()), float64(controls.skip.Dy()), skipFill)
+	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Min.Y), float64(controls.skip.Dx()), 2, skipBorder)
+	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Max.Y-2), float64(controls.skip.Dx()), 2, skipBorder)
+	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Min.Y), 2, float64(controls.skip.Dy()), skipBorder)
+	ebitenutil.DrawRect(screen, float64(controls.skip.Max.X-2), float64(controls.skip.Min.Y), 2, float64(controls.skip.Dy()), skipBorder)
+	drawUIText(screen, "SKIP TUTORIAL", controls.skip.Min.X+12, controls.skip.Min.Y+8, color.White)
+}
+
+func (g *Game) drawCameraControls(screen *ebiten.Image) {
+	if g.camera == nil {
+		return
+	}
+	controls := newCameraControls()
+
+	leftFill := color.RGBA{R: 34, G: 38, B: 52, A: 245}
+	leftBorder := color.RGBA{R: 156, G: 176, B: 218, A: 255}
+	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), float64(controls.left.Dx()), float64(controls.left.Dy()), leftFill)
+	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), float64(controls.left.Dx()), 2, leftBorder)
+	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Max.Y-2), float64(controls.left.Dx()), 2, leftBorder)
+	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), 2, float64(controls.left.Dy()), leftBorder)
+	ebitenutil.DrawRect(screen, float64(controls.left.Max.X-2), float64(controls.left.Min.Y), 2, float64(controls.left.Dy()), leftBorder)
+	drawUIText(screen, "[", controls.left.Min.X+34, controls.left.Min.Y+6, color.White)
+
+	rightFill := color.RGBA{R: 34, G: 38, B: 52, A: 245}
+	rightBorder := color.RGBA{R: 156, G: 176, B: 218, A: 255}
+	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), float64(controls.right.Dx()), float64(controls.right.Dy()), rightFill)
+	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), float64(controls.right.Dx()), 2, rightBorder)
+	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Max.Y-2), float64(controls.right.Dx()), 2, rightBorder)
+	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), 2, float64(controls.right.Dy()), rightBorder)
+	ebitenutil.DrawRect(screen, float64(controls.right.Max.X-2), float64(controls.right.Min.Y), 2, float64(controls.right.Dy()), rightBorder)
+	drawUIText(screen, "]", controls.right.Min.X+34, controls.right.Min.Y+6, color.White)
+
+	toggleFill := color.RGBA{R: 40, G: 58, B: 80, A: 245}
+	toggleBorder := color.RGBA{R: 188, G: 214, B: 255, A: 255}
+	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), float64(controls.toggle.Dx()), float64(controls.toggle.Dy()), toggleFill)
+	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), float64(controls.toggle.Dx()), 2, toggleBorder)
+	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Max.Y-2), float64(controls.toggle.Dx()), 2, toggleBorder)
+	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), 2, float64(controls.toggle.Dy()), toggleBorder)
+	ebitenutil.DrawRect(screen, float64(controls.toggle.Max.X-2), float64(controls.toggle.Min.Y), 2, float64(controls.toggle.Dy()), toggleBorder)
+	drawUIText(screen, "Toggle View (V)", controls.toggle.Min.X+18, controls.toggle.Min.Y+6, color.White)
 }
 
 // enqueueBoard adds one board-layer draw command per location.
@@ -658,16 +733,34 @@ func (g *Game) drawMoveChips(screen *ebiten.Image, gs ebclient.GameState, myID s
 		drawUIText(screen, "Move chips: unavailable", panelX, panelY, color.RGBA{R: 200, G: 220, B: 255, A: 255})
 		return
 	}
+	hovered := g.state.HoveredActionHint()
+	focused := g.state.FocusedActionHint()
+	pressed := g.state.PressedActionHint()
 	drawUIText(screen, "Move chips", panelX, panelY-12, color.White)
 	for _, move := range moves {
 		fill := color.RGBA{R: 28, G: 36, B: 52, A: 245}
 		border := color.RGBA{R: 120, G: 180, B: 230, A: 255}
+		if strings.EqualFold(string(move.target), focused) {
+			fill = color.RGBA{R: 42, G: 52, B: 82, A: 245}
+			border = color.RGBA{R: 168, G: 206, B: 255, A: 255}
+		}
+		if strings.EqualFold(string(move.target), hovered) {
+			fill = color.RGBA{R: 46, G: 64, B: 92, A: 245}
+			border = color.RGBA{R: 186, G: 222, B: 255, A: 255}
+		}
+		if strings.EqualFold(string(move.target), pressed) {
+			fill = color.RGBA{R: 60, G: 86, B: 118, A: 245}
+			border = color.RGBA{R: 220, G: 238, B: 255, A: 255}
+		}
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), float64(move.rect.Dx()), float64(move.rect.Dy()), fill)
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), float64(move.rect.Dx()), 2, border)
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Max.Y-2), float64(move.rect.Dx()), 2, border)
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), 2, float64(move.rect.Dy()), border)
 		ebitenutil.DrawRect(screen, float64(move.rect.Max.X-2), float64(move.rect.Min.Y), 2, float64(move.rect.Dy()), border)
 		drawUIText(screen, string(move.target), move.rect.Min.X+10, move.rect.Min.Y+5, color.White)
+		if key := moveShortcutHints[move.target]; key != "" {
+			drawUIText(screen, "["+key+"]", move.rect.Max.X-30, move.rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
+		}
 	}
 }
 
@@ -677,6 +770,9 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 	for _, action := range actions {
 		availability[actionLookupKey(action.Name)] = action
 	}
+	hovered := g.state.HoveredActionHint()
+	focused := g.state.FocusedActionHint()
+	pressed := g.state.PressedActionHint()
 	for row, rowActions := range actionGridRows() {
 		for col, actionName := range rowActions {
 			if actionName == "" {
@@ -692,12 +788,30 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 				border = color.RGBA{R: 170, G: 240, B: 190, A: 255}
 				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
 			}
+			if strings.EqualFold(actionName, focused) {
+				fill = color.RGBA{R: 52, G: 54, B: 82, A: 245}
+				border = color.RGBA{R: 190, G: 202, B: 255, A: 255}
+				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+			}
+			if strings.EqualFold(actionName, hovered) {
+				fill = color.RGBA{R: 58, G: 64, B: 98, A: 245}
+				border = color.RGBA{R: 206, G: 220, B: 255, A: 255}
+				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+			}
+			if strings.EqualFold(actionName, pressed) {
+				fill = color.RGBA{R: 78, G: 88, B: 124, A: 245}
+				border = color.RGBA{R: 232, G: 236, B: 255, A: 255}
+				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+			}
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), fill)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), 2, border)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Max.Y-2), float64(rect.Dx()), 2, border)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
 			ebitenutil.DrawRect(screen, float64(rect.Max.X-2), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
 			drawUIText(screen, strings.Title(strings.ReplaceAll(actionName, "closegate", "close gate")), rect.Min.X+10, rect.Min.Y+5, labelColor)
+			if key := actionShortcutHints[actionName]; key != "" {
+				drawUIText(screen, "["+key+"]", rect.Max.X-30, rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
+			}
 			if action.Detail != "" {
 				drawUIText(screen, trimToWidth(action.Detail, rect.Dx()-16), rect.Min.X+10, rect.Min.Y+17, color.RGBA{R: 200, G: 220, B: 235, A: 255})
 			}

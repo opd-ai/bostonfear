@@ -23,8 +23,11 @@
 //
 // InputHandler listens for:
 //   - Keyboard: 1-4 (move), G (gather), I (investigate), W (ward), F (focus),
-//     R (research), T (trade), C (component), A (attack), E (evade), X (close gate)
+//     R (research), T (trade), C (component), A (attack), E (evade), X (close gate),
+//     N (encounter)
 //   - Keyboard focus: Tab/Shift+Tab cycles focus; Enter activates focused action
+//   - Camera shortcuts: [ and ] orbit, V toggles top-down vs pseudo-3D view
+//   - Onboarding shortcuts: Enter advances tutorial step, H skips tutorial
 //   - Mouse: Left click on action/location hitboxes (shared dispatch path)
 //   - Touch: Multi-pointer support on mobile; safe areas for notch/homebaroffsets
 //
