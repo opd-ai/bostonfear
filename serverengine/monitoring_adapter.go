@@ -33,3 +33,24 @@ func (gs *GameServer) CollectMessageThroughput(runtime time.Duration) MessageThr
 func (gs *GameServer) GameStatistics() map[string]interface{} {
 	return gs.getGameStatistics()
 }
+
+// GetActionTypeCounters exposes per-action type histogram to the monitoring package.
+// Converts protocol.ActionType keys to string for JSON serialization.
+func (gs *GameServer) GetActionTypeCounters() map[string]int64 {
+	counters := gs.getActionTypeCounters()
+	result := make(map[string]int64, len(counters))
+	for k, v := range counters {
+		result[string(k)] = v
+	}
+	return result
+}
+
+// GetDoomHistogram exposes doom level distribution to the monitoring package.
+func (gs *GameServer) GetDoomHistogram() map[int]int64 {
+	return gs.getDoomHistogram()
+}
+
+// GetLatencyPercentiles exposes broadcast latency percentiles to the monitoring package.
+func (gs *GameServer) GetLatencyPercentiles() map[string]float64 {
+	return gs.BroadcastLatencyPercentiles()
+}

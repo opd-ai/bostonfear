@@ -130,4 +130,70 @@ func TestMythosPhase_EventPlacement(t *testing.T) {
 			t.Errorf("default event deck should have ≥6 cards; got %d", len(deck))
 		}
 	})
+
+	t.Run("configurable event count - draw 3 events", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.gameState.Enemies = make(map[string]*Enemy)
+		gs.gameState.LocationDoomTokens = make(map[string]int)
+		gs.gameState.MythosEventsPerRound = 3
+		// Seed a larger deck
+		gs.gameState.MythosEventDeck = []MythosEvent{
+			{LocationID: string(Downtown), Effect: "event1", MythosEventType: MythosEventFogMadness},
+			{LocationID: string(University), Effect: "event2", MythosEventType: MythosEventClueDrought},
+			{LocationID: string(Rivertown), Effect: "event3", MythosEventType: MythosEventDoomSpread},
+			{LocationID: string(Northside), Effect: "event4", MythosEventType: MythosEventAnomaly},
+		}
+
+		gs.runMythosPhase()
+
+		// Should draw exactly 3 events
+		if len(gs.gameState.MythosEvents) != 3 {
+			t.Errorf("expected 3 events drawn with MythosEventsPerRound=3; got %d", len(gs.gameState.MythosEvents))
+		}
+		// Deck should have 1 event remaining
+		if len(gs.gameState.MythosEventDeck) != 1 {
+			t.Errorf("expected 1 event remaining in deck; got %d", len(gs.gameState.MythosEventDeck))
+		}
+	})
+
+	t.Run("configurable event count - draw 1 event", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.gameState.Enemies = make(map[string]*Enemy)
+		gs.gameState.LocationDoomTokens = make(map[string]int)
+		gs.gameState.MythosEventsPerRound = 1
+		gs.gameState.MythosEventDeck = []MythosEvent{
+			{LocationID: string(Downtown), Effect: "solo", MythosEventType: MythosEventFogMadness},
+			{LocationID: string(University), Effect: "remaining", MythosEventType: MythosEventClueDrought},
+		}
+
+		gs.runMythosPhase()
+
+		// Should draw exactly 1 event
+		if len(gs.gameState.MythosEvents) != 1 {
+			t.Errorf("expected 1 event drawn with MythosEventsPerRound=1; got %d", len(gs.gameState.MythosEvents))
+		}
+		// Deck should have 1 event remaining
+		if len(gs.gameState.MythosEventDeck) != 1 {
+			t.Errorf("expected 1 event remaining in deck; got %d", len(gs.gameState.MythosEventDeck))
+		}
+	})
+
+	t.Run("configurable event count - fallback to 2 when not set", func(t *testing.T) {
+		gs, _ := newTestServer(t)
+		gs.gameState.Enemies = make(map[string]*Enemy)
+		gs.gameState.LocationDoomTokens = make(map[string]int)
+		gs.gameState.MythosEventsPerRound = 0 // unset, should fallback to 2
+		gs.gameState.MythosEventDeck = []MythosEvent{
+			{LocationID: string(Downtown), Effect: "e1", MythosEventType: MythosEventFogMadness},
+			{LocationID: string(University), Effect: "e2", MythosEventType: MythosEventClueDrought},
+			{LocationID: string(Rivertown), Effect: "e3", MythosEventType: MythosEventDoomSpread},
+		}
+
+		gs.runMythosPhase()
+
+		// Should draw 2 events (fallback default)
+		if len(gs.gameState.MythosEvents) != 2 {
+			t.Errorf("expected 2 events drawn when MythosEventsPerRound=0 (fallback); got %d", len(gs.gameState.MythosEvents))
+		}
+	})
 }

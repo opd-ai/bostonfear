@@ -191,12 +191,13 @@
   - **Validation**: `TestProcessAction_SelectInvestigator` covers all 6 archetypes (researcher, detective, occultist, soldier, mystic, survivor) with comprehensive tests for pregame window locking
   - **Implementation notes**: System was already implemented; enhanced test coverage to verify all 6 archetypes and added test for pregame lock enforcement
 
-- [ ] **Implement full Mythos Phase event placement logic**
-  - [ ] Draw multiple events per Mythos Phase with configurable event count
-  - [ ] Apply event placement priority rules (location adjacency, doom spread)
-  - [ ] Resolve Mythos token effects (anomaly spawns, gate openings, clue placements)
-  - **Files**: `serverengine/arkhamhorror/phases/mythos.go`
-  - **Validation**: `TestRulesMythosPhaseEventPlacement` verifies events drawn and placed correctly
+- [x] **Implement full Mythos Phase event placement logic**
+  - [x] Draw multiple events per Mythos Phase with configurable event count
+  - [x] Apply event placement priority rules (location adjacency, doom spread)
+  - [x] Resolve Mythos token effects (anomaly spawns, gate openings, clue placements)
+  - **Files**: `serverengine/arkhamhorror/phases/mythos.go`, `serverengine/game_types.go`, `protocol/protocol.go`
+  - **Validation**: `TestMythosPhase_EventPlacement` verifies events drawn and placed correctly with configurable count
+  - **Implementation notes**: Added `MythosEventsPerRound` to Scenario and GameState; defaults to 2 for standard AH3e play; custom scenarios can override this value
 
 **Priority Justification**: These are the last missing pieces for full gameplay variety with original content. Current implementation is a "simplified demo" suitable for learning the engine, but expanded scenario/investigator/encounter variety with custom content is needed for long-term replayability.
 
@@ -205,12 +206,13 @@
 ### Priority 6: Add Observability and Monitoring Improvements
 **Impact**: Enhances operational visibility for hosted deployments.
 
-- [ ] **Expand Prometheus metrics**
-  - [ ] Add per-action type counters (how many times each action was performed)
-  - [ ] Add doom level histogram (track doom distribution across games)
-  - [ ] Add connection quality percentiles (P50, P90, P99 ping latency)
-  - **Files**: `serverengine/metrics.go`
-  - **Validation**: Prometheus `/metrics` endpoint exposes new histograms and counters
+- [x] **Expand Prometheus metrics**
+  - [x] Add per-action type counters (how many times each action was performed)
+  - [x] Add doom level histogram (track doom distribution across games)
+  - [x] Add connection quality percentiles (P50, P90, P95, P99 latency)
+  - **Files**: `serverengine/metrics.go`, `serverengine/game_server.go`, `serverengine/mythos.go`, `monitoring/handlers.go`, `serverengine/common/contracts/engine.go`
+  - **Validation**: `TestActionTypeTracking` and `TestDoomHistogramTracking` verify tracking; Prometheus `/metrics` endpoint exposes new histograms and counters
+  - **Implementation notes**: Added `actionTypeCounters` and `doomHistogram` maps to GameServer; doom tracking occurs at game end; action tracking occurs after each successful action; latency percentiles already existed via `BroadcastLatencyPercentiles()`, now exposed in Prometheus format
 
 - [ ] **Add structured logging with levels**
   - [ ] Replace `log.Printf` with leveled logger (e.g., `slog` or `zerolog`)

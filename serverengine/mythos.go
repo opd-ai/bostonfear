@@ -135,6 +135,7 @@ func (gs *GameServer) checkActAdvance() {
 			gs.gameState.WinCondition = true
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
+			gs.trackDoomLevel(gs.gameState.Doom)
 			log.Printf("Game ended: Victory! Final act completed")
 			return
 		}
@@ -160,6 +161,7 @@ func (gs *GameServer) checkAgendaAdvance() {
 			gs.gameState.LoseCondition = true
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
+			gs.trackDoomLevel(gs.gameState.Doom)
 			log.Printf("Game ended: Final agenda reached — Ancient One awakens")
 			return
 		}
@@ -181,6 +183,7 @@ func (gs *GameServer) checkGameEndConditions() {
 		gs.gameState.LoseCondition = true
 		gs.gameState.GamePhase = "ended"
 		atomic.AddInt64(&gs.totalGamesPlayed, 1)
+		gs.trackDoomLevel(gs.gameState.Doom)
 		log.Printf("Game ended: Doom counter reached 12")
 		return
 	}
@@ -191,6 +194,7 @@ func (gs *GameServer) checkGameEndConditions() {
 			gs.gameState.LoseCondition = true
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
+			gs.trackDoomLevel(gs.gameState.Doom)
 			log.Printf("Game ended: scenario lose condition triggered")
 			return
 		}
@@ -207,6 +211,7 @@ func (gs *GameServer) checkGameEndConditions() {
 			gs.gameState.WinCondition = true
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
+			gs.trackDoomLevel(gs.gameState.Doom)
 			log.Printf("Game ended: scenario win condition triggered")
 		}
 	} else {

@@ -219,29 +219,30 @@ type Anomaly struct {
 // All integer bounds are validated during action processing. Consumers should not
 // construct GameState manually; use server-provided state snapshots instead.
 type GameState struct {
-	Players            map[string]*Player         `json:"players"`
-	CurrentPlayer      string                     `json:"currentPlayer"`
-	Doom               int                        `json:"doom"`
-	GamePhase          string                     `json:"gamePhase"`
-	TurnOrder          []string                   `json:"turnOrder"`
-	GameStarted        bool                       `json:"gameStarted"`
-	WinCondition       bool                       `json:"winCondition"`
-	LoseCondition      bool                       `json:"loseCondition"`
-	RequiredClues      int                        `json:"requiredClues"`
-	Difficulty         string                     `json:"difficulty"`
-	ScenarioID         string                     `json:"scenarioId"`
-	ActDeck            []ActCard                  `json:"actDeck"`
-	AgendaDeck         []AgendaCard               `json:"agendaDeck"`
-	MythosEventDeck    []MythosEvent              `json:"mythosEventDeck"`
-	LocationDoomTokens map[string]int             `json:"locationDoomTokens"`
-	MythosToken        string                     `json:"mythosToken"`
-	MythosEvents       []MythosEvent              `json:"mythosEvents"`
-	Anomalies          []Anomaly                  `json:"anomalies"`
-	OpenGates          []Gate                     `json:"openGates"`
-	Enemies            map[string]*Enemy          `json:"enemies"`
-	ActiveEvents       []string                   `json:"activeEvents"`
-	EncounterDecks     map[string][]EncounterCard `json:"encounterDecks"`
-	EncounterDiscards  map[string][]EncounterCard `json:"encounterDiscards"` // Discard pile for each location
+	Players              map[string]*Player         `json:"players"`
+	CurrentPlayer        string                     `json:"currentPlayer"`
+	Doom                 int                        `json:"doom"`
+	GamePhase            string                     `json:"gamePhase"`
+	TurnOrder            []string                   `json:"turnOrder"`
+	GameStarted          bool                       `json:"gameStarted"`
+	WinCondition         bool                       `json:"winCondition"`
+	LoseCondition        bool                       `json:"loseCondition"`
+	RequiredClues        int                        `json:"requiredClues"`
+	Difficulty           string                     `json:"difficulty"`
+	ScenarioID           string                     `json:"scenarioId"`
+	MythosEventsPerRound int                        `json:"mythosEventsPerRound"` // Number of events drawn per Mythos Phase
+	ActDeck              []ActCard                  `json:"actDeck"`
+	AgendaDeck           []AgendaCard               `json:"agendaDeck"`
+	MythosEventDeck      []MythosEvent              `json:"mythosEventDeck"`
+	LocationDoomTokens   map[string]int             `json:"locationDoomTokens"`
+	MythosToken          string                     `json:"mythosToken"`
+	MythosEvents         []MythosEvent              `json:"mythosEvents"`
+	Anomalies            []Anomaly                  `json:"anomalies"`
+	OpenGates            []Gate                     `json:"openGates"`
+	Enemies              map[string]*Enemy          `json:"enemies"`
+	ActiveEvents         []string                   `json:"activeEvents"`
+	EncounterDecks       map[string][]EncounterCard `json:"encounterDecks"`
+	EncounterDiscards    map[string][]EncounterCard `json:"encounterDiscards"` // Discard pile for each location
 }
 
 // GameUpdateMessage is the lightweight post-action delta broadcast.

@@ -30,9 +30,10 @@ type (
 // Use DefaultScenario for standard Arkham Horror 3e play. Custom scenarios
 // override the setup function and condition checks to create different experiences.
 type Scenario struct {
-	Name         string
-	StartingDoom int
-	SetupFn      func(*GameState)
-	WinFn        func(*GameState) bool
-	LoseFn       func(*GameState) bool
+	Name                 string
+	StartingDoom         int
+	MythosEventsPerRound int // Number of Mythos events drawn per round (default 2)
+	SetupFn              func(*GameState)
+	WinFn                func(*GameState) bool
+	LoseFn               func(*GameState) bool
 }

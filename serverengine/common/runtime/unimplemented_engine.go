@@ -94,3 +94,15 @@ func (e *UnimplementedEngine) GameStatistics() map[string]interface{} {
 		"game":   e.gameName,
 	}
 }
+
+func (e *UnimplementedEngine) GetActionTypeCounters() map[string]int64 {
+	return map[string]int64{}
+}
+
+func (e *UnimplementedEngine) GetDoomHistogram() map[int]int64 {
+	return map[int]int64{}
+}
+
+func (e *UnimplementedEngine) GetLatencyPercentiles() map[string]float64 {
+	return map[string]float64{"p50": 0, "p90": 0, "p95": 0, "p99": 0}
+}

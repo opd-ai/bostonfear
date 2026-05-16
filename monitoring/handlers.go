@@ -19,6 +19,9 @@ type Provider interface {
 	CollectGCMetrics() monitoringdata.GCMetrics
 	CollectMessageThroughput(time.Duration) monitoringdata.MessageThroughputMetrics
 	GameStatistics() map[string]interface{}
+	GetActionTypeCounters() map[string]int64   // Per-action type histogram
+	GetDoomHistogram() map[int]int64           // Doom level distribution
+	GetLatencyPercentiles() map[string]float64 // P50, P90, P99 latency
 }
 
 // HealthHandler serves a JSON health payload assembled from engine snapshots.
@@ -80,10 +83,16 @@ func MetricsHandler(provider Provider) http.Handler {
 		memMetrics := provider.CollectMemoryMetrics()
 		gcMetrics := provider.CollectGCMetrics()
 		throughput := provider.CollectMessageThroughput(perfMetrics.Uptime)
+		actionCounters := provider.GetActionTypeCounters()
+		doomHistogram := provider.GetDoomHistogram()
+		latencyPercentiles := provider.GetLatencyPercentiles()
 
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 		metrics := buildGameMetrics(perfMetrics, connAnalytics, throughput, snapshot.Doom) +
-			buildMemoryMetrics(memMetrics, gcMetrics)
+			buildMemoryMetrics(memMetrics, gcMetrics) +
+			buildActionMetrics(actionCounters) +
+			buildDoomHistogram(doomHistogram) +
+			buildLatencyPercentiles(latencyPercentiles)
 		fmt.Fprint(w, metrics)
 	})
 }
@@ -173,6 +182,77 @@ func buildMemoryMetrics(mem monitoringdata.MemoryMetrics, gc monitoringdata.GCMe
 		fmt.Sprintf("arkham_horror_gc_pause_seconds_total %.6f", gc.PauseTotal.Seconds()),
 		"",
 	}
+	result := ""
+	for _, line := range lines {
+		result += line + "\n"
+	}
+	return result
+}
+
+func buildActionMetrics(counters map[string]int64) string {
+	if len(counters) == 0 {
+		return ""
+	}
+	var lines []string
+	lines = append(lines,
+		"# HELP arkham_horror_action_total Total number of actions performed by type",
+		"# TYPE arkham_horror_action_total counter",
+	)
+	for actionType, count := range counters {
+		lines = append(lines, fmt.Sprintf("arkham_horror_action_total{action=\"%s\"} %d", actionType, count))
+	}
+	lines = append(lines, "")
+
+	result := ""
+	for _, line := range lines {
+		result += line + "\n"
+	}
+	return result
+}
+
+func buildDoomHistogram(histogram map[int]int64) string {
+	if len(histogram) == 0 {
+		return ""
+	}
+	var lines []string
+	lines = append(lines,
+		"# HELP arkham_horror_doom_level_games Total number of games ending at each doom level",
+		"# TYPE arkham_horror_doom_level_games counter",
+	)
+	for doomLevel, count := range histogram {
+		lines = append(lines, fmt.Sprintf("arkham_horror_doom_level_games{level=\"%d\"} %d", doomLevel, count))
+	}
+	lines = append(lines, "")
+
+	result := ""
+	for _, line := range lines {
+		result += line + "\n"
+	}
+	return result
+}
+
+func buildLatencyPercentiles(percentiles map[string]float64) string {
+	var lines []string
+	lines = append(lines,
+		"# HELP arkham_horror_broadcast_latency_percentiles_ms Broadcast latency percentiles in milliseconds",
+		"# TYPE arkham_horror_broadcast_latency_percentiles_ms gauge",
+	)
+
+	if p50, ok := percentiles["p50"]; ok {
+		lines = append(lines, fmt.Sprintf("arkham_horror_broadcast_latency_percentiles_ms{quantile=\"0.50\"} %.4f", p50))
+	}
+	if p90, ok := percentiles["p90"]; ok {
+		lines = append(lines, fmt.Sprintf("arkham_horror_broadcast_latency_percentiles_ms{quantile=\"0.90\"} %.4f", p90))
+	}
+	// Note: the implementation returns p95 and p99, not p90
+	if p95, ok := percentiles["p95"]; ok {
+		lines = append(lines, fmt.Sprintf("arkham_horror_broadcast_latency_percentiles_ms{quantile=\"0.95\"} %.4f", p95))
+	}
+	if p99, ok := percentiles["p99"]; ok {
+		lines = append(lines, fmt.Sprintf("arkham_horror_broadcast_latency_percentiles_ms{quantile=\"0.99\"} %.4f", p99))
+	}
+	lines = append(lines, "")
+
 	result := ""
 	for _, line := range lines {
 		result += line + "\n"

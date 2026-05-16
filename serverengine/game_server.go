@@ -76,6 +76,14 @@ type GameServer struct {
 	connectionEvents  []ConnectionEventSimplified
 	performanceMutex  sync.RWMutex
 
+	// Per-action type counters
+	actionTypeCounters map[ActionType]int64
+	actionCounterMutex sync.RWMutex
+
+	// Doom level histogram (tracks doom distribution across games)
+	doomHistogram     map[int]int64 // doom level -> count
+	doomHistogramLock sync.RWMutex
+
 	// Broadcast latency ring buffer — stores the last 100 write durations in nanoseconds
 	latencySamples     [100]int64
 	latencyHead        int
@@ -161,6 +169,10 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		totalMessagesRecv: 0,
 		playerSessions:    make(map[string]*PlayerSessionMetricsSimplified),
 		connectionEvents:  make([]ConnectionEventSimplified, 0),
+
+		// Initialize per-action type counters
+		actionTypeCounters: make(map[ActionType]int64),
+		doomHistogram:      make(map[int]int64),
 
 		// Initialize connection quality monitoring
 		connectionQualities: make(map[string]*ConnectionQuality),
@@ -410,6 +422,7 @@ func (gs *GameServer) processActionCore(action PlayerActionMessage) error {
 
 	player.ActionsRemaining--
 	gs.trackPlayerSession(action.PlayerID, "action")
+	gs.trackActionType(action.Action)
 	gs.ValidateResources(&player.Resources)
 	gs.CheckInvestigatorDefeat(action.PlayerID)
 	gs.checkGameEndConditions()

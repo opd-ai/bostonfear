@@ -76,6 +76,19 @@ type MetricsCollector interface {
 	// investigator details, turn count). The map is game-specific and may be empty for
 	// unimplemented or placeholder engines. Keys and values are not version-stable.
 	GameStatistics() map[string]interface{}
+
+	// GetActionTypeCounters returns per-action type histogram: total count of each action
+	// performed since server start. Action types are returned as strings (e.g., "move", "investigate").
+	// Used by Prometheus metrics to expose per-action counters.
+	GetActionTypeCounters() map[string]int64
+
+	// GetDoomHistogram returns doom level distribution: total count of games ending at each
+	// doom level (0-12). Used by Prometheus metrics to track doom progression patterns.
+	GetDoomHistogram() map[int]int64
+
+	// GetLatencyPercentiles returns broadcast latency percentiles (P50, P90, P95, P99) in milliseconds.
+	// Keys are "p50", "p90", "p95", "p99". Used by Prometheus metrics for latency monitoring.
+	GetLatencyPercentiles() map[string]float64
 }
 
 // Engine defines the transport-neutral runtime surface required by server startup,

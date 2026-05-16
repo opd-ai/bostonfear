@@ -129,7 +129,10 @@ func RunMythosPhase(state *protocol.GameState, callbacks MythosCallbacks) {
 		state.MythosEventDeck = callbacks.DefaultEventDeck()
 	}
 
-	toDraw := 2
+	toDraw := state.MythosEventsPerRound
+	if toDraw <= 0 {
+		toDraw = 2 // fallback to standard AH3e count if not configured
+	}
 	if len(state.MythosEventDeck) < toDraw {
 		toDraw = len(state.MythosEventDeck)
 	}

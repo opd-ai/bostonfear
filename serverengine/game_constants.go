@@ -236,10 +236,12 @@ func defaultMythosEventDeck() []MythosEvent {
 // doom starts at 0, act/agenda/encounter decks from defaults.
 // Pass to NewGameServer to get standard play; substitute custom Scenario for variants.
 var DefaultScenario = Scenario{
-	Name:         "The Gathering",
-	StartingDoom: 0,
+	Name:                 "The Gathering",
+	StartingDoom:         0,
+	MythosEventsPerRound: 2, // Standard AH3e draws 2 events per Mythos Phase
 	SetupFn: func(gs *GameState) {
 		gs.Doom = 0
+		gs.MythosEventsPerRound = 2
 		gs.ActDeck = defaultActDeck()
 		gs.AgendaDeck = defaultAgendaDeck()
 		gs.MythosEventDeck = defaultMythosEventDeck()

@@ -387,3 +387,44 @@ func (gs *GameServer) trackMessage(messageType string) {
 		gs.totalMessagesRecv++
 	}
 }
+
+// trackActionType increments the counter for the specified action type.
+// Called after each successful action execution to build per-action histograms.
+func (gs *GameServer) trackActionType(actionType ActionType) {
+	gs.actionCounterMutex.Lock()
+	defer gs.actionCounterMutex.Unlock()
+	gs.actionTypeCounters[actionType]++
+}
+
+// getActionTypeCounters returns a snapshot of all action type counters.
+// Used by Prometheus metrics endpoint to expose per-action statistics.
+func (gs *GameServer) getActionTypeCounters() map[ActionType]int64 {
+	gs.actionCounterMutex.RLock()
+	defer gs.actionCounterMutex.RUnlock()
+	result := make(map[ActionType]int64, len(gs.actionTypeCounters))
+	for k, v := range gs.actionTypeCounters {
+		result[k] = v
+	}
+	return result
+}
+
+// trackDoomLevel records the current doom level for histogram tracking.
+// Called at end-of-game or periodically during Mythos Phase to build
+// doom distribution statistics across multiple games.
+func (gs *GameServer) trackDoomLevel(doomLevel int) {
+	gs.doomHistogramLock.Lock()
+	defer gs.doomHistogramLock.Unlock()
+	gs.doomHistogram[doomLevel]++
+}
+
+// getDoomHistogram returns a snapshot of the doom level histogram.
+// Used by Prometheus metrics endpoint to expose doom distribution.
+func (gs *GameServer) getDoomHistogram() map[int]int64 {
+	gs.doomHistogramLock.RLock()
+	defer gs.doomHistogramLock.RUnlock()
+	result := make(map[int]int64, len(gs.doomHistogram))
+	for k, v := range gs.doomHistogram {
+		result[k] = v
+	}
+	return result
+}
