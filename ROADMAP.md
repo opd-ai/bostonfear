@@ -76,15 +76,17 @@
   - [x] Update all task/issue descriptions to reflect Go/Ebitengine as the canonical client technology
   - **Validation**: No mentions of "JavaScript client" remain in documentation except in historical/deprecated sections
 
-- **Option B (High Effort)**: Implement a parallel vanilla JavaScript + HTML5 Canvas client to match task description
-  - [ ] Create `client/js/game.js` with WebSocket connection logic matching `client/ebiten/net.go`
-  - [ ] Implement Canvas rendering for 800×600px board, tokens, resources, HUD
-  - [ ] Mirror Go client's input handling and state synchronization
-  - [ ] Add CI workflow to validate JavaScript client builds
+- **Option B (High Effort)**: ~~Implement a parallel vanilla JavaScript + HTML5 Canvas client to match task description~~ **[REJECTED - Option A chosen]**
+  - [x] ~~Create `client/js/game.js` with WebSocket connection logic matching `client/ebiten/net.go`~~ (not applicable - Option A chosen)
+  - [x] ~~Implement Canvas rendering for 800×600px board, tokens, resources, HUD~~ (not applicable - Option A chosen)
+  - [x] ~~Mirror Go client's input handling and state synchronization~~ (not applicable - Option A chosen)
+  - [x] ~~Add CI workflow to validate JavaScript client builds~~ (not applicable - Option A chosen)
   - **Effort**: 2-4 weeks for feature parity with Ebitengine client
   - **Validation**: JavaScript client can connect, render state, and perform all 12 actions
 
 **Recommendation**: Choose Option A. The Go/Ebitengine client is objectively superior (cross-platform, type-safe, easier to maintain) and already fully functional. A JavaScript client would be redundant and increase maintenance burden.
+
+**Decision**: ✅ **Option A was chosen and completed.** Option B is not applicable and will not be implemented.
 
 ---
 
