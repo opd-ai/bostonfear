@@ -8,11 +8,13 @@
 package app
 
 import (
+	"image"
 	"image/color"
 	"strconv"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/client/ebiten/ui"
@@ -35,6 +37,53 @@ type SceneConnect struct {
 	reconnectTick int
 }
 
+type connectControlID string
+
+const (
+	connectControlNone          connectControlID = ""
+	connectControlAddressField  connectControlID = "address-field"
+	connectControlAddressClear  connectControlID = "address-clear"
+	connectControlNameField     connectControlID = "name-field"
+	connectControlNameClear     connectControlID = "name-clear"
+	connectControlConnectButton connectControlID = "connect-button"
+)
+
+type connectLayout struct {
+	addressField  image.Rectangle
+	addressClear  image.Rectangle
+	nameField     image.Rectangle
+	nameClear     image.Rectangle
+	connectButton image.Rectangle
+}
+
+func newConnectLayout() connectLayout {
+	return connectLayout{
+		addressField:  image.Rect(180, 182, 620, 230),
+		addressClear:  image.Rect(542, 194, 610, 218),
+		nameField:     image.Rect(180, 244, 620, 292),
+		nameClear:     image.Rect(542, 256, 610, 280),
+		connectButton: image.Rect(322, 316, 478, 354),
+	}
+}
+
+func (l connectLayout) hitTest(x, y int) connectControlID {
+	pt := image.Pt(x, y)
+	switch {
+	case pt.In(l.addressClear):
+		return connectControlAddressClear
+	case pt.In(l.nameClear):
+		return connectControlNameClear
+	case pt.In(l.addressField):
+		return connectControlAddressField
+	case pt.In(l.nameField):
+		return connectControlNameField
+	case pt.In(l.connectButton):
+		return connectControlConnectButton
+	default:
+		return connectControlNone
+	}
+}
+
 const (
 	connectFieldAddress = iota
 	connectFieldName
@@ -45,6 +94,7 @@ func (s *SceneConnect) Update() error {
 	s.tick++
 	s.handleFieldSwitch()
 	s.handleFieldEdits()
+	s.handlePointerInput()
 	s.updateReconnectTick()
 	s.confirmConnectForm()
 	return nil
@@ -55,6 +105,7 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 	gs, playerID, connected := s.game.state.Snapshot()
 	address, displayName := s.game.state.ConnectFormSnapshot()
 	token := s.game.state.GetReconnectToken()
+	layout := newConnectLayout()
 
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 
@@ -95,24 +146,31 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 	drawUIText(screen, "Status: "+status, statusBounds.Min.X, statusBounds.Min.Y, color.White)
 
 	// Server address field.
-	serverConstraint := ui.Constraint{
-		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 190,
-		Width:   320,
-		Height:  16,
-	}
-	serverBounds := serverConstraint.Bounds(vp)
-	drawUIText(screen, trimToWidth("Server: "+address, 320), serverBounds.Min.X, serverBounds.Min.Y, color.White)
+	s.drawConnectField(screen, vp, layout.addressField, layout.addressClear, "Server address", address, s.activeField == connectFieldAddress)
 
 	// Display name field.
-	nameConstraint := ui.Constraint{
-		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 215,
-		Width:   320,
-		Height:  16,
+	s.drawConnectField(screen, vp, layout.nameField, layout.nameClear, "Display name", displayName, s.activeField == connectFieldName)
+
+	buttonColor := color.RGBA{R: 85, G: 130, B: 200, A: 255}
+	buttonBorder := color.RGBA{R: 190, G: 220, B: 255, A: 255}
+	buttonLabel := "CONNECT"
+	if connected {
+		buttonLabel = "RECONNECT"
 	}
-	nameBounds := nameConstraint.Bounds(vp)
-	drawUIText(screen, trimToWidth("Display Name: "+displayName, 320), nameBounds.Min.X, nameBounds.Min.Y, color.White)
+	if s.activeField == connectFieldAddress || s.activeField == connectFieldName {
+		buttonBorder = color.RGBA{R: 255, G: 220, B: 120, A: 255}
+	}
+	if layout.connectButton.Empty() {
+		return
+	}
+	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Min.Y), float64(layout.connectButton.Dx()), float64(layout.connectButton.Dy()), buttonColor)
+	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Min.Y), float64(layout.connectButton.Dx()), 2, buttonBorder)
+	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Max.Y-2), float64(layout.connectButton.Dx()), 2, buttonBorder)
+	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Min.Y), 2, float64(layout.connectButton.Dy()), buttonBorder)
+	ebitenutil.DrawRect(screen, float64(layout.connectButton.Max.X-2), float64(layout.connectButton.Min.Y), 2, float64(layout.connectButton.Dy()), buttonBorder)
+	labelX := layout.connectButton.Min.X + layout.connectButton.Dx()/2 - textWidth(buttonLabel)/2
+	labelY := layout.connectButton.Min.Y + 10
+	drawUIText(screen, buttonLabel, labelX, labelY, color.White)
 
 	// Player slots indicator.
 	connectedPlayers := countConnectedPlayers(gs)
@@ -171,12 +229,12 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 	// Input instructions.
 	instrConstraint := ui.Constraint{
 		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 350,
+		OffsetY: 366,
 		Width:   400,
 		Height:  16,
 	}
 	instrBounds := instrConstraint.Bounds(vp)
-	drawUIText(screen, "Type to edit fields - BACKSPACE deletes - ENTER confirms", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+	drawUIText(screen, "Click fields to edit, CLEAR to blank them, ENTER or CONNECT to join", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 
 	// Player ID display (if assigned).
 	if playerID != "" {
@@ -189,6 +247,60 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 		playerIDBounds := playerIDConstraint.Bounds(vp)
 		drawUIText(screen, trimToWidth("Player ID: "+playerID, 320), playerIDBounds.Min.X, playerIDBounds.Min.Y, color.White)
 	}
+}
+
+func (s *SceneConnect) drawConnectField(screen *ebiten.Image, vp *ui.Viewport, fieldRect, clearRect image.Rectangle, label, value string, active bool) {
+	border := color.RGBA{R: 110, G: 130, B: 170, A: 255}
+	fill := color.RGBA{R: 18, G: 20, B: 32, A: 235}
+	labelColor := color.RGBA{R: 210, G: 220, B: 240, A: 255}
+	if active {
+		border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
+		fill = color.RGBA{R: 30, G: 28, B: 18, A: 240}
+	}
+	ebitenutil.DrawRect(screen, float64(fieldRect.Min.X), float64(fieldRect.Min.Y), float64(fieldRect.Dx()), float64(fieldRect.Dy()), fill)
+	ebitenutil.DrawRect(screen, float64(fieldRect.Min.X), float64(fieldRect.Min.Y), float64(fieldRect.Dx()), 2, border)
+	ebitenutil.DrawRect(screen, float64(fieldRect.Min.X), float64(fieldRect.Max.Y-2), float64(fieldRect.Dx()), 2, border)
+	ebitenutil.DrawRect(screen, float64(fieldRect.Min.X), float64(fieldRect.Min.Y), 2, float64(fieldRect.Dy()), border)
+	ebitenutil.DrawRect(screen, float64(fieldRect.Max.X-2), float64(fieldRect.Min.Y), 2, float64(fieldRect.Dy()), border)
+
+	labelY := fieldRect.Min.Y + 8
+	drawUIText(screen, label, fieldRect.Min.X+10, labelY, labelColor)
+
+	valueText := trimToWidth(value, fieldRect.Dx()-120)
+	valueY := fieldRect.Min.Y + 26
+	if valueText == "" {
+		valueText = "(click and type)"
+		if active {
+			valueText = ""
+		}
+		labelColor = color.RGBA{R: 140, G: 150, B: 170, A: 255}
+	}
+	drawUIText(screen, valueText, fieldRect.Min.X+10, valueY, labelColor)
+
+	if active {
+		caretX := fieldRect.Min.X + 10 + textWidth(valueText) + 2
+		caretTop := fieldRect.Min.Y + 28
+		caretBottom := fieldRect.Min.Y + 42
+		if caretBottom > fieldRect.Max.Y-6 {
+			caretBottom = fieldRect.Max.Y - 6
+		}
+		ebitenutil.DrawRect(screen, float64(caretX), float64(caretTop), 2, float64(caretBottom-caretTop), color.RGBA{R: 255, G: 230, B: 160, A: 255})
+	}
+
+	clearLabel := "CLEAR"
+	clearFill := color.RGBA{R: 70, G: 70, B: 90, A: 255}
+	clearBorder := color.RGBA{R: 150, G: 160, B: 190, A: 255}
+	if !clearRect.Empty() {
+		ebitenutil.DrawRect(screen, float64(clearRect.Min.X), float64(clearRect.Min.Y), float64(clearRect.Dx()), float64(clearRect.Dy()), clearFill)
+		ebitenutil.DrawRect(screen, float64(clearRect.Min.X), float64(clearRect.Min.Y), float64(clearRect.Dx()), 2, clearBorder)
+		ebitenutil.DrawRect(screen, float64(clearRect.Min.X), float64(clearRect.Max.Y-2), float64(clearRect.Dx()), 2, clearBorder)
+		ebitenutil.DrawRect(screen, float64(clearRect.Min.X), float64(clearRect.Min.Y), 2, float64(clearRect.Dy()), clearBorder)
+		ebitenutil.DrawRect(screen, float64(clearRect.Max.X-2), float64(clearRect.Min.Y), 2, float64(clearRect.Dy()), clearBorder)
+		labelX := clearRect.Min.X + clearRect.Dx()/2 - textWidth(clearLabel)/2
+		labelY := clearRect.Min.Y + 4
+		drawUIText(screen, clearLabel, labelX, labelY, color.White)
+	}
+	_ = vp
 }
 
 func (s *SceneConnect) handleBackspace() {
@@ -245,6 +357,38 @@ func (s *SceneConnect) confirmConnectForm() {
 	}
 	// Abort the current backoff sleep and redial immediately with the new address.
 	s.game.net.Reconnect()
+}
+
+func (s *SceneConnect) handlePointerInput() {
+	layout := newConnectLayout()
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		s.activateConnectControl(layout.hitTest(x, y))
+	}
+	for _, touchID := range inpututil.JustPressedTouchIDs() {
+		x, y := ebiten.TouchPosition(touchID)
+		if x < 0 || y < 0 {
+			continue
+		}
+		s.activateConnectControl(layout.hitTest(x, y))
+	}
+}
+
+func (s *SceneConnect) activateConnectControl(control connectControlID) {
+	switch control {
+	case connectControlAddressField:
+		s.activeField = connectFieldAddress
+	case connectControlNameField:
+		s.activeField = connectFieldName
+	case connectControlAddressClear:
+		s.game.state.ClearConnectAddress()
+		s.activeField = connectFieldAddress
+	case connectControlNameClear:
+		s.game.state.ClearDisplayName()
+		s.activeField = connectFieldName
+	case connectControlConnectButton:
+		s.confirmConnectForm()
+	}
 }
 
 func (s *SceneConnect) appendRune(r rune) {
@@ -390,6 +534,16 @@ type SceneCharacterSelect struct {
 	// selectedDifficulty tracks the player's difficulty choice: "easy", "standard", or "hard".
 	// Empty string means not yet selected.
 	selectedDifficulty string
+
+	// selectedInvestigator tracks the locally highlighted investigator card.
+	// It is confirmed either by the button below the cards or by the keyboard shortcuts.
+	selectedInvestigator string
+}
+
+type difficultyButton struct {
+	value string
+	label string
+	rect  image.Rectangle
 }
 
 // NewSceneCharacterSelect creates a new character selection scene.
@@ -421,6 +575,8 @@ func (s *SceneCharacterSelect) Update() error {
 		return nil
 	}
 
+	s.handlePointerInput(gs, playerID)
+
 	// Handle difficulty selection with E (easy), S (standard), H (hard).
 	difficultyKeys := map[ebiten.Key]string{
 		ebiten.KeyE: "easy",
@@ -439,6 +595,8 @@ func (s *SceneCharacterSelect) Update() error {
 		}
 	}
 
+	s.handleDifficultyPointerInput(playerID)
+
 	keys := []ebiten.Key{
 		ebiten.Key1, ebiten.Key2, ebiten.Key3,
 		ebiten.Key4, ebiten.Key5, ebiten.Key6,
@@ -447,6 +605,7 @@ func (s *SceneCharacterSelect) Update() error {
 	for i, key := range keys {
 		if i < len(s.investigators) && inpututil.IsKeyJustPressed(key) {
 			investigator := s.investigators[i]
+			s.selectedInvestigator = investigator.name
 			s.game.net.SendAction(ebclient.PlayerActionMessage{
 				Type:     "playerAction",
 				PlayerID: playerID,
@@ -456,6 +615,15 @@ func (s *SceneCharacterSelect) Update() error {
 		}
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && s.selectedInvestigator != "" {
+		s.game.net.SendAction(ebclient.PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: playerID,
+			Action:   protocol.ActionSelectInvestigator,
+			Target:   s.selectedInvestigator,
+		})
+	}
+
 	return nil
 }
 
@@ -463,21 +631,33 @@ func (s *SceneCharacterSelect) Update() error {
 func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 	gs, _, _ := s.game.state.Snapshot()
 	selected, waiting := investigatorSelectionStatus(gs)
+	layout := newCharacterSelectLayout()
 
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	drawUIText(screen, "Select Your Investigator", screenWidth/2-100, screenHeight/2-110, color.White)
-	drawUIText(screen, "Press [1-6] to choose", screenWidth/2-90, screenHeight/2-95, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+	drawUIText(screen, "Click a card or press [1-6] to choose", screenWidth/2-135, screenHeight/2-95, color.RGBA{R: 180, G: 180, B: 180, A: 255})
 
 	for i, investigator := range s.investigators {
-		yOffset := screenHeight/2 - 60 + i*32
+		rect := layout.cardRect(i)
+		isSelected := s.selectedInvestigator == investigator.name
+		if playerID := gs.CurrentPlayer; playerID != "" {
+			if player, exists := gs.Players[playerID]; exists && player.InvestigatorType == protocol.InvestigatorType(investigator.name) && player.InvestigatorType != "" {
+				isSelected = true
+			}
+		}
 		keyLabel := strconv.Itoa(i + 1)
 
-		// Fetch the player's current investigator selection to highlight if matched.
-		playerID := gs.CurrentPlayer
-		isSelected := false
-		if player, exists := gs.Players[playerID]; exists {
-			isSelected = player.InvestigatorType == protocol.InvestigatorType(investigator.name) && player.InvestigatorType != ""
+		fill := color.RGBA{R: 18, G: 20, B: 32, A: 240}
+		border := color.RGBA{R: 115, G: 128, B: 165, A: 255}
+		if isSelected {
+			fill = color.RGBA{R: 38, G: 32, B: 18, A: 245}
+			border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
 		}
+		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), fill)
+		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), 2, border)
+		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Max.Y-2), float64(rect.Dx()), 2, border)
+		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
+		ebitenutil.DrawRect(screen, float64(rect.Max.X-2), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
 
 		// Choose color based on selection state.
 		titleColor := color.RGBA{R: 220, G: 220, B: 220, A: 255}
@@ -492,15 +672,43 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 		if isSelected {
 			text += " ✓"
 		}
-		drawUIText(screen, text, screenWidth/2-120, yOffset, titleColor)
-		drawUIText(screen, "    "+investigator.description, screenWidth/2-120, yOffset+14, descColor)
+		drawUIText(screen, text, rect.Min.X+12, rect.Min.Y+8, titleColor)
+		drawUIText(screen, "    "+investigator.description, rect.Min.X+12, rect.Min.Y+22, descColor)
 	}
 
-	drawUIText(screen, "", screenWidth/2-100, screenHeight/2+130, color.White) // Spacing
-
 	// Draw difficulty selection.
-	drawUIText(screen, "Select Difficulty:", screenWidth/2-120, screenHeight/2+140, color.White)
-	drawUIText(screen, "[E] Easy  [S] Standard  [H] Hard", screenWidth/2-120, screenHeight/2+155, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+	drawUIText(screen, "Confirm Selection", layout.confirmButton.Min.X+20, layout.confirmButton.Min.Y+10, color.White)
+	confirmColor := color.RGBA{R: 80, G: 120, B: 195, A: 255}
+	if s.selectedInvestigator != "" {
+		confirmColor = color.RGBA{R: 120, G: 170, B: 240, A: 255}
+	}
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), float64(layout.confirmButton.Dy()), confirmColor)
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), 2, color.RGBA{R: 220, G: 230, B: 255, A: 255})
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Max.Y-2), float64(layout.confirmButton.Dx()), 2, color.RGBA{R: 220, G: 230, B: 255, A: 255})
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), color.RGBA{R: 220, G: 230, B: 255, A: 255})
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Max.X-2), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), color.RGBA{R: 220, G: 230, B: 255, A: 255})
+	confirmLabel := "Tap a card first"
+	if s.selectedInvestigator != "" {
+		confirmLabel = "Tap here or press ENTER"
+	}
+	drawUIText(screen, confirmLabel, layout.confirmButton.Min.X+20, layout.confirmButton.Min.Y+22, color.White)
+
+	drawUIText(screen, "Select Difficulty:", screenWidth/2-120, 468, color.White)
+	for _, option := range layout.difficultyButtons() {
+		fill := color.RGBA{R: 25, G: 28, B: 40, A: 240}
+		border := color.RGBA{R: 130, G: 145, B: 175, A: 255}
+		if s.selectedDifficulty == option.value {
+			fill = color.RGBA{R: 45, G: 62, B: 96, A: 255}
+			border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
+		}
+		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), float64(option.rect.Dx()), float64(option.rect.Dy()), fill)
+		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), float64(option.rect.Dx()), 2, border)
+		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Max.Y-2), float64(option.rect.Dx()), 2, border)
+		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), 2, float64(option.rect.Dy()), border)
+		ebitenutil.DrawRect(screen, float64(option.rect.Max.X-2), float64(option.rect.Min.Y), 2, float64(option.rect.Dy()), border)
+		drawUIText(screen, option.label, option.rect.Min.X+18, option.rect.Min.Y+13, color.White)
+	}
+	drawUIText(screen, "Tap one of the three buttons or use E/S/H", screenWidth/2-135, 528, color.RGBA{R: 180, G: 180, B: 180, A: 255})
 
 	// Highlight selected difficulty.
 	if s.selectedDifficulty != "" {
@@ -511,6 +719,112 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 	drawUIText(screen, "", screenWidth/2-100, screenHeight/2+190, color.White) // Spacing
 	drawUIText(screen, "Selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-100, screenHeight/2+205, color.White)
 	drawUIText(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+220, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+}
+
+func (s *SceneCharacterSelect) handlePointerInput(gs ebclient.GameState, playerID string) {
+	layout := newCharacterSelectLayout()
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		s.activateCharacterChoice(layout, x, y, gs, playerID)
+		s.activateDifficultyChoice(layout, x, y, playerID)
+	}
+	for _, touchID := range inpututil.JustPressedTouchIDs() {
+		x, y := ebiten.TouchPosition(touchID)
+		if x < 0 || y < 0 {
+			continue
+		}
+		s.activateCharacterChoice(layout, x, y, gs, playerID)
+		s.activateDifficultyChoice(layout, x, y, playerID)
+	}
+}
+
+func (s *SceneCharacterSelect) activateCharacterChoice(layout characterSelectLayout, x, y int, gs ebclient.GameState, playerID string) {
+	if idx, ok := layout.cardIndexAt(x, y); ok && idx < len(s.investigators) {
+		s.selectedInvestigator = s.investigators[idx].name
+		return
+	}
+	if image.Pt(x, y).In(layout.confirmButton) && s.selectedInvestigator != "" {
+		s.game.net.SendAction(ebclient.PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: playerID,
+			Action:   protocol.ActionSelectInvestigator,
+			Target:   s.selectedInvestigator,
+		})
+	}
+	_ = gs
+}
+
+func (s *SceneCharacterSelect) handleDifficultyPointerInput(playerID string) {
+	_ = playerID
+}
+
+func (s *SceneCharacterSelect) activateDifficultyChoice(layout characterSelectLayout, x, y int, playerID string) {
+	pt := image.Pt(x, y)
+	for _, option := range layout.difficultyButtons() {
+		if !pt.In(option.rect) || s.selectedDifficulty == option.value {
+			continue
+		}
+		s.selectedDifficulty = option.value
+		s.game.net.SendAction(ebclient.PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: playerID,
+			Action:   protocol.ActionSetDifficulty,
+			Target:   option.value,
+		})
+		return
+	}
+}
+
+type characterSelectLayout struct {
+	cards         []image.Rectangle
+	confirmButton image.Rectangle
+}
+
+func (l characterSelectLayout) difficultyButtons() []difficultyButton {
+	if len(l.cards) == 0 {
+		return nil
+	}
+	centerX := screenWidth / 2
+	y := 500
+	buttonWidth := 126
+	buttonHeight := 36
+	gap := 12
+	left := centerX - buttonWidth - gap - buttonWidth/2
+	return []difficultyButton{
+		{value: "easy", label: "Easy", rect: image.Rect(left, y, left+buttonWidth, y+buttonHeight)},
+		{value: "standard", label: "Standard", rect: image.Rect(centerX-buttonWidth/2, y, centerX+buttonWidth/2, y+buttonHeight)},
+		{value: "hard", label: "Hard", rect: image.Rect(centerX+gap+buttonWidth/2, y, centerX+gap+buttonWidth/2+buttonWidth, y+buttonHeight)},
+	}
+}
+
+func newCharacterSelectLayout() characterSelectLayout {
+	cards := make([]image.Rectangle, 0, 6)
+	startY := 120
+	for i := 0; i < 6; i++ {
+		y := startY + i*46
+		cards = append(cards, image.Rect(screenWidth/2-220, y, screenWidth/2+220, y+40))
+	}
+	return characterSelectLayout{
+		cards:         cards,
+		confirmButton: image.Rect(screenWidth/2-110, 414, screenWidth/2+110, 452),
+	}
+}
+
+func (l characterSelectLayout) cardRect(index int) image.Rectangle {
+	if index < 0 || index >= len(l.cards) {
+		return image.Rectangle{}
+	}
+	return l.cards[index]
+}
+
+func (l characterSelectLayout) cardIndexAt(x, y int) (int, bool) {
+	pt := image.Pt(x, y)
+	for i, rect := range l.cards {
+		if pt.In(rect) {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 // SceneGameOver is shown when the game reaches a win or lose condition.

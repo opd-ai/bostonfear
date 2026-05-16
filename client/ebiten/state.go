@@ -269,6 +269,21 @@ func (s *LocalState) SetDisplayName(name string) {
 	s.DisplayName = strings.TrimSpace(name)
 }
 
+// ClearConnectAddress blanks the editable address field without changing the
+// last successfully dialed ServerURL.
+func (s *LocalState) ClearConnectAddress() {
+	s.mu.Lock()
+	s.ConnectAddress = ""
+	s.mu.Unlock()
+}
+
+// ClearDisplayName blanks the editable display-name field.
+func (s *LocalState) ClearDisplayName() {
+	s.mu.Lock()
+	s.DisplayName = ""
+	s.mu.Unlock()
+}
+
 // hostPortFromURL strips ws:// and path segments for the connect-form field.
 func hostPortFromURL(serverURL string) string {
 	trimmed := strings.TrimSpace(serverURL)

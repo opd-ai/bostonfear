@@ -114,6 +114,14 @@ func (idx *Index) Resolve(configuredID string) (ScenarioTemplate, error) {
 	return ScenarioTemplate{}, fmt.Errorf("no enabled scenarios found in index")
 }
 
+// FindByID looks up a scenario by exact ID. Returns an error if not found.
+func (idx *Index) FindByID(id string) (ScenarioTemplate, error) {
+	if tmpl, ok := idx.find(id); ok {
+		return tmpl, nil
+	}
+	return ScenarioTemplate{}, fmt.Errorf("scenario %q not found in index", id)
+}
+
 // find looks up a scenario by ID. Returns the template and true if found.
 func (idx *Index) find(id string) (ScenarioTemplate, bool) {
 	for _, t := range idx.Templates {

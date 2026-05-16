@@ -109,7 +109,7 @@ desktop, WASM, and mobile targets.
 
 ### HIGH
 
-- [ ] **Encounter action missing from client action menu and keyboard bindings** —
+- [x] **Encounter action missing from client action menu and keyboard bindings** —
   `client/ebiten/app/game.go:750` (action menu builder), `client/ebiten/app/input.go:44`
   (key bindings) — The `encounter` action type is defined in `protocol/protocol.go:36`
   (`ActionEncounter = "encounter"`), fully implemented in `serverengine/actions.go:181`
@@ -125,7 +125,7 @@ desktop, WASM, and mobile targets.
   `"encounter": protocol.ActionEncounter` in `touchActionMap`.
   Validate with `go build ./cmd/desktop`.
 
-- [ ] **`serverengine/arkhamhorror/adapters` is a doc-only scaffold — BroadcastPayloadAdapter
+- [x] **`serverengine/arkhamhorror/adapters` is a doc-only scaffold — BroadcastPayloadAdapter
   migration is incomplete** — `serverengine/arkhamhorror/adapters/doc.go:9` and
   `serverengine/arkhamhorror/adapters/adapter.go:7` — The doc says this package "translates
   between Arkham Horror-specific game events and the shared runtime contracts" and is needed
@@ -140,7 +140,7 @@ desktop, WASM, and mobile targets.
   to call `adapters.NewArkhamBroadcastAdapter()` instead of the embedded inline adapter.
   Verify with `go build ./... && go vet ./...`.
 
-- [ ] **`serverengine/arkhamhorror/scenarios` is a doc-only scaffold — scenario selection
+- [x] **`serverengine/arkhamhorror/scenarios` is a doc-only scaffold — scenario selection
   does not use a scenario registry** — `serverengine/arkhamhorror/scenarios/doc.go:7` and
   `serverengine/actions.go:452-480` — `performSelectScenario` constructs a scenario by
   mutating `DefaultScenario` (a monolith constant) rather than looking up a registered
@@ -157,7 +157,7 @@ desktop, WASM, and mobile targets.
 
 ### MEDIUM
 
-- [ ] **Six `common` sub-packages are doc-only scaffolds with no exported symbols** —
+- [x] **Six `common` sub-packages are doc-only scaffolds with no exported symbols** —
   `serverengine/common/messaging/doc.go:5`, `serverengine/common/session/doc.go:5`,
   `serverengine/common/state/doc.go:5`, `serverengine/common/validation/doc.go:5`,
   `serverengine/common/observability/doc.go:5` — Each package contains only a `doc.go`
@@ -171,7 +171,7 @@ desktop, WASM, and mobile targets.
   `serverengine/common/ROADMAP.md` file until implementation is ready.
   Validate with `go build ./...` and confirm no import errors.
 
-- [ ] **Placeholder game modules (eldersign, eldritchhorror, finalhour) are scaffolded
+- [x] **Placeholder game modules (eldersign, eldritchhorror, finalhour) are scaffolded
   with sub-packages (model, rules, adapters, scenarios) that contain only `doc.go` files
   and are never registered in the server startup** — `serverengine/eldersign/module.go:25`,
   `serverengine/eldritchhorror/module.go:27`, `serverengine/finalhour/module.go:26`,
@@ -185,7 +185,7 @@ desktop, WASM, and mobile targets.
   only. When any module is ready, uncomment the `registry.MustRegister` call in
   `cmd/server.go:68-70`.
 
-- [ ] **`monitoring/handlers.go` exports a `p90` Prometheus metric label that the
+- [x] **`monitoring/handlers.go` exports a `p90` Prometheus metric label that the
   production `GameServer.GetLatencyPercentiles()` never populates** —
   `monitoring/handlers.go:247-248` (NOTE comment acknowledges this), `serverengine/metrics.go:256`
   — `GetLatencyPercentiles()` returns keys `"p50"`, `"p95"`, `"p99"` only. The handler
@@ -200,7 +200,7 @@ desktop, WASM, and mobile targets.
   Update `contracts/engine.go:90` doc to match. Validate with
   `curl http://localhost:8080/metrics | grep quantile`.
 
-- [ ] **`serverengine/arkhamhorror/adapters/adapter.go` declares `arkhamBroadcastAdapter`
+- [x] **`serverengine/arkhamhorror/adapters/adapter.go` declares `arkhamBroadcastAdapter`
   but the struct body is empty and no methods satisfy the interface** —
   `serverengine/arkhamhorror/adapters/adapter.go:7` — The file declares the struct
   comment promising it implements `BroadcastPayloadAdapter` for Arkham Horror, but the
@@ -209,7 +209,7 @@ desktop, WASM, and mobile targets.
   specifically.
   **Remediation:** Covered by the HIGH finding above.
 
-- [ ] **`cmd/web_nowasm.go` registers a `web` CLI command that always errors on
+- [x] **`cmd/web_nowasm.go` registers a `web` CLI command that always errors on
   non-WASM builds** — `cmd/web_nowasm.go:12` — On desktop and server builds, `go run .
   web` returns `"web command is only available for js/wasm builds"`. This is documented
   behavior but the command is registered un-hidden only on WASM targets; on non-WASM
@@ -221,7 +221,7 @@ desktop, WASM, and mobile targets.
 
 ### LOW
 
-- [ ] **`serverengine/game_constants.go` defines `DifficultyConfig` with `easy`,
+- [x] **`serverengine/game_constants.go` defines `DifficultyConfig` with `easy`,
   `standard`, and `hard` presets, but the client exposes no difficulty-selection UI** —
   `serverengine/game_constants.go:210`, `client/ebiten/app/scenes.go:375`
   (SceneCharacterSelect) — `setDifficulty` is reachable via the `playerAction` protocol
@@ -234,7 +234,7 @@ desktop, WASM, and mobile targets.
   `protocol.PlayerActionMessage{Action: protocol.ActionSetDifficulty, Target: "standard"}`
   (or selected value) via `NetClient`. Validate with a manual client smoke test.
 
-- [ ] **`serverengine/arkhamhorror/rules/movement.go` is 20 lines and only re-exports
+- [x] **`serverengine/arkhamhorror/rules/movement.go` is 20 lines and only re-exports
   the adjacency map from `serverengine/arkhamhorror/content`** —
   `serverengine/arkhamhorror/rules/movement.go:11` — The package doc says "owns all Arkham
   Horror rule logic including die mechanics, spell casting, and investigation system" but
@@ -245,7 +245,7 @@ desktop, WASM, and mobile targets.
   or migrate `performInvestigate` / `performCastWard` threshold constants into
   `rules/thresholds.go`.
 
-- [ ] **`UnimplementedEngine.GetLatencyPercentiles()` returns `"p90": 0` which is
+- [x] **`UnimplementedEngine.GetLatencyPercentiles()` returns `"p90": 0` which is
   inconsistent with the production engine** — `serverengine/common/runtime/unimplemented_engine.go:107`
   — Inconsistency between the placeholder (p90) and production (no p90 key). If monitoring
   code branches on key presence this could mask a real p90 absence.
@@ -257,7 +257,7 @@ desktop, WASM, and mobile targets.
 
 ## Dead / Unreachable Code
 
-- [ ] **`serverengine/arkhamhorror/actions/interface.go` defines `GameEngine` interface
+- [x] **`serverengine/arkhamhorror/actions/interface.go` defines `GameEngine` interface
   with 7 methods — this interface is never used** — `serverengine/arkhamhorror/actions/interface.go:6`
   — `GameEngine` declares `FindEngagedEnemy`, `GameState`, `RollDicePool`,
   `ValidateMovement`, `ValidateResources`, `CheckInvestigatorDefeat`, `SealAnomalyAtLocation`
@@ -269,7 +269,7 @@ desktop, WASM, and mobile targets.
   that it is a migration artifact reserved for a future refactor phase. Verify removal
   with `go build ./...`.
 
-- [ ] **`DifficultyConfig` is parsed and applied server-side but its `ExtraDoomTokens`
+- [x] **`DifficultyConfig` is parsed and applied server-side but its `ExtraDoomTokens`
   field is never consumed** — `serverengine/game_constants.go:206`, `serverengine/game_mechanics.go:139`
   — `applyDifficulty` reads `cfg.InitialDoom` (sets `gameState.Doom`) but discards
   `cfg.ExtraDoomTokens`. No code adds extra doom tokens to the MythosCup based on this
@@ -279,7 +279,7 @@ desktop, WASM, and mobile targets.
   `ExtraDoomTokens` during game setup (in `applyDifficulty` or `InitGameState`), or
   remove the field and update the `DifficultySetup` struct and config table.
 
-- [ ] **`serverengine/game_server.go` references `ActionSelectScenario` handling but the
+- [x] **`serverengine/game_server.go` references `ActionSelectScenario` handling but the
   resolved scenario is always a copy of `DefaultScenario` with only the Name mutated** —
   `serverengine/actions.go:456-478` — `performSelectScenario` builds a scenario as
   `scenario := DefaultScenario; scenario.Name = scenarioID` which ignores any content
@@ -291,7 +291,7 @@ desktop, WASM, and mobile targets.
 
 ## Partially Wired Components
 
-- [ ] **`serverengine/arkhamhorror/engine.go` embeds `*serverengine.GameServer` but
+- [x] **`serverengine/arkhamhorror/engine.go` embeds `*serverengine.GameServer` but
   `contracts.Engine` is satisfied by `*GameServer` directly — the `arkhamhorror.Engine`
   wrapper is never instantiated by `module.go`** —
   `serverengine/arkhamhorror/engine.go:8`, `serverengine/arkhamhorror/module.go:35` —
@@ -302,7 +302,7 @@ desktop, WASM, and mobile targets.
   **Remediation:** Either use `arkhamhorror.Engine` in `module.go:NewEngine()` so the
   wrapper is instantiated, or remove `engine.go` and document the intent.
 
-- [ ] **`serverengine/common/contracts` defines a `GameRunner` interface with a single
+- [x] **`serverengine/common/contracts` defines a `GameRunner` interface with a single
   `Start() error` method, but `transport/ws` uses its own `SessionEngine` interface
   (`transport/ws/websocket_handler.go:26`) instead of `contracts.Engine`** —
   `serverengine/common/contracts/engine.go:112`, `transport/ws/websocket_handler.go:26`
@@ -314,7 +314,7 @@ desktop, WASM, and mobile targets.
   accept `contracts.SessionHandler` (or `contracts.Engine`) so that the transport layer
   uses the canonical interface. Validate with `go build ./transport/ws/...`.
 
-- [ ] **`Scenario.SetupFn` callback is defined in `DefaultScenario` but is `nil` for
+- [x] **`Scenario.SetupFn` callback is defined in `DefaultScenario` but is `nil` for
   the default scenario — `performSelectScenario` guards on `nil` without logging** —
   `serverengine/actions.go:475-478` — The `if scenario.SetupFn != nil` check silently
   skips re-applying scenario setup when a client requests the default scenario by name.
@@ -324,7 +324,7 @@ desktop, WASM, and mobile targets.
   **Remediation:** Initialize `DefaultScenario.SetupFn` to call `InitGameState(gs.gameState)`
   so scenario re-selection always resets decks and doom to initial values.
 
-- [ ] **Metrics counter `DoomHistogram` is defined on `GameServer` but doom-level
+- [x] **Metrics counter `DoomHistogram` is defined on `GameServer` but doom-level
   entries are only recorded at game-end, not during incremental doom advances** —
   `serverengine/metrics.go` (`GetDoomHistogram`), `serverengine/game_server.go:347`
   (broadcast on doom change) — The histogram is updated by recording the doom level at
@@ -334,7 +334,7 @@ desktop, WASM, and mobile targets.
   **Remediation:** No code change required for the current monitoring intent; document
   the sampling policy in `monitoring/handlers.go`.
 
-- [ ] **`serverengine/arkhamhorror/content/map.go` provides neighbourhood topology but
+- [x] **`serverengine/arkhamhorror/content/map.go` provides neighbourhood topology but
   `serverengine/game_server.go` also hard-codes `locationAdjacency` in
   `serverengine/game_constants.go`** — `serverengine/game_constants.go:180`,
   `serverengine/arkhamhorror/content/map.go` — Two copies of the same adjacency data

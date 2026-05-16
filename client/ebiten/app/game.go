@@ -8,6 +8,7 @@
 package app
 
 import (
+	"image"
 	"image/color"
 	"log"
 	"os"
@@ -644,9 +645,68 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 	panelW := 360
 	panelH := 130
 	ebitenutil.DrawRect(screen, float64(panelX-2), float64(panelY-2), float64(panelW), float64(panelH), color.RGBA{R: 10, G: 12, B: 20, A: 210})
+	g.drawMoveChips(screen, gs, myID, panelX, panelY-28)
+	g.drawVisibleActionButtons(screen, gs, myID)
 	g.drawActionPanelSummary(screen, gs, myID, panelX, panelY)
-	g.drawAvailableActionList(screen, gs, myID, panelX, panelY+72)
+	g.drawAvailableActionList(screen, gs, myID, panelX, panelY+92)
 	g.drawEndBanner(screen, gs)
+}
+
+func (g *Game) drawMoveChips(screen *ebiten.Image, gs ebclient.GameState, myID string, panelX, panelY int) {
+	moves := legalMoveChips(gs, myID, panelX, panelY)
+	if len(moves) == 0 {
+		drawUIText(screen, "Move chips: unavailable", panelX, panelY, color.RGBA{R: 200, G: 220, B: 255, A: 255})
+		return
+	}
+	drawUIText(screen, "Move chips", panelX, panelY-12, color.White)
+	for _, move := range moves {
+		fill := color.RGBA{R: 28, G: 36, B: 52, A: 245}
+		border := color.RGBA{R: 120, G: 180, B: 230, A: 255}
+		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), float64(move.rect.Dx()), float64(move.rect.Dy()), fill)
+		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), float64(move.rect.Dx()), 2, border)
+		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Max.Y-2), float64(move.rect.Dx()), 2, border)
+		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), 2, float64(move.rect.Dy()), border)
+		ebitenutil.DrawRect(screen, float64(move.rect.Max.X-2), float64(move.rect.Min.Y), 2, float64(move.rect.Dy()), border)
+		drawUIText(screen, string(move.target), move.rect.Min.X+10, move.rect.Min.Y+5, color.White)
+	}
+}
+
+func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameState, myID string) {
+	actions := g.availableActions(gs, myID)
+	availability := make(map[string]actionAvailability, len(actions))
+	for _, action := range actions {
+		availability[actionLookupKey(action.Name)] = action
+	}
+	for row, rowActions := range actionGridRows() {
+		for col, actionName := range rowActions {
+			if actionName == "" {
+				continue
+			}
+			action := availability[actionLookupKey(actionName)]
+			rect := actionGridRect(row, col)
+			fill := color.RGBA{R: 24, G: 28, B: 38, A: 245}
+			border := color.RGBA{R: 110, G: 130, B: 165, A: 255}
+			labelColor := color.RGBA{R: 220, G: 220, B: 235, A: 255}
+			if action.Available {
+				fill = color.RGBA{R: 28, G: 62, B: 50, A: 245}
+				border = color.RGBA{R: 170, G: 240, B: 190, A: 255}
+				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+			}
+			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), fill)
+			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), 2, border)
+			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Max.Y-2), float64(rect.Dx()), 2, border)
+			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
+			ebitenutil.DrawRect(screen, float64(rect.Max.X-2), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
+			drawUIText(screen, strings.Title(strings.ReplaceAll(actionName, "closegate", "close gate")), rect.Min.X+10, rect.Min.Y+5, labelColor)
+			if action.Detail != "" {
+				drawUIText(screen, trimToWidth(action.Detail, rect.Dx()-16), rect.Min.X+10, rect.Min.Y+17, color.RGBA{R: 200, G: 220, B: 235, A: 255})
+			}
+		}
+	}
+}
+
+func actionLookupKey(name string) string {
+	return strings.ToLower(strings.ReplaceAll(name, " ", ""))
 }
 
 func (g *Game) drawActionPanelSummary(screen *ebiten.Image, gs ebclient.GameState, myID string, panelX, panelY int) {
@@ -728,15 +788,7 @@ func (g *Game) availableActions(gs ebclient.GameState, myID string) []actionAvai
 		actions = append(actions, actionAvailability{Name: name, Detail: detail, Available: available})
 	}
 
-	moveDetail := ""
-	if len(legalMoves) > 0 {
-		moveDetail = "to " + string(legalMoves[0])
-		for i := 1; i < len(legalMoves); i++ {
-			moveDetail += ", " + string(legalMoves[i])
-		}
-	} else {
-		moveDetail = "no adjacent location"
-	}
+	moveDetail := g.moveDetail(legalMoves)
 	add("Move", moveDetail, turnActive && remaining > 0)
 	add("Gather", "gain resources", turnActive && remaining > 0)
 	add("Investigate", "2-success clue test", turnActive && remaining > 0)
@@ -751,6 +803,37 @@ func (g *Game) availableActions(gs ebclient.GameState, myID string) []actionAvai
 	add("Encounter", "draw location encounter card", turnActive && remaining > 0)
 
 	return actions
+}
+
+func (g *Game) moveDetail(legalMoves []ebclient.Location) string {
+	if len(legalMoves) == 0 {
+		return "no adjacent location"
+	}
+	detail := "to " + string(legalMoves[0])
+	for i := 1; i < len(legalMoves); i++ {
+		detail += ", " + string(legalMoves[i])
+	}
+	return detail
+}
+
+func legalMoveChips(gs ebclient.GameState, myID string, panelX, panelY int) []moveChip {
+	current := ebclient.Location("")
+	if player, ok := gs.Players[myID]; ok && player != nil {
+		current = player.Location
+	}
+	legalMoves := boardAdjacency[current]
+	if len(legalMoves) == 0 {
+		return nil
+	}
+	chips := make([]moveChip, 0, len(legalMoves))
+	chipW := 84
+	chipH := 22
+	gap := 8
+	for i, target := range legalMoves {
+		x := panelX + i*(chipW+gap)
+		chips = append(chips, moveChip{target: target, rect: image.Rect(x, panelY, x+chipW, panelY+chipH)})
+	}
+	return chips
 }
 
 func (g *Game) remainingActions(gs ebclient.GameState, myID string) int {

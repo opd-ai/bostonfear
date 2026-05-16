@@ -34,6 +34,11 @@ type actionKey struct {
 	target string // location name for move actions, empty for others
 }
 
+type moveChip struct {
+	target protocol.Location
+	rect   image.Rectangle
+}
+
 // keyBindings defines all keyboard shortcuts available to the player.
 // These are fixed mappings; the UI renders labels next to each location/action.
 var keyBindings = []actionKey{
@@ -180,6 +185,9 @@ func (h *InputHandler) handleMouseInput(gs ebclient.GameState, playerID string) 
 	x, y := ebiten.CursorPosition()
 	hitBox := mapper.HitTest(float64(x), float64(y))
 	if hitBox == nil {
+		if h.dispatchMoveChip(gs, playerID, x, y) {
+			return
+		}
 		return
 	}
 	_ = h.dispatchTouchHitBox(gs, playerID, hitBox.ID)
@@ -223,10 +231,25 @@ func dispatchTouchID(h *InputHandler, gs ebclient.GameState, playerID string, ma
 
 	hitBox := mapper.HitTest(float64(x), float64(y))
 	if hitBox == nil {
-		return false
+		return h.dispatchMoveChip(gs, playerID, x, y)
 	}
 
 	return h.dispatchTouchHitBox(gs, playerID, hitBox.ID)
+}
+
+func (h *InputHandler) dispatchMoveChip(gs ebclient.GameState, playerID string, x, y int) bool {
+	for _, chip := range legalMoveChips(gs, playerID, 10, bottomPanelY()-28) {
+		if image.Pt(x, y).In(chip.rect) {
+			h.sendPlayerAction(ebclient.PlayerActionMessage{
+				Type:     "playerAction",
+				PlayerID: playerID,
+				Action:   protocol.ActionMove,
+				Target:   string(chip.target),
+			})
+			return true
+		}
+	}
+	return false
 }
 
 func (h *InputHandler) dispatchTouchHitBox(gs ebclient.GameState, playerID, id string) bool {
@@ -328,27 +351,39 @@ func registerTouchLocationHitBoxes(mapper *input.InputMapper, vp *ui.Viewport) {
 }
 
 func registerTouchActionHitBoxes(mapper *input.InputMapper) {
-	actionGridOriginY := screenHeight - 220
-	actionGridCellWidth := 170
-	actionGridCellHeight := 44
-	actionGrid := [][]string{
+	for row, rowActions := range actionGridRows() {
+		for col, actionName := range rowActions {
+			if actionName == "" {
+				continue
+			}
+			mapper.Register(actionName, actionGridRect(row, col), 44)
+		}
+	}
+}
+
+func actionGridRows() [][]string {
+	return [][]string{
 		{"gather", "investigate"},
 		{"ward", "focus"},
 		{"research", "trade"},
 		{"component", "attack"},
 		{"evade", "closegate"},
+		{"encounter"},
 	}
-	for row, rowActions := range actionGrid {
-		for col, actionName := range rowActions {
-			regionBounds := image.Rect(
-				10+col*actionGridCellWidth,
-				actionGridOriginY+row*actionGridCellHeight,
-				10+(col+1)*actionGridCellWidth,
-				actionGridOriginY+(row+1)*actionGridCellHeight,
-			)
-			mapper.Register(actionName, regionBounds, 44)
-		}
-	}
+}
+
+func actionGridRect(row, col int) image.Rectangle {
+	const (
+		actionGridOriginY    = screenHeight - 264
+		actionGridCellWidth  = 170
+		actionGridCellHeight = 44
+	)
+	return image.Rect(
+		10+col*actionGridCellWidth,
+		actionGridOriginY+row*actionGridCellHeight,
+		10+(col+1)*actionGridCellWidth,
+		actionGridOriginY+(row+1)*actionGridCellHeight,
+	)
 }
 
 func hasActionInputAttempted() bool {

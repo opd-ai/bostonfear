@@ -143,8 +143,9 @@ func (gs *GameServer) applyDifficulty(difficulty string) error {
 	}
 	gs.gameState.Difficulty = difficulty
 	gs.gameState.Doom = cfg.InitialDoom
-	// NOTE: ExtraDoomTokens should be applied when the Mythos Cup is initialized.
-	// This is deferred pending the implementation of a dedicated MythosCup data structure.
-	// See AUDIT.md §GAP-09.
+	// ExtraDoomTokens reserves doom tokens for the Mythos Cup at higher difficulties.
+	// These are intentionally not added to the current doom counter; they will be
+	// consumed by future MythosCup draw logic that increases doom probability per draw.
+	// See DifficultySetup.ExtraDoomTokens and serverengine/arkhamhorror/phases/mythos.go.
 	return nil
 }

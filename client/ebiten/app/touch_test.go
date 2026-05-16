@@ -57,7 +57,7 @@ func TestTouchTap_AllActionTypes(t *testing.T) {
 	// All player-initiated action types (excluding system actions like selectinvestigator/endgame)
 	actions := []string{
 		"gather", "investigate", "ward", "focus", "research",
-		"trade", "component", "attack", "evade", "closegate",
+		"trade", "component", "attack", "evade", "closegate", "encounter",
 	}
 
 	hitboxes := mapper.AllHitBoxes()

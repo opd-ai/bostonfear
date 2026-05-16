@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	arkcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
+	arkscenarios "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/scenarios"
 )
 
 // performMove executes the Move action: validates adjacency and updates player location.
@@ -463,27 +464,34 @@ func (gs *GameServer) performSelectScenario(target string) error {
 	if scenarioID == "" {
 		return fmt.Errorf("scenario ID must not be empty")
 	}
-
-	// Validate against the embedded Nightglass scenario index.
 	if !arkcontent.IsValidScenarioID(scenarioID) {
 		return fmt.Errorf("unknown or disabled scenario ID: %q", scenarioID)
 	}
-
-	// Update scenario name in game state for client visibility
 	gs.gameState.ScenarioID = scenarioID
-
-	// Update the server's scenario reference
 	scenario := DefaultScenario
 	scenario.Name = scenarioID
 	gs.scenario = scenario
-
-	// Re-apply scenario setup if needed (reset doom, decks, etc.)
+	// Apply the template's InitialDoom when it overrides the current value (expected to be 0 at pregame).
+	gs.gameState.Doom = max(gs.gameState.Doom, scenarioInitialDoom(scenarioID))
 	if scenario.SetupFn != nil {
 		scenario.SetupFn(gs.gameState)
 	}
-
 	log.Printf("Scenario selected: %s", scenarioID)
 	return nil
+}
+
+// scenarioInitialDoom queries the embedded scenario index for the InitialDoom override
+// of the given scenario ID. Returns 0 if not found or if no override is set.
+func scenarioInitialDoom(scenarioID string) int {
+	idx, err := arkscenarios.LoadIndex(arkcontent.NightglassFS(), "nightglass/scenarios/index.yaml")
+	if err != nil {
+		return 0
+	}
+	tmpl, err := idx.FindByID(scenarioID)
+	if err != nil || tmpl.InitialDoom <= 0 {
+		return 0
+	}
+	return tmpl.InitialDoom
 }
 
 // performChat broadcasts a quick-chat phrase from the player to all connected clients.

@@ -96,7 +96,7 @@ func TestBuildTouchInputMapper_ContainsRequiredLocationsAndActions(t *testing.T)
 	requiredIDs := []string{
 		"Downtown", "University", "Rivertown", "Northside",
 		"gather", "investigate", "ward", "focus", "research",
-		"trade", "component", "attack", "evade", "closegate",
+		"trade", "component", "attack", "evade", "closegate", "encounter",
 	}
 
 	hitboxes := mapper.AllHitBoxes()
