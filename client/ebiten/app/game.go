@@ -738,20 +738,7 @@ func (g *Game) drawMoveChips(screen *ebiten.Image, gs ebclient.GameState, myID s
 	pressed := g.state.PressedActionHint()
 	drawUIText(screen, "Move chips", panelX, panelY-12, color.White)
 	for _, move := range moves {
-		fill := color.RGBA{R: 28, G: 36, B: 52, A: 245}
-		border := color.RGBA{R: 120, G: 180, B: 230, A: 255}
-		if strings.EqualFold(string(move.target), focused) {
-			fill = color.RGBA{R: 42, G: 52, B: 82, A: 245}
-			border = color.RGBA{R: 168, G: 206, B: 255, A: 255}
-		}
-		if strings.EqualFold(string(move.target), hovered) {
-			fill = color.RGBA{R: 46, G: 64, B: 92, A: 245}
-			border = color.RGBA{R: 186, G: 222, B: 255, A: 255}
-		}
-		if strings.EqualFold(string(move.target), pressed) {
-			fill = color.RGBA{R: 60, G: 86, B: 118, A: 245}
-			border = color.RGBA{R: 220, G: 238, B: 255, A: 255}
-		}
+		fill, border := moveChipStyle(string(move.target), focused, hovered, pressed)
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), float64(move.rect.Dx()), float64(move.rect.Dy()), fill)
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Min.Y), float64(move.rect.Dx()), 2, border)
 		ebitenutil.DrawRect(screen, float64(move.rect.Min.X), float64(move.rect.Max.Y-2), float64(move.rect.Dx()), 2, border)
@@ -762,6 +749,24 @@ func (g *Game) drawMoveChips(screen *ebiten.Image, gs ebclient.GameState, myID s
 			drawUIText(screen, "["+key+"]", move.rect.Max.X-30, move.rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
 		}
 	}
+}
+
+func moveChipStyle(target, focused, hovered, pressed string) (color.RGBA, color.RGBA) {
+	fill := color.RGBA{R: 28, G: 36, B: 52, A: 245}
+	border := color.RGBA{R: 120, G: 180, B: 230, A: 255}
+	if strings.EqualFold(target, focused) {
+		fill = color.RGBA{R: 42, G: 52, B: 82, A: 245}
+		border = color.RGBA{R: 168, G: 206, B: 255, A: 255}
+	}
+	if strings.EqualFold(target, hovered) {
+		fill = color.RGBA{R: 46, G: 64, B: 92, A: 245}
+		border = color.RGBA{R: 186, G: 222, B: 255, A: 255}
+	}
+	if strings.EqualFold(target, pressed) {
+		fill = color.RGBA{R: 60, G: 86, B: 118, A: 245}
+		border = color.RGBA{R: 220, G: 238, B: 255, A: 255}
+	}
+	return fill, border
 }
 
 func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameState, myID string) {
@@ -780,29 +785,7 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			}
 			action := availability[actionLookupKey(actionName)]
 			rect := actionGridRect(row, col)
-			fill := color.RGBA{R: 24, G: 28, B: 38, A: 245}
-			border := color.RGBA{R: 110, G: 130, B: 165, A: 255}
-			labelColor := color.RGBA{R: 220, G: 220, B: 235, A: 255}
-			if action.Available {
-				fill = color.RGBA{R: 28, G: 62, B: 50, A: 245}
-				border = color.RGBA{R: 170, G: 240, B: 190, A: 255}
-				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-			}
-			if strings.EqualFold(actionName, focused) {
-				fill = color.RGBA{R: 52, G: 54, B: 82, A: 245}
-				border = color.RGBA{R: 190, G: 202, B: 255, A: 255}
-				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-			}
-			if strings.EqualFold(actionName, hovered) {
-				fill = color.RGBA{R: 58, G: 64, B: 98, A: 245}
-				border = color.RGBA{R: 206, G: 220, B: 255, A: 255}
-				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-			}
-			if strings.EqualFold(actionName, pressed) {
-				fill = color.RGBA{R: 78, G: 88, B: 124, A: 245}
-				border = color.RGBA{R: 232, G: 236, B: 255, A: 255}
-				labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-			}
+			fill, border, labelColor := actionButtonStyle(action.Available, actionName, focused, hovered, pressed)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), fill)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), 2, border)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Max.Y-2), float64(rect.Dx()), 2, border)
@@ -817,6 +800,33 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			}
 		}
 	}
+}
+
+func actionButtonStyle(available bool, actionName, focused, hovered, pressed string) (color.RGBA, color.RGBA, color.RGBA) {
+	fill := color.RGBA{R: 24, G: 28, B: 38, A: 245}
+	border := color.RGBA{R: 110, G: 130, B: 165, A: 255}
+	labelColor := color.RGBA{R: 220, G: 220, B: 235, A: 255}
+	if available {
+		fill = color.RGBA{R: 28, G: 62, B: 50, A: 245}
+		border = color.RGBA{R: 170, G: 240, B: 190, A: 255}
+		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	}
+	if strings.EqualFold(actionName, focused) {
+		fill = color.RGBA{R: 52, G: 54, B: 82, A: 245}
+		border = color.RGBA{R: 190, G: 202, B: 255, A: 255}
+		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	}
+	if strings.EqualFold(actionName, hovered) {
+		fill = color.RGBA{R: 58, G: 64, B: 98, A: 245}
+		border = color.RGBA{R: 206, G: 220, B: 255, A: 255}
+		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	}
+	if strings.EqualFold(actionName, pressed) {
+		fill = color.RGBA{R: 78, G: 88, B: 124, A: 245}
+		border = color.RGBA{R: 232, G: 236, B: 255, A: 255}
+		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	}
+	return fill, border, labelColor
 }
 
 func actionLookupKey(name string) string {

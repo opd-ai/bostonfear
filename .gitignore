@@ -64,3 +64,6 @@ tmp
 *-desktop
 *-connection_wrapper
 *.txt
+/server
+/desktop
+/arkham-server

@@ -527,15 +527,24 @@ func (s *SceneGame) handleCameraControls() {
 	if s.game.camera == nil {
 		return
 	}
-	controls := newCameraControls()
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		if s.applyCameraControl(controls.hitTest(x, y)) {
-			return
-		}
+	if s.handleCameraMouseControls() {
+		return
 	}
+	s.handleCameraKeyboardShortcuts()
+	s.handleCameraWheelControls()
+	s.handleTouchCameraControls()
+}
 
-	// Keyboard: [ and ] orbit, V toggles top-down fallback.
+func (s *SceneGame) handleCameraMouseControls() bool {
+	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return false
+	}
+	controls := newCameraControls()
+	x, y := ebiten.CursorPosition()
+	return s.applyCameraControl(controls.hitTest(x, y))
+}
+
+func (s *SceneGame) handleCameraKeyboardShortcuts() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyBracketLeft) {
 		s.game.camera.OrbitCCW()
 	}
@@ -545,8 +554,9 @@ func (s *SceneGame) handleCameraControls() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 		s.game.camera.ToggleViewMode()
 	}
+}
 
-	// Mouse: wheel orbits, middle-click toggles fallback mode.
+func (s *SceneGame) handleCameraWheelControls() {
 	_, wheelY := ebiten.Wheel()
 	if wheelY > 0 {
 		s.game.camera.OrbitCW()
@@ -557,8 +567,6 @@ func (s *SceneGame) handleCameraControls() {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonMiddle) {
 		s.game.camera.ToggleViewMode()
 	}
-
-	s.handleTouchCameraControls()
 }
 
 func (s *SceneGame) applyCameraControl(control cameraControlID) bool {
@@ -581,30 +589,48 @@ func (s *SceneGame) handleTouchCameraControls() {
 	// Touch gesture: only touches outside gameplay hit boxes may orbit or toggle.
 	controls := newCameraControls()
 	for _, id := range inpututil.JustPressedTouchIDs() {
-		if s.isInteractiveTouch(id) {
-			continue
-		}
-		x, _ := ebiten.TouchPosition(id)
-		tx, ty := ebiten.TouchPosition(id)
-		if s.applyCameraControl(controls.hitTest(tx, ty)) {
-			continue
-		}
-		switch {
-		case x < screenWidth/3:
-			s.game.camera.OrbitCCW()
-		case x > screenWidth*2/3:
-			s.game.camera.OrbitCW()
-		default:
-			s.game.camera.ToggleViewMode()
-		}
+		s.handleSingleTouchCameraControl(id, controls)
 	}
+}
+
+func (s *SceneGame) handleSingleTouchCameraControl(id ebiten.TouchID, controls cameraControls) {
+	if s.isInteractiveTouch(id) {
+		return
+	}
+	x, y := ebiten.TouchPosition(id)
+	if s.applyCameraControl(controls.hitTest(x, y)) {
+		return
+	}
+	if x < screenWidth/3 {
+		s.game.camera.OrbitCCW()
+		return
+	}
+	if x > screenWidth*2/3 {
+		s.game.camera.OrbitCW()
+		return
+	}
+	s.game.camera.ToggleViewMode()
 }
 
 func (s *SceneGame) isInteractiveTouch(id ebiten.TouchID) bool {
 	x, y := ebiten.TouchPosition(id)
-	if x < 0 || y < 0 || x >= screenWidth || y >= screenHeight {
+	if !isWithinScreenBounds(x, y) {
 		return false
 	}
+	if s.touchHitsGameplayControl(x, y) {
+		return true
+	}
+	if newCameraControls().hitTest(x, y) != cameraControlNone {
+		return true
+	}
+	return s.touchHitsOnboardingControl(x, y)
+}
+
+func isWithinScreenBounds(x, y int) bool {
+	return x >= 0 && y >= 0 && x < screenWidth && y < screenHeight
+}
+
+func (s *SceneGame) touchHitsGameplayControl(x, y int) bool {
 	vp := &ui.Viewport{
 		LogicalWidth:   screenWidth,
 		LogicalHeight:  screenHeight,
@@ -614,20 +640,16 @@ func (s *SceneGame) isInteractiveTouch(id ebiten.TouchID) bool {
 		SafeArea:       ui.SafeArea{},
 	}
 	mapper := buildTouchInputMapper(vp)
-	if mapper.HitTest(float64(x), float64(y)) != nil {
-		return true
+	return mapper.HitTest(float64(x), float64(y)) != nil
+}
+
+func (s *SceneGame) touchHitsOnboardingControl(x, y int) bool {
+	if s.game.onboarding == nil || !s.game.onboarding.IsActive() {
+		return false
 	}
-	if newCameraControls().hitTest(x, y) != cameraControlNone {
-		return true
-	}
-	if s.game.onboarding != nil && s.game.onboarding.IsActive() {
-		onboardingButtons := newOnboardingControls()
-		pt := image.Pt(x, y)
-		if pt.In(onboardingButtons.next) || pt.In(onboardingButtons.skip) {
-			return true
-		}
-	}
-	return false
+	onboardingButtons := newOnboardingControls()
+	pt := image.Pt(x, y)
+	return pt.In(onboardingButtons.next) || pt.In(onboardingButtons.skip)
 }
 
 // Draw composites the full game board via the layered renderer.
