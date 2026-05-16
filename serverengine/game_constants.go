@@ -126,27 +126,32 @@ var enemyTemplates = []Enemy{
 }
 
 // defaultEncounterDecks returns 2-3 encounter cards per neighborhood for MVP play.
+// Cards with new effect types (money_gain, focus_gain) demonstrate the extended effect system.
 func defaultEncounterDecks() map[string][]EncounterCard {
 	return map[string][]EncounterCard{
 		string(Downtown): {
 			{FlavorText: "A shadowy figure brushes past you — you feel drained.", EffectType: "sanity_loss", Magnitude: 1},
 			{FlavorText: "You find a strange coin in an alley.", EffectType: "clue_gain", Magnitude: 1},
 			{FlavorText: "A brief scuffle leaves you bruised.", EffectType: "health_loss", Magnitude: 1},
+			{FlavorText: "A street vendor rewards your help.", EffectType: "money_gain", Magnitude: 2},
 		},
 		string(University): {
 			{FlavorText: "Forbidden texts reveal a partial truth.", EffectType: "clue_gain", Magnitude: 1},
 			{FlavorText: "A professor babbles incomprehensibly.", EffectType: "sanity_loss", Magnitude: 1},
 			{FlavorText: "You stumble upon ritual components.", EffectType: "clue_gain", Magnitude: 2},
+			{FlavorText: "A meditation session clears your mind.", EffectType: "focus_gain", Magnitude: 1},
 		},
 		string(Rivertown): {
 			{FlavorText: "The dockworkers eye you with suspicion.", EffectType: "sanity_loss", Magnitude: 1},
 			{FlavorText: "A fisherman warns of things below.", EffectType: "doom_inc", Magnitude: 1},
 			{FlavorText: "You find a waterlogged journal.", EffectType: "clue_gain", Magnitude: 1},
+			{FlavorText: "Salvaged goods prove valuable.", EffectType: "money_gain", Magnitude: 3},
 		},
 		string(Northside): {
 			{FlavorText: "Whispering voices from the old asylum drain your resolve.", EffectType: "sanity_loss", Magnitude: 2},
 			{FlavorText: "An escaped patient thrusts a torn map into your hands.", EffectType: "clue_gain", Magnitude: 1},
 			{FlavorText: "A collapsing wall injures you.", EffectType: "health_loss", Magnitude: 1},
+			{FlavorText: "Intense concentration sharpens your senses.", EffectType: "focus_gain", Magnitude: 2},
 		},
 	}
 }

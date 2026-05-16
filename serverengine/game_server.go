@@ -142,6 +142,7 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 			OpenGates:          []Gate{},
 			LocationDoomTokens: make(map[string]int),
 			EncounterDecks:     make(map[string][]EncounterCard),
+			EncounterDiscards:  make(map[string][]EncounterCard),
 		},
 		connections: make(map[string]net.Conn),
 		playerConns: make(map[string]net.Conn),

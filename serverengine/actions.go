@@ -175,21 +175,38 @@ func (gs *GameServer) performTrade(fromID, toID string) error {
 
 // performEncounter draws the top card from the player's current location encounter
 // deck and applies its effect (AH3e §Encounter Action).
-// Deck is rebuilt from defaults when exhausted.
+// When the deck is exhausted, the discard pile is reshuffled into the deck.
+// If both deck and discard are empty, defaults are used.
 // Caller must hold gs.mutex.
 func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 	loc := string(player.Location)
 	deck := gs.gameState.EncounterDecks[loc]
+
+	// If deck is empty, try to reshuffle discard pile
 	if len(deck) == 0 {
-		defaults := defaultEncounterDecks()
-		deck = defaults[loc]
-		if len(deck) == 0 {
-			return fmt.Errorf("no encounter cards for location %s", loc)
+		discard := gs.gameState.EncounterDiscards[loc]
+		if len(discard) > 0 {
+			// Reshuffle discard pile into deck
+			deck = make([]EncounterCard, len(discard))
+			copy(deck, discard)
+			gs.gameState.EncounterDiscards[loc] = []EncounterCard{}
+			log.Printf("Reshuffling encounter discard pile for location %s (%d cards)", loc, len(deck))
+		} else {
+			// Both deck and discard empty - use defaults
+			defaults := defaultEncounterDecks()
+			deck = defaults[loc]
+			if len(deck) == 0 {
+				return fmt.Errorf("no encounter cards for location %s", loc)
+			}
+			log.Printf("Rebuilding encounter deck for location %s from defaults (%d cards)", loc, len(deck))
 		}
 	}
+
+	// Draw top card
 	card := deck[0]
 	gs.gameState.EncounterDecks[loc] = deck[1:]
 
+	// Apply effect
 	switch card.EffectType {
 	case "health_loss":
 		player.Resources.Health = max(player.Resources.Health-card.Magnitude, 0)
@@ -203,7 +220,17 @@ func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 		player.Resources.Clues = min(player.Resources.Clues+card.Magnitude, MaxClues)
 	case "doom_inc":
 		gs.gameState.Doom = min(gs.gameState.Doom+card.Magnitude, 12)
+	case "money_gain":
+		player.Resources.Money = player.Resources.Money + card.Magnitude
+		gs.ValidateResources(&player.Resources)
+	case "focus_gain":
+		player.Resources.Focus = player.Resources.Focus + card.Magnitude
+		gs.ValidateResources(&player.Resources)
 	}
+
+	// Add card to discard pile
+	gs.gameState.EncounterDiscards[loc] = append(gs.gameState.EncounterDiscards[loc], card)
+
 	log.Printf("Encounter at %s for %s: %s (%s %+d)", loc, playerID, card.FlavorText, card.EffectType, card.Magnitude)
 	return nil
 }

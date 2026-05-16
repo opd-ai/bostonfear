@@ -241,6 +241,7 @@ type GameState struct {
 	Enemies            map[string]*Enemy          `json:"enemies"`
 	ActiveEvents       []string                   `json:"activeEvents"`
 	EncounterDecks     map[string][]EncounterCard `json:"encounterDecks"`
+	EncounterDiscards  map[string][]EncounterCard `json:"encounterDiscards"` // Discard pile for each location
 }
 
 // GameUpdateMessage is the lightweight post-action delta broadcast.

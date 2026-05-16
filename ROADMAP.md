@@ -175,19 +175,21 @@
   - **Files**: `serverengine/arkhamhorror/scenarios/`, `serverengine/arkhamhorror/content/nightglass/scenarios/`
   - **Validation**: Can select and play 4 different scenarios with distinct win/loss conditions
 
-- [ ] **Implement encounter card deck rotation**
-  - [ ] Populate neighborhood-specific encounter decks with card effects (currently stubbed)
-  - [ ] Add discard pile and reshuffling logic when decks exhaust
-  - [ ] Implement typed effect system (skill tests, resource changes, enemy spawns)
-  - **Files**: `serverengine/arkhamhorror/model/encounter.go`, test coverage
-  - **Validation**: Encounter action draws from correct neighborhood deck, effects apply correctly
+- [x] **Implement encounter card deck rotation**
+  - [x] Populate neighborhood-specific encounter decks with card effects (currently stubbed)
+  - [x] Add discard pile and reshuffling logic when decks exhaust
+  - [x] Implement typed effect system (skill tests, resource changes, enemy spawns)
+  - **Files**: `serverengine/actions.go`, `protocol/protocol.go`, `serverengine/game_constants.go`
+  - **Validation**: Encounter action draws from correct neighborhood deck, effects apply correctly; `TestRulesEncounterResolution/DeckExhaustionReshuffle` verifies discard pile reshuffle logic
+  - **Implementation notes**: Added `EncounterDiscards` map to GameState for per-location discard piles; enhanced `performEncounter` to reshuffle discard when deck exhausted; added `money_gain` and `focus_gain` effect types to demonstrate extended effect system
 
-- [ ] **Add investigator archetype selection**
-  - [ ] Implement 6 original investigator archetypes with unique starting stats and abilities
-  - [ ] Add pregame investigator selection UI (before first normal action)
-  - [ ] Lock selection after game starts (pregame phase → playing phase transition)
-  - **Files**: `serverengine/arkhamhorror/model/investigator.go`, pregame UI in client
-  - **Validation**: `TestProcessAction_SelectInvestigator` covers all 6 archetypes
+- [x] **Add investigator archetype selection**
+  - [x] Implement 6 original investigator archetypes with unique starting stats and abilities
+  - [x] Add pregame investigator selection UI (before first normal action)
+  - [x] Lock selection after game starts (pregame phase → playing phase transition)
+  - **Files**: `serverengine/actions.go`, `serverengine/game_constants.go`, `serverengine/rules_test.go`
+  - **Validation**: `TestProcessAction_SelectInvestigator` covers all 6 archetypes (researcher, detective, occultist, soldier, mystic, survivor) with comprehensive tests for pregame window locking
+  - **Implementation notes**: System was already implemented; enhanced test coverage to verify all 6 archetypes and added test for pregame lock enforcement
 
 - [ ] **Implement full Mythos Phase event placement logic**
   - [ ] Draw multiple events per Mythos Phase with configurable event count

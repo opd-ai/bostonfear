@@ -945,6 +945,58 @@ func TestProcessAction_SelectInvestigator(t *testing.T) {
 			t.Errorf("InvestigatorType = %q, want %q", got, InvestigatorSoldier)
 		}
 	})
+
+	// Test all 6 investigator archetypes
+	t.Run("AllSixArchetypes", func(t *testing.T) {
+		archetypes := []struct {
+			name     string
+			expected InvestigatorType
+		}{
+			{"researcher", InvestigatorResearcher},
+			{"detective", InvestigatorDetective},
+			{"occultist", InvestigatorOccultist},
+			{"soldier", InvestigatorSoldier},
+			{"mystic", InvestigatorMystic},
+			{"survivor", InvestigatorSurvivor},
+		}
+
+		for _, tc := range archetypes {
+			t.Run(tc.name, func(t *testing.T) {
+				gs := NewGameServer()
+				gs.gameState.Players["p1"] = &Player{ID: "p1", Location: Downtown, Connected: true}
+				err := gs.processAction(PlayerActionMessage{
+					Type:     "playerAction",
+					PlayerID: "p1",
+					Action:   ActionSelectInvestigator,
+					Target:   tc.name,
+				})
+				if err != nil {
+					t.Fatalf("selecting %s returned error: %v", tc.name, err)
+				}
+				if got := gs.gameState.Players["p1"].InvestigatorType; got != tc.expected {
+					t.Errorf("InvestigatorType = %q, want %q", got, tc.expected)
+				}
+				// Verify the ability exists
+				if _, ok := DefaultInvestigatorAbilities[tc.expected]; !ok {
+					t.Errorf("No ability defined for investigator type %q", tc.expected)
+				}
+			})
+		}
+	})
+
+	t.Run("RejectedAfterPregameWindowCloses", func(t *testing.T) {
+		gs, p1ID := newTestServer(t)
+		gs.pregameLocked = true
+		err := gs.processAction(PlayerActionMessage{
+			Type:     "playerAction",
+			PlayerID: p1ID,
+			Action:   ActionSelectInvestigator,
+			Target:   "mystic",
+		})
+		if err == nil {
+			t.Error("expected error when selecting investigator after pregame window closes, got nil")
+		}
+	})
 }
 
 // --- TestProcessAction_SetDifficulty ---
