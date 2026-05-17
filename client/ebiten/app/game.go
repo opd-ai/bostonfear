@@ -58,6 +58,13 @@ var boardAdjacency = map[ebclient.Location][]ebclient.Location{
 	"Northside":  {"University", "Rivertown"},
 }
 
+var boardLocationOrder = []ebclient.Location{
+	"Downtown",
+	"University",
+	"Rivertown",
+	"Northside",
+}
+
 var moveShortcutHints = map[ebclient.Location]string{
 	"Downtown":   "1",
 	"University": "2",
@@ -256,6 +263,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.drawStateBanner(screen)
 	g.drawDoomCounter(screen, gs)
 	g.drawPlayerPanel(screen, gs, playerID)
+	g.drawLocationPanel(screen, gs, playerID)
 	g.drawResultsPanel(screen)
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
@@ -1016,11 +1024,34 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 	panelW := 360
 	panelH := 130
 	ebitenutil.DrawRect(screen, float64(panelX-2), float64(panelY-2), float64(panelW), float64(panelH), color.RGBA{R: 10, G: 12, B: 20, A: 210})
-	g.drawMoveChips(screen, gs, myID, panelX, panelY-28)
 	g.drawVisibleActionButtons(screen, gs, myID)
 	g.drawActionPanelSummary(screen, gs, myID, panelX, panelY)
 	g.drawAvailableActionList(screen, gs, myID, panelX, panelY+92)
 	g.drawEndBanner(screen, gs)
+}
+
+func (g *Game) drawLocationPanel(screen *ebiten.Image, gs ebclient.GameState, myID string) {
+	panel := locationPanelRect()
+	ebitenutil.DrawRect(screen, float64(panel.Min.X), float64(panel.Min.Y), float64(panel.Dx()), float64(panel.Dy()), color.RGBA{R: 10, G: 12, B: 20, A: 216})
+	drawTileBorder(screen, float64(panel.Min.X), float64(panel.Min.Y), float64(panel.Dx()), float64(panel.Dy()), color.RGBA{R: 108, G: 126, B: 158, A: 240})
+	drawUIText(screen, "Location Panel", panel.Min.X+10, panel.Min.Y+8, color.RGBA{R: 242, G: 244, B: 252, A: 255})
+	drawUIText(screen, "Click or tap to move. Press 1-4 for shortcuts.", panel.Min.X+10, panel.Min.Y+22, color.RGBA{R: 196, G: 214, B: 240, A: 255})
+
+	hovered := g.state.HoveredActionHint()
+	focused := g.state.FocusedActionHint()
+	pressed := g.state.PressedActionHint()
+	for _, button := range locationPanelButtons(gs, myID) {
+		fill, border, labelColor := locationPanelButtonStyle(button, focused, hovered, pressed)
+		ebitenutil.DrawRect(screen, float64(button.rect.Min.X), float64(button.rect.Min.Y), float64(button.rect.Dx()), float64(button.rect.Dy()), fill)
+		drawTileBorder(screen, float64(button.rect.Min.X), float64(button.rect.Min.Y), float64(button.rect.Dx()), float64(button.rect.Dy()), border)
+		drawUIText(screen, string(button.location), button.rect.Min.X+10, button.rect.Min.Y+10, labelColor)
+		drawUIText(screen, button.detail, button.rect.Min.X+10, button.rect.Min.Y+28, color.RGBA{R: 208, G: 220, B: 238, A: 255})
+		drawUIText(screen, "Adjacency: "+g.locationAdjacencyLabel(button.location), button.rect.Min.X+10, button.rect.Min.Y+42, color.RGBA{R: 174, G: 190, B: 214, A: 255})
+		drawUIText(screen, "["+button.shortcut+"]", button.rect.Max.X-28, button.rect.Min.Y+10, color.RGBA{R: 220, G: 228, B: 252, A: 255})
+		if button.population > 0 {
+			drawUIText(screen, "P:"+strconv.Itoa(button.population), button.rect.Max.X-34, button.rect.Min.Y+42, color.RGBA{R: 236, G: 224, B: 152, A: 255})
+		}
+	}
 }
 
 func (g *Game) drawCoachMarks(screen *ebiten.Image, gs ebclient.GameState, myID string) {
@@ -1419,6 +1450,128 @@ func (g *Game) countPlayersAt(gs ebclient.GameState, loc ebclient.Location) int 
 	for _, pid := range gs.TurnOrder {
 		p := gs.Players[pid]
 		if p != nil && p.Connected && p.Location == loc {
+			count++
+		}
+	}
+	return count
+}
+
+func locationPanelRect() image.Rectangle {
+	return image.Rect(rightPanelX()-10, 304, rightPanelX()-10+386, 472)
+}
+
+func locationPanelButtonRect(index int) image.Rectangle {
+	panel := locationPanelRect()
+	const (
+		buttonWidth  = 178
+		buttonHeight = 64
+		gap          = 8
+	)
+	col := index % 2
+	row := index / 2
+	x := panel.Min.X + 10 + col*(buttonWidth+gap)
+	y := panel.Min.Y + 38 + row*(buttonHeight+gap)
+	return image.Rect(x, y, x+buttonWidth, y+buttonHeight)
+}
+
+type locationPanelButton struct {
+	location   ebclient.Location
+	rect       image.Rectangle
+	shortcut   string
+	detail     string
+	current    bool
+	available  bool
+	inactive   bool
+	population int
+}
+
+func locationPanelButtons(gs ebclient.GameState, myID string) []locationPanelButton {
+	buttons := make([]locationPanelButton, 0, len(boardLocationOrder))
+	currentLocation := ebclient.Location("")
+	if player, ok := gs.Players[myID]; ok && player != nil {
+		currentLocation = player.Location
+	}
+	legalMoves := boardAdjacency[currentLocation]
+	legalSet := make(map[ebclient.Location]struct{}, len(legalMoves))
+	for _, move := range legalMoves {
+		legalSet[move] = struct{}{}
+	}
+	for index, loc := range boardLocationOrder {
+		button := locationPanelButton{
+			location:   loc,
+			rect:       locationPanelButtonRect(index),
+			shortcut:   moveShortcutHints[loc],
+			population: countConnectedPlayersAt(gs, loc),
+		}
+		switch {
+		case loc == currentLocation:
+			button.current = true
+			button.detail = "Current location"
+		case isLegalMove(loc, legalSet):
+			button.available = true
+			button.detail = "Adjacent move available"
+		default:
+			button.inactive = true
+			button.detail = "Unavailable from here"
+		}
+		buttons = append(buttons, button)
+	}
+	return buttons
+}
+
+func isLegalMove(loc ebclient.Location, legalSet map[ebclient.Location]struct{}) bool {
+	_, ok := legalSet[loc]
+	return ok
+}
+
+func locationPanelButtonStyle(button locationPanelButton, focused, hovered, pressed string) (color.RGBA, color.RGBA, color.RGBA) {
+	fill := color.RGBA{R: 22, G: 28, B: 38, A: 245}
+	border := color.RGBA{R: 102, G: 116, B: 144, A: 255}
+	labelColor := color.RGBA{R: 232, G: 236, B: 244, A: 255}
+	if button.available {
+		fill = color.RGBA{R: 24, G: 58, B: 52, A: 245}
+		border = color.RGBA{R: 122, G: 220, B: 184, A: 255}
+	}
+	if button.current {
+		fill = color.RGBA{R: 82, G: 64, B: 20, A: 245}
+		border = color.RGBA{R: 244, G: 214, B: 112, A: 255}
+	}
+	if button.inactive {
+		labelColor = color.RGBA{R: 188, G: 194, B: 206, A: 255}
+	}
+	id := string(button.location)
+	if strings.EqualFold(id, focused) {
+		fill = color.RGBA{R: 50, G: 58, B: 82, A: 245}
+		border = color.RGBA{R: 190, G: 206, B: 255, A: 255}
+	}
+	if strings.EqualFold(id, hovered) {
+		fill = color.RGBA{R: 58, G: 72, B: 100, A: 245}
+		border = color.RGBA{R: 208, G: 220, B: 255, A: 255}
+	}
+	if strings.EqualFold(id, pressed) {
+		fill = color.RGBA{R: 74, G: 92, B: 126, A: 245}
+		border = color.RGBA{R: 234, G: 238, B: 255, A: 255}
+	}
+	return fill, border, labelColor
+}
+
+func (g *Game) locationAdjacencyLabel(loc ebclient.Location) string {
+	adjacent := boardAdjacency[loc]
+	if len(adjacent) == 0 {
+		return "none"
+	}
+	label := string(adjacent[0])
+	for i := 1; i < len(adjacent); i++ {
+		label += ", " + string(adjacent[i])
+	}
+	return trimToWidth(label, 128)
+}
+
+func countConnectedPlayersAt(gs ebclient.GameState, loc ebclient.Location) int {
+	count := 0
+	for _, pid := range gs.TurnOrder {
+		player := gs.Players[pid]
+		if player != nil && player.Connected && player.Location == loc {
 			count++
 		}
 	}

@@ -333,12 +333,6 @@ func (h *InputHandler) updateHoverHint(gs ebclient.GameState, playerID string) {
 		h.state.SetHoveredActionHint(hitBox.ID)
 		return
 	}
-	for _, chip := range legalMoveChips(gs, playerID, 10, bottomPanelY()-28) {
-		if image.Pt(x, y).In(chip.rect) {
-			h.state.SetHoveredActionHint(string(chip.target))
-			return
-		}
-	}
 	h.state.SetHoveredActionHint("")
 }
 
@@ -380,39 +374,9 @@ func buildTouchInputMapper(vp *ui.Viewport) *input.InputMapper {
 }
 
 func registerTouchLocationHitBoxes(mapper *input.InputMapper, vp *ui.Viewport) {
-	locationConstraints := map[protocol.Location]*ui.Constraint{
-		protocol.Downtown: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 40,
-			OffsetY: 60,
-			Width:   160,
-			Height:  100,
-		},
-		protocol.University: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 220,
-			OffsetY: 60,
-			Width:   160,
-			Height:  100,
-		},
-		protocol.Rivertown: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 40,
-			OffsetY: 220,
-			Width:   160,
-			Height:  100,
-		},
-		protocol.Northside: {
-			Anchor:  ui.AnchorTopLeft,
-			OffsetX: 220,
-			OffsetY: 220,
-			Width:   160,
-			Height:  100,
-		},
-	}
-
-	for location, constraint := range locationConstraints {
-		mapper.Register(string(location), constraint.Bounds(vp), 44)
+	_ = vp
+	for index, location := range boardLocationOrder {
+		mapper.Register(string(location), locationPanelButtonRect(index), 64)
 	}
 }
 

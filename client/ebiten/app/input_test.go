@@ -127,6 +127,32 @@ func TestBuildTouchInputMapper_AllHitBoxesAccessible(t *testing.T) {
 	}
 }
 
+func TestBuildTouchInputMapper_LocationButtonsMeetPlanSize(t *testing.T) {
+	vp := &ui.Viewport{
+		LogicalWidth:   screenWidth,
+		LogicalHeight:  screenHeight,
+		PhysicalWidth:  screenWidth,
+		PhysicalHeight: screenHeight,
+		Scale:          1,
+	}
+	mapper := buildTouchInputMapper(vp)
+	for _, location := range []string{"Downtown", "University", "Rivertown", "Northside"} {
+		found := false
+		for _, hb := range mapper.AllHitBoxes() {
+			if hb.ID != location {
+				continue
+			}
+			found = true
+			if hb.Bounds.Dx() < 64 || hb.Bounds.Dy() < 64 {
+				t.Fatalf("location %q hitbox is %dx%d, want at least 64x64", location, hb.Bounds.Dx(), hb.Bounds.Dy())
+			}
+		}
+		if !found {
+			t.Fatalf("location %q not registered", location)
+		}
+	}
+}
+
 func TestInputParity_KeyboardActionsCoveredByTouchOrSpecialCase(t *testing.T) {
 	keyboardActions := make(map[string]bool)
 	for _, kb := range keyBindings {
