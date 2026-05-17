@@ -1,8 +1,8 @@
-// Package finalhour provides a runnable Final Hour game-family module.
+// Package finalhour provides a scaffolded Final Hour game-family module.
 //
-// The module currently reuses the shared serverengine gameplay loop so it can be
-// selected and hosted in production while game-family-specific rules are expanded
-// in follow-up roadmap phases.
+// The module is intentionally not playable yet. It registers cleanly in the
+// runtime registry, but returns a placeholder engine until Final Hour-specific
+// rules are implemented in follow-up roadmap phases.
 //
 // Planned features (when implemented):
 //   - Real-time turn mechanics with time pressure
@@ -16,8 +16,8 @@
 package finalhour
 
 import (
-	"github.com/opd-ai/bostonfear/serverengine"
 	"github.com/opd-ai/bostonfear/serverengine/common/contracts"
+	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
 )
 
 // Module is the Final Hour game-family registration point.
@@ -39,8 +39,8 @@ func (Module) Description() string {
 	return "Final Hour multiplayer rules engine"
 }
 
-// NewEngine creates a new Final Hour game server instance.
-// The returned engine is fully runnable and can host multiplayer sessions.
+// NewEngine creates a placeholder Final Hour engine.
+// Start always returns a not-implemented error until Final Hour rules ship.
 func (Module) NewEngine() (contracts.Engine, error) {
-	return &Engine{GameServer: serverengine.NewGameServer()}, nil
+	return commonruntime.NewUnimplementedEngine("finalhour"), nil
 }

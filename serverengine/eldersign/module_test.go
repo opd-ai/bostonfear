@@ -1,8 +1,11 @@
 package eldersign
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestModuleNewEngineReturnsElderSignEngine(t *testing.T) {
+func TestModuleNewEngineReturnsElderSignPlaceholder(t *testing.T) {
 	module := NewModule()
 	if module == nil {
 		t.Fatal("expected module instance")
@@ -16,7 +19,11 @@ func TestModuleNewEngineReturnsElderSignEngine(t *testing.T) {
 		t.Fatal("expected non-nil engine")
 	}
 
-	if _, ok := engine.(*Engine); !ok {
-		t.Fatalf("expected *Engine, got %T", engine)
+	startErr := engine.Start()
+	if startErr == nil {
+		t.Fatal("expected Start to return not-implemented error")
+	}
+	if !strings.Contains(startErr.Error(), "not implemented") {
+		t.Fatalf("expected not-implemented error, got %v", startErr)
 	}
 }

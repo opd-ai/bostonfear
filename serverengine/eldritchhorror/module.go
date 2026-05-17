@@ -1,8 +1,8 @@
-// Package eldritchhorror provides a runnable Eldritch Horror game-family module.
+// Package eldritchhorror provides a scaffolded Eldritch Horror game-family module.
 //
-// The module currently reuses the shared serverengine gameplay loop so it can be
-// selected and hosted in production while game-family-specific rules are expanded
-// in follow-up roadmap phases.
+// The module is intentionally not playable yet. It registers cleanly in the
+// runtime registry, but returns a placeholder engine until Eldritch Horror-
+// specific rules are implemented in follow-up roadmap phases.
 //
 // Planned features (when implemented):
 //   - Global map with intercontinental travel
@@ -16,8 +16,8 @@
 package eldritchhorror
 
 import (
-	"github.com/opd-ai/bostonfear/serverengine"
 	"github.com/opd-ai/bostonfear/serverengine/common/contracts"
+	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
 )
 
 // Module is the Eldritch Horror game-family registration point.
@@ -39,8 +39,8 @@ func (Module) Description() string {
 	return "Eldritch Horror multiplayer rules engine"
 }
 
-// NewEngine creates a new Eldritch Horror game server instance.
-// The returned engine is fully runnable and can host multiplayer sessions.
+// NewEngine creates a placeholder Eldritch Horror engine.
+// Start always returns a not-implemented error until Eldritch Horror rules ship.
 func (Module) NewEngine() (contracts.Engine, error) {
-	return &Engine{GameServer: serverengine.NewGameServer()}, nil
+	return commonruntime.NewUnimplementedEngine("eldritchhorror"), nil
 }
