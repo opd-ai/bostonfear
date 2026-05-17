@@ -1,11 +1,13 @@
-# Final Hour Module (Boilerplate)
+# Final Hour Module
 
-This package is a scaffolding root for a future Final Hour implementation.
+This package provides a runnable Final Hour module MVP that currently reuses the
+shared serverengine gameplay runtime while Final Hour-specific rules are expanded.
 
 ## Current Status
 
 - Module registration exists.
-- Runtime is a placeholder returning not implemented.
+- Runtime is functional and returns a module-owned engine wrapper.
+- Selectable via `BOSTONFEAR_GAME=finalhour`.
 
 ## Planned Structure
 

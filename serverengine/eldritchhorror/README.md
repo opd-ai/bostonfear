@@ -1,11 +1,13 @@
-# Eldritch Horror Module (Boilerplate)
+# Eldritch Horror Module
 
-This package is a scaffolding root for a future Eldritch Horror implementation.
+This package provides a runnable Eldritch Horror module MVP that currently reuses
+the shared serverengine gameplay runtime while Eldritch-specific rules are expanded.
 
 ## Current Status
 
 - Module registration exists.
-- Runtime is a placeholder returning not implemented.
+- Runtime is functional and returns a module-owned engine wrapper.
+- Selectable via `BOSTONFEAR_GAME=eldritchhorror`.
 
 ## Planned Structure
 
