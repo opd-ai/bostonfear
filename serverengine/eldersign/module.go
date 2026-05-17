@@ -1,8 +1,8 @@
-// Package eldersign is a placeholder for Elder Sign game module implementation.
+// Package eldersign provides a runnable Elder Sign game-family module.
 //
-// Elder Sign is a cooperative dice-placement game where investigators work together
-// to seal gates and prevent the rise of Cthulhu. This package currently returns an
-// unimplemented engine; full rules implementation is deferred to a future phase.
+// The module currently reuses the shared serverengine gameplay loop so it can be
+// selected and hosted in production while game-family-specific rules are expanded
+// in follow-up roadmap phases.
 //
 // Planned features (when implemented):
 //   - Dice tower mechanic with strategic placement
@@ -15,14 +15,14 @@
 package eldersign
 
 import (
+	"github.com/opd-ai/bostonfear/serverengine"
 	"github.com/opd-ai/bostonfear/serverengine/common/contracts"
-	"github.com/opd-ai/bostonfear/serverengine/common/runtime"
 )
 
 // Module is the Elder Sign game-family registration point.
 type Module struct{}
 
-// NewModule returns an Elder Sign module placeholder.
+// NewModule returns an Elder Sign game module implementation.
 func NewModule() contracts.GameModule {
 	return Module{}
 }
@@ -35,11 +35,11 @@ func (Module) Key() string {
 
 // Description returns the human-readable display name of this game module.
 func (Module) Description() string {
-	return "Elder Sign game-family placeholder module"
+	return "Elder Sign multiplayer rules engine"
 }
 
 // NewEngine creates a new Elder Sign game server instance.
-// Currently returns an unimplemented placeholder; full implementation is pending.
+// The returned engine is fully runnable and can host multiplayer sessions.
 func (Module) NewEngine() (contracts.Engine, error) {
-	return runtime.NewUnimplementedEngine("eldersign"), nil
+	return &Engine{GameServer: serverengine.NewGameServer()}, nil
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/opd-ai/bostonfear/monitoringdata"
+	commonmonitoring "github.com/opd-ai/bostonfear/serverengine/common/monitoring"
 )
 
 // Provider supplies the engine snapshots and derived metrics required by the
@@ -33,37 +34,19 @@ func HealthHandler(provider Provider) http.Handler {
 		gameStats := provider.GameStatistics()
 		alerts := BuildSystemAlerts(perfMetrics, snapshot.Doom)
 
-		recentCorruptions := 0
-		fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
-		for _, eventTime := range snapshot.CorruptionHistory {
-			if eventTime.After(fiveMinutesAgo) {
-				recentCorruptions++
-			}
-		}
-
-		status := "healthy"
-		if !snapshot.IsHealthy {
-			status = "degraded"
-		}
-		if recentCorruptions > 10 {
-			status = "unhealthy"
-		}
-
-		healthData := map[string]interface{}{
-			"status":              status,
-			"gamePhase":           snapshot.GamePhase,
-			"playerCount":         snapshot.PlayerCount,
-			"connectionCount":     snapshot.ConnectionCount,
-			"doomLevel":           snapshot.Doom,
-			"gameStarted":         snapshot.GameStarted,
-			"recentCorruptions":   recentCorruptions,
-			"isGameStateHealthy":  snapshot.IsHealthy,
-			"timestamp":           time.Now().Unix(),
-			"performanceMetrics":  perfMetrics,
-			"connectionAnalytics": connAnalytics,
-			"gameStatistics":      gameStats,
-			"systemAlerts":        alerts,
-		}
+		now := time.Now()
+		recentCorruptions := commonmonitoring.CountRecentCorruptions(snapshot.CorruptionHistory, now, 5*time.Minute)
+		status := commonmonitoring.DeriveHealthStatus(snapshot.IsHealthy, recentCorruptions)
+		healthData := commonmonitoring.BuildHealthPayload(
+			status,
+			snapshot,
+			perfMetrics,
+			connAnalytics,
+			gameStats,
+			alerts,
+			now.Unix(),
+			recentCorruptions,
+		)
 
 		w.Header().Set("Content-Type", "application/json")
 		if status != "healthy" {

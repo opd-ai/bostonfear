@@ -14,6 +14,8 @@ import (
 	arkhamrules "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/rules"
 	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 	"github.com/opd-ai/bostonfear/serverengine/common/messaging"
+	commonobservability "github.com/opd-ai/bostonfear/serverengine/common/observability"
+	commonvalidation "github.com/opd-ai/bostonfear/serverengine/common/validation"
 )
 
 // GameServer manages the central game state for the Arkham Horror multiplayer game,
@@ -115,6 +117,8 @@ type GameServer struct {
 	// broadcastAdapter optionally shapes broadcast message payloads.
 	// If nil, methods fall back to inline construction. Set via SetBroadcastAdapter.
 	broadcastAdapter BroadcastPayloadAdapter
+	// observabilityHook receives engine events (no-op by default).
+	observabilityHook commonobservability.Hook
 }
 
 // NewGameServer creates a new game server instance using the provided Scenario
@@ -179,6 +183,7 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		pingTimers:          make(map[string]*time.Timer),
 		wsWriteMu:           make(map[string]*sync.Mutex),
 		scenario:            scenario,
+		observabilityHook:   commonobservability.NoopHook{},
 	}
 	// Apply scenario setup (populates decks, sets doom, etc.).
 	if scenario.SetupFn != nil {
@@ -220,6 +225,18 @@ func (gs *GameServer) SetBroadcastAdapter(adapter BroadcastPayloadAdapter) {
 	gs.mutex.Lock()
 	defer gs.mutex.Unlock()
 	gs.broadcastAdapter = adapter
+}
+
+// SetObservabilityHook configures the event hook used by serverengine telemetry paths.
+// Passing nil resets the hook to NoopHook.
+func (gs *GameServer) SetObservabilityHook(hook commonobservability.Hook) {
+	gs.mutex.Lock()
+	defer gs.mutex.Unlock()
+	if hook == nil {
+		gs.observabilityHook = commonobservability.NoopHook{}
+		return
+	}
+	gs.observabilityHook = hook
 }
 
 // AllowedOrigins returns a copy of the normalized allowed origin list used by
@@ -452,14 +469,16 @@ func (gs *GameServer) validateActionRequest(action PlayerActionMessage) (*Player
 	if player.Defeated {
 		return nil, fmt.Errorf("player %s has been defeated and cannot take actions", action.PlayerID)
 	}
-	if gs.gameState.CurrentPlayer != action.PlayerID {
-		return nil, fmt.Errorf("not player %s's turn (current: %s)", action.PlayerID, gs.gameState.CurrentPlayer)
+	checker := commonvalidation.TurnChecker{
+		GamePhase:        gs.gameState.GamePhase,
+		CurrentPlayer:    gs.gameState.CurrentPlayer,
+		ActionsRemaining: player.ActionsRemaining,
+		IsAllowedAction: func(actionType string) bool {
+			return isValidActionType(ActionType(actionType))
+		},
 	}
-	if player.ActionsRemaining <= 0 {
-		return nil, fmt.Errorf("player %s has no actions remaining", action.PlayerID)
-	}
-	if !isValidActionType(action.Action) {
-		return nil, fmt.Errorf("invalid action type: %s", action.Action)
+	if err := checker.IsLegal(string(action.Action), action.PlayerID); err != nil {
+		return nil, err
 	}
 	return player, nil
 }

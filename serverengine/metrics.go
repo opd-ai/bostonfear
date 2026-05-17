@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/opd-ai/bostonfear/monitoringdata"
+	commonobservability "github.com/opd-ai/bostonfear/serverengine/common/observability"
 )
 
 type (
@@ -338,6 +339,24 @@ func (gs *GameServer) trackConnection(eventType, playerID string, latency float6
 			gs.peakConnections = currentConnections
 		}
 	}
+
+	gs.emitObservabilityEvent(commonobservability.Event{
+		Name:      "connection." + eventType,
+		Timestamp: event.Timestamp,
+		Labels: map[string]string{
+			"playerId": playerID,
+		},
+	})
+}
+
+func (gs *GameServer) emitObservabilityEvent(evt commonobservability.Event) {
+	gs.mutex.RLock()
+	hook := gs.observabilityHook
+	gs.mutex.RUnlock()
+	if hook == nil {
+		return
+	}
+	hook.Observe(evt)
 }
 
 // trackPlayerSession manages player session metrics

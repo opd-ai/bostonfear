@@ -18,6 +18,9 @@ import (
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror"
 	arkhamcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
+	"github.com/opd-ai/bostonfear/serverengine/eldersign"
+	"github.com/opd-ai/bostonfear/serverengine/eldritchhorror"
+	"github.com/opd-ai/bostonfear/serverengine/finalhour"
 	transportws "github.com/opd-ai/bostonfear/transport/ws"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -53,23 +56,9 @@ func NewServerCommand() *cobra.Command {
 func runServer(cmd *cobra.Command) error {
 	registry := commonruntime.NewRegistry()
 	registry.MustRegister(arkhamhorror.NewModule())
-
-	// Non-Arkham game-family modules (eldersign, eldritchhorror, finalhour) are scaffolded
-	// but not yet runnable. They will be registered here once their engines are implemented.
-	//
-	// MODULE REGISTRATION POLICY (Hidden-Until-Ready)
-	// ================================================
-	// Decision: Non-Arkham modules remain unregistered until runnable server loops are complete.
-	// Rationale: The ROADMAP Priority 3 states "Register non-Arkham families in production
-	// paths only after runnable server loops exist." This prevents discovery of incomplete
-	// features in the CLI while maintaining clear extensibility patterns in the codebase.
-	//
-	// To enable a module, uncomment its registration and implement its Engine contract:
-	//   - registry.MustRegister(eldersign.NewModule())  // Requires Start, HandleConnection
-	//   - registry.MustRegister(eldritchhorror.NewModule())
-	//   - registry.MustRegister(finalhour.NewModule())
-	//
-	// See serverengine/arkhamhorror for a reference implementation.
+	registry.MustRegister(eldersign.NewModule())
+	registry.MustRegister(eldritchhorror.NewModule())
+	registry.MustRegister(finalhour.NewModule())
 
 	gameID := strings.ToLower(strings.TrimSpace(viper.GetString("server.game")))
 	if gameID == "" {
@@ -78,8 +67,7 @@ func runServer(cmd *cobra.Command) error {
 	if gameID == "" {
 		gameID = "arkhamhorror"
 	}
-	// Default falls back to arkhamhorror. Users selecting unregistered games get
-	// "unknown game module" error — this is intentional until those modules are runnable.
+	// Default falls back to arkhamhorror.
 
 	module, ok := registry.Get(gameID)
 	if !ok {
@@ -146,8 +134,10 @@ func runServer(cmd *cobra.Command) error {
 
 func prepareGameStartup(gameID, repoRoot string) error {
 	if gameID != "arkhamhorror" {
+		// Non-Arkham modules run with the default scenario configuration and do not
+		// require embedded Arkham content installation.
 		serverengine.SetStartupScenarioDefaultID("")
-		return fmt.Errorf("game module %q is registered but not runnable yet; choose arkhamhorror", gameID)
+		return nil
 	}
 
 	if err := arkhamcontent.EnsureNightglassContentInstalled(repoRoot); err != nil {
