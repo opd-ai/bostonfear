@@ -115,3 +115,16 @@ type Engine interface {
 	HealthChecker
 	MetricsCollector
 }
+// BroadcastPayloadAdapter shapes message payloads for wire protocol transmission.
+// Game-family modules implement this interface to own the format of broadcast messages
+// while serverengine handles routing and delivery. Implementations must be safe for
+// concurrent use.
+//
+// This interface is the canonical definition shared by serverengine and individual
+// game-family adapter packages (e.g. serverengine/arkhamhorror/adapters). Both packages
+// reference this definition to avoid maintaining duplicate interface signatures.
+type BroadcastPayloadAdapter interface {
+        ShapeGameStatePayload(state interface{}) interface{}
+        ShapeActionResultPayload(action, result string, resources interface{}) interface{}
+        ShapeDiceResultPayload(diceResult interface{}) interface{}
+}

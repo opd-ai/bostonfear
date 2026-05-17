@@ -2,13 +2,12 @@
 // S6 Migration: Broadcast payload shaping and mechanic events - arkhamhorror module ownership.
 package adapters
 
-// BroadcastPayloadAdapter transforms internal game state into wire-protocol format
-// without importing serverengine types, allowing arkhamhorror to own message shape.
-type BroadcastPayloadAdapter interface {
-	ShapeGameStatePayload(state interface{}) interface{} // Returns JSON-serializable payload
-	ShapeActionResultPayload(action, result string, resources interface{}) interface{}
-	ShapeDiceResultPayload(diceResult interface{}) interface{}
-}
+import "github.com/opd-ai/bostonfear/serverengine/common/contracts"
+
+// BroadcastPayloadAdapter is the canonical interface from serverengine/common/contracts.
+// Re-exported here for use within the adapters package without requiring callers of
+// NewBroadcastAdapter to import contracts directly.
+type BroadcastPayloadAdapter = contracts.BroadcastPayloadAdapter
 
 // ActionResultPayload is the arkhamhorror-owned shape for action results
 type ActionResultPayload struct {

@@ -1,6 +1,10 @@
 package serverengine
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/opd-ai/bostonfear/serverengine/common/contracts"
+)
 
 // Broadcaster sends a JSON payload to all connected clients.
 // Implementations must be safe for concurrent use.
@@ -17,15 +21,11 @@ type StateValidator interface {
 	GetCorruptionHistory() []CorruptionEvent
 }
 
-// BroadcastPayloadAdapter shapes message payloads for wire protocol transmission.
-// Game-family modules implement this interface to own the format of broadcast messages
-// while serverengine handles routing and delivery. Implementations must be safe for
-// concurrent use.
-type BroadcastPayloadAdapter interface {
-	ShapeGameStatePayload(state interface{}) interface{}
-	ShapeActionResultPayload(action, result string, resources interface{}) interface{}
-	ShapeDiceResultPayload(diceResult interface{}) interface{}
-}
+// BroadcastPayloadAdapter is an alias for the canonical definition in
+// serverengine/common/contracts. Both serverengine and game-family adapter packages
+// (e.g. serverengine/arkhamhorror/adapters) reference this same interface to avoid
+// maintaining duplicate signatures.
+type BroadcastPayloadAdapter = contracts.BroadcastPayloadAdapter
 
 // errBroadcastFull is returned by Broadcast when the channel is full.
 var errBroadcastFull = errors.New("broadcast channel full: payload dropped")

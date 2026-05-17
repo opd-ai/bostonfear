@@ -72,19 +72,19 @@ None. The project fulfills all stated core functional goals. No critical blocker
 
 ### HIGH
 
-- [ ] **Missing ROADMAP.md File** — [README.md:13, 288](README.md#L13) — Referenced 8+ times in documentation as authoritative source for roadmap phases, module timelines, and future features, but file is absent. This violates documentation integrity and roadmap traceability.
+- [x] **Missing ROADMAP.md File** — [README.md:13, 288](README.md#L13) — Referenced 8+ times in documentation as authoritative source for roadmap phases, module timelines, and future features, but file is absent. This violates documentation integrity and roadmap traceability.
   - **Blocked Goal**: Documentation completeness for dependency ordering and project planning visibility.
   - **Remediation**: Create `ROADMAP.md` at repository root with phased migration plan matching ADR 003 architectural statements. Include timelines for Elder Sign (4-6 weeks), Eldritch Horror (8-10 weeks), Final Hour placeholders; document scenario content rollout; list module-family-specific rules/content needing implementation.
   - **Dependencies**: None.
   - **Effort**: Small (2-3 hours to document concrete plan from ADR 003 context).
 
-- [ ] **Client Resolution Discrepancy** — [README.md:200](README.md#L200), [client/ebiten/app/game.go:30-33](client/ebiten/app/game.go#L30-L33), [cmd/desktop.go:39](cmd/desktop.go#L39), [cmd/web_wasm.go:35](cmd/web_wasm.go#L35) — README documents "1280×720 logical resolution" but implementation uses 800×600. SetWindowSize calls in both desktop and web hardcode (800, 600) and Game.Layout() returns (800, 600) constants. This is a documentation-vs-implementation mismatch.
+- [x] **Client Resolution Discrepancy** — [README.md:200](README.md#L200), [client/ebiten/app/game.go:30-33](client/ebiten/app/game.go#L30-L33), [cmd/desktop.go:39](cmd/desktop.go#L39), [cmd/web_wasm.go:35](cmd/web_wasm.go#L35) — README documents "1280×720 logical resolution" but implementation uses 800×600. SetWindowSize calls in both desktop and web hardcode (800, 600) and Game.Layout() returns (800, 600) constants. This is a documentation-vs-implementation mismatch.
   - **Blocked Goal**: Accurate documentation of actual client rendering behavior; client specifications are outdated.
   - **Remediation**: Either (a) update README.md, [docs/CLIENT_SPEC.md](docs/CLIENT_SPEC.md), and [client/ebiten/app/doc.go](client/ebiten/app/doc.go) to correctly document 800×600 logical resolution, OR (b) update game code to use 1280×720 and adjust UI layout math in game.go (screenWidth/screenHeight constants and all rect calculations that depend on them). Option (a) is preferred to avoid layout regressions.
   - **Dependencies**: None (documentation fix only).
   - **Effort**: Small (30 minutes for documentation updates).
 
-- [ ] **Arkham Scenarios Package Scaffolded** — [serverengine/arkhamhorror/scenarios/doc.go:7](serverengine/arkhamhorror/scenarios/doc.go#L7) — Package declares "NOTE: This package is a scaffold. Implementation is deferred." but `serverengine/arkhamhorror/content/` owns embedded scenario definitions. This contradicts the documentation claim and creates confusion about ownership.
+- [x] **Arkham Scenarios Package Scaffolded** — [serverengine/arkhamhorror/scenarios/doc.go:7](serverengine/arkhamhorror/scenarios/doc.go#L7) — Package declares "NOTE: This package is a scaffold. Implementation is deferred." but `serverengine/arkhamhorror/content/` owns embedded scenario definitions. This contradicts the documentation claim and creates confusion about ownership.
   - **Current State**: Game loads scenarios from `serverengine/arkhamhorror/content/nightglass/` (working correctly); scenarios/ package is doc-only and unused.
   - **Blocked Goal**: Clear ownership model for content vs. rules separation.
   - **Remediation**: Update [serverengine/arkhamhorror/scenarios/doc.go](serverengine/arkhamhorror/scenarios/doc.go) to clarify that content ownership resides in `serverengine/arkhamhorror/content/` and scenarios/ is reserved for future non-Arkham game scenario traits (e.g., Elder Sign scenario types differ from AH3e). Alternatively, deprecate the scenarios/ package or move scenario-type definitions into content/ for Arkham.
@@ -113,7 +113,7 @@ None. The project fulfills all stated core functional goals. No critical blocker
 
 ### LOW
 
-- [ ] **UnimplementedEngine Placeholder** — [serverengine/common/runtime/unimplemented_engine.go:16, 23](serverengine/common/runtime/unimplemented_engine.go#L16-L23) — Defines UnimplementedEngine type for game families not yet ready; Start() returns error "game not implemented", but SetAllowedOrigins() and health/metrics methods succeed silently (return empty/zero values). This is intentional scaffolding but inconsistent: some methods fail loudly, others fail silently.
+- [x] **UnimplementedEngine Placeholder** — [serverengine/common/runtime/unimplemented_engine.go:16, 23](serverengine/common/runtime/unimplemented_engine.go#L16-L23) — Defines UnimplementedEngine type for game families not yet ready; Start() returns error "game not implemented", but SetAllowedOrigins() and health/metrics methods succeed silently (return empty/zero values). This is intentional scaffolding but inconsistent: some methods fail loudly, others fail silently.
   - **Current State**: By design; UnimplementedEngine prevents partial module launches and provides clear feedback on module readiness.
   - **Blocked Goal**: None; purely informational and scaffolding.
   - **Remediation**: Document intent in [serverengine/common/contracts/engine.go](serverengine/common/contracts/engine.go) or add comments explaining why SetAllowedOrigins() succeeds (to satisfy interface contract) even though Start() always fails. No code change needed.
@@ -126,7 +126,7 @@ None. The project fulfills all stated core functional goals. No critical blocker
   - **Remediation**: Document in package doc that NewRegistry is for testing; production use is via cmd/server's hard-wired registry. No change needed.
   - **Effort**: Documentation only (5 minutes).
 
-- [ ] **BroadcastPayloadAdapter Defined in serverengine but Overridden in arkhamhorror/adapters** — [serverengine/interfaces.go:24-27](serverengine/interfaces.go#L24-L27) vs. [serverengine/arkhamhorror/adapters/broadcast.go:7](serverengine/arkhamhorror/adapters/broadcast.go#L7) — Both define BroadcastPayloadAdapter interface (identical signatures). Arkham version is not exported; serverengine version is used by SetBroadcastAdapter(). This duplication is harmless but confusing.
+- [x] **BroadcastPayloadAdapter Defined in serverengine but Overridden in arkhamhorror/adapters** — [serverengine/interfaces.go:24-27](serverengine/interfaces.go#L24-L27) vs. [serverengine/arkhamhorror/adapters/broadcast.go:7](serverengine/arkhamhorror/adapters/broadcast.go#L7) — Both define BroadcastPayloadAdapter interface (identical signatures). Arkham version is not exported; serverengine version is used by SetBroadcastAdapter(). This duplication is harmless but confusing.
   - **Current State**: Arkham module creates arkhamhorror.adapters.BroadcastPayloadAdapter (not exported) and casts to serverengine.BroadcastPayloadAdapter. Works because method signatures match.
   - **Blocked Goal**: None; interfaces are functionally equivalent.
   - **Remediation**: Delete the duplicate arkhamhorror/adapters/broadcast.go interface definition and reference serverengine.BroadcastPayloadAdapter directly. This clarifies that the adapter contract belongs to serverengine, not the module.
@@ -139,7 +139,7 @@ None. The project fulfills all stated core functional goals. No critical blocker
   - **Remediation**: Document naming convention in [monitoring/doc.go](monitoring/doc.go) or add comment in [serverengine/common/monitoring/doc.go](serverengine/common/monitoring/doc.go) clarifying that serverengine/common/monitoring owns DTOs, root monitoring owns HTTP transport. No refactoring needed.
   - **Effort**: Documentation only (5 minutes).
 
-- [ ] **Metrics Definition Exported but Minimally Wired** — [serverengine/metrics.go](serverengine/metrics.go) defines GameMetrics counters (ActionTypeCounters, DoomHistogram, LatencyPercentiles) but gameServer does not update these during action processing; they remain zero-initialized. Metrics are exported by HTTP /metrics endpoint but are empty.
+- [x] **Metrics Definition Exported but Minimally Wired** — [serverengine/metrics.go](serverengine/metrics.go) defines GameMetrics counters (ActionTypeCounters, DoomHistogram, LatencyPercentiles) but gameServer does not update these during action processing; they remain zero-initialized. Metrics are exported by HTTP /metrics endpoint but are empty.
   - **Current State**: Metrics infrastructure is in place but action/doom updates Don not increment counters. This is backlog work, not a blocker.
   - **Blocked Goal**: Operational visibility into action distribution and doom progression.
   - **Remediation**: Instrument action dispatch (serverengine/game_server.go:processActionCore) and mythos phase (serverengine/arkhamhorror/phases) to increment ActionTypeCounters[actionType] and update DoomHistogram. Latency percentile collection requires request-scoped timing.

@@ -84,14 +84,14 @@ Items are ordered by how much closing the gap advances the project's stated goal
 
 The README references `ROADMAP.md` as the authoritative source for module timelines and phased development. The file does not exist. This is the item that converts from "❌ Missing" to "✅ Achieved" with the least effort of any item on this list.
 
-- [ ] Create `ROADMAP.md` at the repository root documenting the four-phase module plan, extracting dates and effort estimates already stated in ADR 003:
+- [x] Create `ROADMAP.md` at the repository root documenting the four-phase module plan, extracting dates and effort estimates already stated in ADR 003:
   - Phase 1 (Complete): Arkham Horror 3rd Edition — all five mechanics, 1–6 players, late-join, token reconnect
   - Phase 2 (Planned, ~4–6 weeks): Elder Sign — dice-tower placement, unique encounter system, scenario templates
   - Phase 3 (Planned, ~8–10 weeks): Eldritch Horror — global map, mysteries, ancient one system
   - Phase 4 (Planned, ~6–8 weeks): Final Hour — simultaneous action programming, countdown tokens, objectives
   - Phase 5 (Future): Arkham content expansions, additional investigator roster, scenario packs
-- [ ] For each planned phase, list the key files to create (`rules/`, `adapters/`, `scenarios/`, `model/` per module) so contributors know where to start.
-- [ ] Verify that both cross-references in `README.md` (lines 13 and 288) resolve correctly after the file exists.
+- [x] For each planned phase, list the key files to create (`rules/`, `adapters/`, `scenarios/`, `model/` per module) so contributors know where to start.
+- [x] Verify that both cross-references in `README.md` (lines 13 and 288) resolve correctly after the file exists.
 
 **Validation**: `ls ROADMAP.md` succeeds; both links in README render as valid anchors in a Markdown previewer; ROADMAP.md covers all four future module phases with effort estimates.
 
@@ -103,10 +103,10 @@ The README references `ROADMAP.md` as the authoritative source for module timeli
 `README.md` line 200 and `docs/CLIENT_SPEC.md` document "Logical 1280×720 resolution scaled to any display." Every `SetWindowSize` call (`cmd/desktop.go:39`, `cmd/web_wasm.go:35`) and `Game.Layout()` return (`client/ebiten/app/game.go:30–33`) uses 800×600. All UI rectangles, action grids, and HUD insets are also hard-coded to 800×600. There is no code path that activates 1280×720.
 
 **Option A (recommended): Update documentation to match code**
-- [ ] `README.md` line 200: replace "Logical 1280×720" with "800×600 logical"
-- [ ] `docs/CLIENT_SPEC.md`: update all resolution references to 800×600
-- [ ] `client/ebiten/app/doc.go` line ~20: if it says "1280×720 logical", correct it to "800×600 logical"
-- [ ] `Makefile` `test-display` target: replace `Xvfb :99 -screen 0 1280x720x24` with `1024x768x24` or `800x600x24` (purely cosmetic; Xvfb resolution does not bind the Ebitengine logical size)
+- [x] `README.md` line 200: replace "Logical 1280×720" with "800×600 logical"
+- [x] `docs/CLIENT_SPEC.md`: update all resolution references to 800×600
+- [x] `client/ebiten/app/doc.go` line ~20: if it says "1280×720 logical", correct it to "800×600 logical"
+- [x] `Makefile` `test-display` target: replace `Xvfb :99 -screen 0 1280x720x24` with `1024x768x24` or `800x600x24` (purely cosmetic; Xvfb resolution does not bind the Ebitengine logical size)
 
 **Option B (not recommended): Upgrade code to 1280×720**
 - Requires recomputing every location rect, action cell, panel bounds, and touch inset in `game.go` lines 35–630 and `scenes.go`.
@@ -132,10 +132,10 @@ The core `serverengine` package achieves 86.4% line coverage via integration tes
 
 The risk is real: `DispatchAction` (complexity 19.2, 88 lines) and `RunMythosPhase` (complexity 21.0, 61 lines) are on the critical game loop path. Bugs in them require disassembling the integration test harness to diagnose.
 
-- [ ] `serverengine/arkhamhorror/actions/perform_test.go`: unit-test `DispatchAction` for each of the four action types (Move, Gather, Investigate, Cast Ward) in isolation, mocking the `GameServer` via the `contracts.Engine` interface.
-- [ ] `serverengine/arkhamhorror/phases/mythos_test.go`: table-driven tests for `RunMythosPhase` covering: doom increment from Tentacle result, clean pass with no Tentacles, and threshold behavior at the doom cap boundary.
-- [ ] `serverengine/arkhamhorror/phases/mythos_test.go` (continued): `AdvanceTurn` — verify correct player rotation for 1, 3, and 6 players; verify action counter resets.
-- [ ] `serverengine/arkhamhorror/rules/` — extend existing 6.7% coverage to ≥70%: focus on adjacency validation and resource cost enforcement for Cast Ward.
+- [x] `serverengine/arkhamhorror/actions/perform_test.go`: unit-test `DispatchAction` for each of the four action types (Move, Gather, Investigate, Cast Ward) in isolation, mocking the `GameServer` via the `contracts.Engine` interface.
+- [x] `serverengine/arkhamhorror/phases/mythos_test.go`: table-driven tests for `RunMythosPhase` covering: doom increment from Tentacle result, clean pass with no Tentacles, and threshold behavior at the doom cap boundary.
+- [x] `serverengine/arkhamhorror/phases/mythos_test.go` (continued): `AdvanceTurn` — verify correct player rotation for 1, 3, and 6 players; verify action counter resets.
+- [x] `serverengine/arkhamhorror/rules/` — extend existing 6.7% coverage to ≥70%: focus on adjacency validation and resource cost enforcement for Cast Ward.
 
 **Validation**: `go test -race -cover ./serverengine/arkhamhorror/...` reports ≥70% for `actions`, `phases`, and `rules`.
 
