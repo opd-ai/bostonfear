@@ -157,6 +157,15 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 	if connected {
 		buttonLabel = "RECONNECT"
 	}
+	hovered, pressed := pointerState(layout.connectButton)
+	if hovered {
+		buttonColor = color.RGBA{R: 98, G: 146, B: 220, A: 255}
+		buttonBorder = color.RGBA{R: 218, G: 236, B: 255, A: 255}
+	}
+	if pressed {
+		buttonColor = color.RGBA{R: 114, G: 166, B: 240, A: 255}
+		buttonBorder = color.RGBA{R: 238, G: 245, B: 255, A: 255}
+	}
 	if s.activeField == connectFieldAddress || s.activeField == connectFieldName {
 		buttonBorder = color.RGBA{R: 255, G: 220, B: 120, A: 255}
 	}
@@ -288,8 +297,7 @@ func (s *SceneConnect) drawConnectField(screen *ebiten.Image, vp *ui.Viewport, f
 	}
 
 	clearLabel := "CLEAR"
-	clearFill := color.RGBA{R: 70, G: 70, B: 90, A: 255}
-	clearBorder := color.RGBA{R: 150, G: 160, B: 190, A: 255}
+	clearFill, clearBorder := clearButtonColors(clearRect)
 	if !clearRect.Empty() {
 		ebitenutil.DrawRect(screen, float64(clearRect.Min.X), float64(clearRect.Min.Y), float64(clearRect.Dx()), float64(clearRect.Dy()), clearFill)
 		ebitenutil.DrawRect(screen, float64(clearRect.Min.X), float64(clearRect.Min.Y), float64(clearRect.Dx()), 2, clearBorder)
@@ -301,6 +309,19 @@ func (s *SceneConnect) drawConnectField(screen *ebiten.Image, vp *ui.Viewport, f
 		drawUIText(screen, clearLabel, labelX, labelY, color.White)
 	}
 	_ = vp
+}
+
+func clearButtonColors(clearRect image.Rectangle) (color.RGBA, color.RGBA) {
+	fill := color.RGBA{R: 70, G: 70, B: 90, A: 255}
+	border := color.RGBA{R: 150, G: 160, B: 190, A: 255}
+	hovered, pressed := pointerState(clearRect)
+	if pressed {
+		return color.RGBA{R: 104, G: 108, B: 140, A: 255}, color.RGBA{R: 212, G: 220, B: 248, A: 255}
+	}
+	if hovered {
+		return color.RGBA{R: 90, G: 92, B: 120, A: 255}, color.RGBA{R: 184, G: 196, B: 228, A: 255}
+	}
+	return fill, border
 }
 
 func (s *SceneConnect) handleBackspace() {
@@ -781,6 +802,7 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 	for i, investigator := range s.investigators {
 		rect := layout.cardRect(i)
 		isSelected := s.selectedInvestigator == investigator.name
+		hovered, pressed := pointerState(rect)
 		if playerID := gs.CurrentPlayer; playerID != "" {
 			if player, exists := gs.Players[playerID]; exists && player.InvestigatorType == protocol.InvestigatorType(investigator.name) && player.InvestigatorType != "" {
 				isSelected = true
@@ -790,6 +812,14 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 
 		fill := color.RGBA{R: 18, G: 20, B: 32, A: 240}
 		border := color.RGBA{R: 115, G: 128, B: 165, A: 255}
+		if hovered {
+			fill = color.RGBA{R: 28, G: 32, B: 48, A: 245}
+			border = color.RGBA{R: 150, G: 176, B: 220, A: 255}
+		}
+		if pressed {
+			fill = color.RGBA{R: 40, G: 46, B: 66, A: 248}
+			border = color.RGBA{R: 204, G: 220, B: 255, A: 255}
+		}
 		if isSelected {
 			fill = color.RGBA{R: 38, G: 32, B: 18, A: 245}
 			border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
@@ -819,15 +849,30 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 
 	// Draw difficulty selection.
 	drawUIText(screen, "Confirm Selection", layout.confirmButton.Min.X+20, layout.confirmButton.Min.Y+10, color.White)
+	confirmHovered, confirmPressed := pointerState(layout.confirmButton)
+	confirmEnabled := s.selectedInvestigator != ""
 	confirmColor := color.RGBA{R: 80, G: 120, B: 195, A: 255}
-	if s.selectedInvestigator != "" {
+	confirmBorder := color.RGBA{R: 220, G: 230, B: 255, A: 255}
+	if confirmEnabled {
 		confirmColor = color.RGBA{R: 120, G: 170, B: 240, A: 255}
 	}
+	if !confirmEnabled {
+		confirmColor = color.RGBA{R: 60, G: 72, B: 96, A: 255}
+		confirmBorder = color.RGBA{R: 132, G: 145, B: 182, A: 255}
+	}
+	if confirmEnabled && confirmHovered {
+		confirmColor = color.RGBA{R: 132, G: 184, B: 255, A: 255}
+		confirmBorder = color.RGBA{R: 236, G: 244, B: 255, A: 255}
+	}
+	if confirmEnabled && confirmPressed {
+		confirmColor = color.RGBA{R: 154, G: 204, B: 255, A: 255}
+		confirmBorder = color.RGBA{R: 250, G: 250, B: 255, A: 255}
+	}
 	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), float64(layout.confirmButton.Dy()), confirmColor)
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), 2, color.RGBA{R: 220, G: 230, B: 255, A: 255})
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Max.Y-2), float64(layout.confirmButton.Dx()), 2, color.RGBA{R: 220, G: 230, B: 255, A: 255})
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), color.RGBA{R: 220, G: 230, B: 255, A: 255})
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Max.X-2), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), color.RGBA{R: 220, G: 230, B: 255, A: 255})
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), 2, confirmBorder)
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Max.Y-2), float64(layout.confirmButton.Dx()), 2, confirmBorder)
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), confirmBorder)
+	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Max.X-2), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), confirmBorder)
 	confirmLabel := "Tap a card first"
 	if s.selectedInvestigator != "" {
 		confirmLabel = "Tap here or press ENTER"
@@ -836,8 +881,17 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 
 	drawUIText(screen, "Select Difficulty:", screenWidth/2-120, 468, color.White)
 	for _, option := range layout.difficultyButtons() {
+		hovered, pressed := pointerState(option.rect)
 		fill := color.RGBA{R: 25, G: 28, B: 40, A: 240}
 		border := color.RGBA{R: 130, G: 145, B: 175, A: 255}
+		if hovered {
+			fill = color.RGBA{R: 34, G: 42, B: 58, A: 245}
+			border = color.RGBA{R: 165, G: 186, B: 224, A: 255}
+		}
+		if pressed {
+			fill = color.RGBA{R: 44, G: 56, B: 76, A: 250}
+			border = color.RGBA{R: 208, G: 220, B: 250, A: 255}
+		}
 		if s.selectedDifficulty == option.value {
 			fill = color.RGBA{R: 45, G: 62, B: 96, A: 255}
 			border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
@@ -1032,13 +1086,13 @@ func (s *SceneGameOver) activateGameOverControl(control string) {
 func (s *SceneGameOver) restartGame() {
 	s.game.state.Reset()
 	s.game.net.Connect()
-	s.game.activeScene = &SceneConnect{game: s.game}
+	s.game.activateScene(&SceneConnect{game: s.game})
 }
 
 func (s *SceneGameOver) returnToLobby() {
 	s.game.state.Reset()
 	s.game.state.ClearDisplayName()
-	s.game.activeScene = &SceneConnect{game: s.game}
+	s.game.activateScene(&SceneConnect{game: s.game})
 }
 
 // Draw renders the game-over overlay with the outcome message and restart prompt.
@@ -1058,6 +1112,15 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 	}
 	playFill := color.RGBA{R: 60, G: 92, B: 140, A: 255}
 	playBorder := color.RGBA{R: 206, G: 222, B: 255, A: 255}
+	playHovered, playPressed := pointerState(layout.playAgain)
+	if playHovered {
+		playFill = color.RGBA{R: 78, G: 116, B: 168, A: 255}
+		playBorder = color.RGBA{R: 226, G: 236, B: 255, A: 255}
+	}
+	if playPressed {
+		playFill = color.RGBA{R: 96, G: 138, B: 192, A: 255}
+		playBorder = color.RGBA{R: 242, G: 246, B: 255, A: 255}
+	}
 	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), float64(layout.playAgain.Dx()), float64(layout.playAgain.Dy()), playFill)
 	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), float64(layout.playAgain.Dx()), 2, playBorder)
 	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Max.Y-2), float64(layout.playAgain.Dx()), 2, playBorder)
@@ -1067,6 +1130,15 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 
 	lobbyFill := color.RGBA{R: 52, G: 54, B: 70, A: 255}
 	lobbyBorder := color.RGBA{R: 184, G: 192, B: 225, A: 255}
+	lobbyHovered, lobbyPressed := pointerState(layout.toLobby)
+	if lobbyHovered {
+		lobbyFill = color.RGBA{R: 68, G: 72, B: 94, A: 255}
+		lobbyBorder = color.RGBA{R: 208, G: 214, B: 240, A: 255}
+	}
+	if lobbyPressed {
+		lobbyFill = color.RGBA{R: 86, G: 90, B: 114, A: 255}
+		lobbyBorder = color.RGBA{R: 228, G: 232, B: 248, A: 255}
+	}
 	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), float64(layout.toLobby.Dx()), float64(layout.toLobby.Dy()), lobbyFill)
 	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), float64(layout.toLobby.Dx()), 2, lobbyBorder)
 	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Max.Y-2), float64(layout.toLobby.Dx()), 2, lobbyBorder)
@@ -1110,7 +1182,7 @@ func (g *Game) ensureGameOverScene(gs ebclient.GameState) bool {
 		return false
 	}
 	if _, ok := g.activeScene.(*SceneGameOver); !ok {
-		g.activeScene = &SceneGameOver{game: g}
+		g.activateScene(&SceneGameOver{game: g})
 	}
 	return true
 }
@@ -1125,20 +1197,66 @@ func (g *Game) localPlayerNeedsSelection(gs ebclient.GameState, playerID string)
 
 func (g *Game) setConnectScene() {
 	if _, ok := g.activeScene.(*SceneConnect); !ok {
-		g.activeScene = &SceneConnect{game: g}
+		g.activateScene(&SceneConnect{game: g})
 	}
 }
 
 func (g *Game) setCharacterSelectScene() {
 	if _, ok := g.activeScene.(*SceneCharacterSelect); !ok {
-		g.activeScene = NewSceneCharacterSelect(g)
+		g.activateScene(NewSceneCharacterSelect(g))
 	}
 }
 
 func (g *Game) setGameScene() {
 	if _, ok := g.activeScene.(*SceneGame); !ok {
-		g.activeScene = &SceneGame{game: g}
+		g.activateScene(&SceneGame{game: g})
 	}
+}
+
+func (g *Game) activateScene(next Scene) {
+	if next == nil {
+		return
+	}
+	if sceneTypeName(g.activeScene) == sceneTypeName(next) {
+		g.activeScene = next
+		return
+	}
+	g.activeScene = next
+	g.startSceneFade()
+}
+
+func sceneTypeName(scene Scene) string {
+	switch scene.(type) {
+	case *SceneConnect:
+		return "connect"
+	case *SceneCharacterSelect:
+		return "select"
+	case *SceneGame:
+		return "game"
+	case *SceneGameOver:
+		return "gameover"
+	default:
+		return "unknown"
+	}
+}
+
+func pointerState(rect image.Rectangle) (hovered, pressed bool) {
+	if rect.Empty() {
+		return false, false
+	}
+	x, y := ebiten.CursorPosition()
+	pt := image.Pt(x, y)
+	hovered = pt.In(rect)
+	pressed = hovered && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
+	for _, touchID := range ebiten.TouchIDs() {
+		tx, ty := ebiten.TouchPosition(touchID)
+		if image.Pt(tx, ty).In(rect) {
+			hovered = true
+			pressed = true
+			break
+		}
+	}
+	return hovered, pressed
 }
 
 func allConnectedPlayersSelected(gs ebclient.GameState) bool {

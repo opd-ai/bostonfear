@@ -43,11 +43,39 @@ func (tt *TypographyToken) Value() interface{} {
 	return tt.FontSize
 }
 
+// ElevationToken represents depth styling for layered UI surfaces.
+type ElevationToken struct {
+	Name    string
+	Blur    float64
+	Spread  float64
+	Opacity float64
+}
+
+// Value returns a compact scalar value suitable for generic token handling.
+func (et *ElevationToken) Value() interface{} {
+	return et.Opacity
+}
+
+// IconStyleToken captures icon styling rules for consistent semantics.
+type IconStyleToken struct {
+	Name      string
+	StrokePx  float64
+	Roundness float64
+	Emphasis  float64
+}
+
+// Value returns a compact scalar value suitable for generic token handling.
+func (it *IconStyleToken) Value() interface{} {
+	return it.StrokePx
+}
+
 // DesignTokenRegistry centralizes all design tokens for a theme.
 type DesignTokenRegistry struct {
 	colors     map[string]*ColorToken
 	spacing    map[string]*SpacingToken
 	typography map[string]*TypographyToken
+	elevation  map[string]*ElevationToken
+	iconStyles map[string]*IconStyleToken
 	semantics  map[string]string // Maps semantic name to token name.
 }
 
@@ -57,6 +85,8 @@ func NewDesignTokenRegistry() *DesignTokenRegistry {
 		colors:     make(map[string]*ColorToken),
 		spacing:    make(map[string]*SpacingToken),
 		typography: make(map[string]*TypographyToken),
+		elevation:  make(map[string]*ElevationToken),
+		iconStyles: make(map[string]*IconStyleToken),
 		semantics:  make(map[string]string),
 	}
 }
@@ -115,6 +145,48 @@ func (dtr *DesignTokenRegistry) GetTypography(name string) *TypographyToken {
 	return nil
 }
 
+// RegisterElevation adds an elevation token.
+func (dtr *DesignTokenRegistry) RegisterElevation(name string, blur, spread, opacity float64) {
+	if dtr == nil {
+		return
+	}
+	dtr.elevation[name] = &ElevationToken{
+		Name:    name,
+		Blur:    blur,
+		Spread:  spread,
+		Opacity: opacity,
+	}
+}
+
+// GetElevation retrieves an elevation token by name.
+func (dtr *DesignTokenRegistry) GetElevation(name string) *ElevationToken {
+	if dtr == nil {
+		return nil
+	}
+	return dtr.elevation[name]
+}
+
+// RegisterIconStyle adds an icon style token.
+func (dtr *DesignTokenRegistry) RegisterIconStyle(name string, strokePx, roundness, emphasis float64) {
+	if dtr == nil {
+		return
+	}
+	dtr.iconStyles[name] = &IconStyleToken{
+		Name:      name,
+		StrokePx:  strokePx,
+		Roundness: roundness,
+		Emphasis:  emphasis,
+	}
+}
+
+// GetIconStyle retrieves an icon style token by name.
+func (dtr *DesignTokenRegistry) GetIconStyle(name string) *IconStyleToken {
+	if dtr == nil {
+		return nil
+	}
+	return dtr.iconStyles[name]
+}
+
 // MapSemantic aliases a semantic name to a token name.
 // Example: MapSemantic("danger-background", "color-red-700")
 func (dtr *DesignTokenRegistry) MapSemantic(semanticName, tokenName string) {
@@ -142,6 +214,8 @@ func NewDefaultArkhamTheme() *DesignTokenRegistry {
 	dtr.RegisterColor("color-bg-darker", color.RGBA{R: 8, G: 6, B: 10, A: 255})       // Even darker
 	dtr.RegisterColor("color-surface", color.RGBA{R: 25, G: 20, B: 30, A: 255})       // Panel background
 	dtr.RegisterColor("color-surface-light", color.RGBA{R: 40, G: 35, B: 45, A: 255}) // Lighter surface
+	dtr.RegisterColor("color-surface-elevated", color.RGBA{R: 50, G: 44, B: 59, A: 255})
+	dtr.RegisterColor("color-border-strong", color.RGBA{R: 126, G: 110, B: 152, A: 255})
 
 	// Primary (eldritch)
 	dtr.RegisterColor("color-primary", color.RGBA{R: 155, G: 89, B: 182, A: 255}) // Purple
@@ -162,8 +236,11 @@ func NewDefaultArkhamTheme() *DesignTokenRegistry {
 	// Semantics
 	dtr.MapSemantic("bg-primary", "color-bg-dark")
 	dtr.MapSemantic("bg-secondary", "color-surface")
+	dtr.MapSemantic("surface-base", "color-surface")
+	dtr.MapSemantic("surface-elevated", "color-surface-elevated")
 	dtr.MapSemantic("text-primary", "color-primary")
 	dtr.MapSemantic("border-primary", "color-primary-light")
+	dtr.MapSemantic("border-strong", "color-border-strong")
 	dtr.MapSemantic("status-success", "color-success")
 	dtr.MapSemantic("status-danger", "color-danger")
 
@@ -179,6 +256,16 @@ func NewDefaultArkhamTheme() *DesignTokenRegistry {
 	dtr.RegisterTypography("heading2", 24, 32, 700)
 	dtr.RegisterTypography("body", 14, 20, 400)
 	dtr.RegisterTypography("caption", 12, 16, 400)
+
+	// Elevation scale for layered surfaces.
+	dtr.RegisterElevation("surface-flat", 0, 0, 0.00)
+	dtr.RegisterElevation("surface-raised", 2, 1, 0.18)
+	dtr.RegisterElevation("surface-overlay", 6, 2, 0.30)
+
+	// Icon styling roles for consistent silhouette and emphasis.
+	dtr.RegisterIconStyle("icon-action", 2.0, 0.25, 0.90)
+	dtr.RegisterIconStyle("icon-resource", 1.5, 0.20, 0.80)
+	dtr.RegisterIconStyle("icon-alert", 2.5, 0.15, 1.00)
 
 	return dtr
 }

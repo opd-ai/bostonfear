@@ -12,13 +12,15 @@ const (
 
 // Camera tracks board orientation with 8 directional presets.
 type Camera struct {
-	direction int
-	mode      ViewMode
+	direction       int
+	mode            ViewMode
+	visualDirection float64
+	modeBlend       float64
 }
 
 // NewCamera creates a camera in pseudo-3D mode at direction 0.
 func NewCamera() *Camera {
-	return &Camera{direction: 0, mode: ViewModePseudo3D}
+	return &Camera{direction: 0, mode: ViewModePseudo3D, visualDirection: 0, modeBlend: 1}
 }
 
 // Direction returns the active directional preset in [0, 7].
@@ -68,26 +70,65 @@ func (c *Camera) ToggleViewMode() {
 // Project transforms board-space coordinates into screen-space coordinates.
 // The board center should be provided so transforms preserve readability.
 func (c *Camera) Project(x, y, centerX, centerY float64) (float64, float64, float64) {
-	if c == nil || c.mode == ViewModeTopDown {
+	if c == nil {
 		return x, y, 1.0
 	}
 
-	angle := float64(c.direction) * (math.Pi / 4.0)
+	c.stepTransitions()
+	return c.projectInterpolated(x, y, centerX, centerY)
+}
+
+func (c *Camera) projectInterpolated(x, y, centerX, centerY float64) (float64, float64, float64) {
+	blend := clamp01(c.modeBlend)
+	if blend <= 0.001 {
+		return x, y, 1.0
+	}
+
+	angle := c.visualDirection * (math.Pi / 4.0)
 	relX := x - centerX
 	relY := y - centerY
-
 	rotx := relX*math.Cos(angle) - relY*math.Sin(angle)
 	roty := relX*math.Sin(angle) + relY*math.Cos(angle)
 
-	// Isometric-like skew with mild vertical compression to keep labels readable.
-	px := centerX + rotx + roty*0.35
-	py := centerY + roty*0.65
-	scale := 0.85 + 0.15*(1.0-(roty/600.0))
-	if scale < 0.70 {
-		scale = 0.70
+	projectedX := centerX + rotx + roty*0.35
+	projectedY := centerY + roty*0.65
+	scale := clampRange(0.85+0.15*(1.0-(roty/600.0)), 0.70, 1.15)
+	return x + (projectedX-x)*blend, y + (projectedY-y)*blend, 1 + (scale-1)*blend
+}
+
+func (c *Camera) stepTransitions() {
+	targetDir := float64(c.direction)
+	delta := shortestDirectionDelta(c.visualDirection, targetDir)
+	c.visualDirection += delta * 0.22
+
+	targetBlend := 1.0
+	if c.mode == ViewModeTopDown {
+		targetBlend = 0
 	}
-	if scale > 1.15 {
-		scale = 1.15
+	c.modeBlend += (targetBlend - c.modeBlend) * 0.25
+}
+
+func shortestDirectionDelta(current, target float64) float64 {
+	delta := target - current
+	for delta > 4 {
+		delta -= 8
 	}
-	return px, py, scale
+	for delta < -4 {
+		delta += 8
+	}
+	return delta
+}
+
+func clamp01(v float64) float64 {
+	return clampRange(v, 0, 1)
+}
+
+func clampRange(v, minV, maxV float64) float64 {
+	if v < minV {
+		return minV
+	}
+	if v > maxV {
+		return maxV
+	}
+	return v
 }

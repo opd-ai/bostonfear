@@ -3,9 +3,25 @@ package render
 import (
 	_ "embed"
 	"fmt"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+// DoomReactiveIntensity scales a base effect intensity with doom pressure while
+// keeping a readability floor at low doom values.
+func DoomReactiveIntensity(base float32, doom, maxDoom int) float32 {
+	if base <= 0 {
+		return 0
+	}
+	if maxDoom <= 0 {
+		return base
+	}
+	ratio := float32(doom) / float32(maxDoom)
+	ratio = float32(math.Max(0, math.Min(1, float64(ratio))))
+	// Keep low-doom clarity by reserving part of base intensity, then ramp.
+	return base*0.70 + base*0.55*ratio
+}
 
 //go:embed shaders/fog.kage
 var fogShaderSrc []byte

@@ -117,6 +117,7 @@ type Game struct {
 	startedAt   time.Time
 	frameCount  int64
 	activeScene Scene // current full-screen scene; managed by updateScene
+	sceneFade   int
 	uiCache     uiStringCache
 }
 
@@ -172,6 +173,7 @@ func (g *Game) Close() {
 // then delegates per-tick logic to the active scene.
 func (g *Game) Update() error {
 	g.updateScene()
+	g.stepSceneFade()
 	if g.activeScene != nil {
 		return g.activeScene.Update()
 	}
@@ -190,6 +192,7 @@ func (g *Game) Layout(_, _ int) (int, int) {
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.activeScene != nil {
 		g.activeScene.Draw(screen)
+		g.drawSceneFade(screen)
 		return
 	}
 	// Fallback when activeScene is unset (e.g. in unit tests that build Game directly).
@@ -249,12 +252,32 @@ func (g *Game) ensureShaders() {
 	g.shaders = &render.ShaderSet{}
 }
 
+func (g *Game) stepSceneFade() {
+	if g.sceneFade > 0 {
+		g.sceneFade--
+	}
+}
+
+func (g *Game) startSceneFade() {
+	g.sceneFade = 12
+}
+
+func (g *Game) drawSceneFade(screen *ebiten.Image) {
+	if g.sceneFade <= 0 {
+		return
+	}
+	alpha := uint8(float64(g.sceneFade) / 12.0 * 210.0)
+	ebitenutil.DrawRect(screen, 0, 0, screenWidth, screenHeight, color.RGBA{R: 8, G: 10, B: 16, A: alpha})
+}
+
 func (g *Game) applyPostProcess(screen *ebiten.Image, doom int) {
 	if g.effects.EnableFog {
-		render.DrawFogOverlay(screen, g.shaders, g.effects.FogOpacity)
+		fog := render.DoomReactiveIntensity(g.effects.FogOpacity, doom, 12)
+		render.DrawFogOverlay(screen, g.shaders, fog)
 	}
 	if g.effects.EnableGlow {
-		render.DrawGlowOverlay(screen, g.shaders, g.effects.GlowIntensity, float32(time.Since(g.startedAt).Seconds()))
+		glow := render.DoomReactiveIntensity(g.effects.GlowIntensity, doom, 12)
+		render.DrawGlowOverlay(screen, g.shaders, glow, float32(time.Since(g.startedAt).Seconds()))
 	}
 	if doom > 0 {
 		render.DrawDoomVignette(screen, g.shaders, float32(doom)/12)
@@ -298,8 +321,22 @@ func (g *Game) drawProceduralAtmosphere(screen *ebiten.Image) {
 		} else {
 			col.A = min8(col.A, r.Alpha)
 		}
+		// Keep low-doom visuals readable while increasing atmosphere under pressure.
+		col.A = g.doomScaledAlpha(col.A)
 		ebitenutil.DrawRect(screen, r.X, r.Y, r.W, r.H, col)
 	}
+}
+
+func (g *Game) doomScaledAlpha(alpha uint8) uint8 {
+	gs, _, _ := g.state.Snapshot()
+	scaled := render.DoomReactiveIntensity(float32(alpha), gs.Doom, 12)
+	if scaled < 0 {
+		scaled = 0
+	}
+	if scaled > 255 {
+		scaled = 255
+	}
+	return uint8(scaled)
 }
 
 func (g *Game) updateUXWidgets(gs ebclient.GameState, connected bool) {
@@ -473,6 +510,7 @@ func (g *Game) enqueueBoard(gs ebclient.GameState) {
 func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 	currentPlayer, ok := gs.Players[gs.CurrentPlayer]
 	if !ok {
+		g.drawDistrictGuides(screen)
 		g.drawLocationLabels(screen)
 		return
 	}
@@ -490,6 +528,8 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 		centers[loc] = [2]float64{cx, cy}
 	}
 
+	g.drawDistrictGuides(screen)
+
 	if currentCenter, ok := centers[currentLocation]; ok {
 		for _, target := range legalMoves {
 			if targetCenter, ok := centers[target]; ok {
@@ -502,25 +542,57 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 		px, py, scale := g.projectPoint(float64(rect.x), float64(rect.y))
 		width := float64(rect.w) * scale
 		height := float64(rect.h) * scale
-		border := color.RGBA{R: 220, G: 220, B: 235, A: 120}
-		fill := color.RGBA{R: 10, G: 12, B: 20, A: 90}
+		base := locationColours[loc]
+		border := color.RGBA{R: 225, G: 226, B: 235, A: 165}
+		fill := withAlpha(blendRGBA(base, color.RGBA{R: 12, G: 14, B: 20, A: 255}, 0.42), 155)
+		note := "locked"
 		switch {
 		case loc == currentLocation:
-			border = color.RGBA{R: 255, G: 220, B: 100, A: 235}
-			fill = color.RGBA{R: 110, G: 90, B: 20, A: 90}
+			border = color.RGBA{R: 252, G: 220, B: 104, A: 250}
+			fill = withAlpha(blendRGBA(base, color.RGBA{R: 190, G: 145, B: 44, A: 255}, 0.45), 190)
+			note = "current"
 		case func() bool { _, ok := legalSet[loc]; return ok }():
-			border = color.RGBA{R: 90, G: 220, B: 255, A: 220}
-			fill = color.RGBA{R: 20, G: 50, B: 70, A: 90}
+			border = color.RGBA{R: 98, G: 234, B: 255, A: 238}
+			fill = withAlpha(blendRGBA(base, color.RGBA{R: 44, G: 130, B: 176, A: 255}, 0.40), 180)
+			note = "move"
 		}
 
 		ebitenutil.DrawRect(screen, px, py, width, height, fill)
 		drawTileBorder(screen, px, py, width, height, border)
 
+		noteW := float64(textWidth(note) + 6)
+		noteBg := color.RGBA{R: 8, G: 10, B: 16, A: 210}
+		if note == "move" {
+			noteBg = color.RGBA{R: 9, G: 40, B: 53, A: 225}
+		}
+		if note == "current" {
+			noteBg = color.RGBA{R: 74, G: 55, B: 12, A: 230}
+		}
+		ebitenutil.DrawRect(screen, px+width-noteW-4, py+4, noteW, 14, noteBg)
+		drawUIText(screen, strings.ToUpper(note), int(px+width-noteW), int(py+6), color.RGBA{R: 235, G: 240, B: 250, A: 255})
+
 		labelX, labelY := ui.ProjectLabelPosition(float64(rect.x), float64(rect.y), float64(rect.w), float64(rect.h), g.boardView)
 		label := string(loc)
 		labelW := float64(textWidth(label) + 8)
-		ebitenutil.DrawRect(screen, labelX-4, labelY-2, labelW, 16, color.RGBA{R: 8, G: 8, B: 16, A: 200})
+		ebitenutil.DrawRect(screen, labelX-4, labelY-2, labelW, 16, color.RGBA{R: 8, G: 8, B: 16, A: 214})
 		drawUIText(screen, label, int(labelX), int(labelY), color.White)
+
+		gatesAtLoc := g.countGatesAt(gs, loc)
+		enemiesAtLoc := g.countEnemiesAt(gs, loc)
+		playersAtLoc := g.countPlayersAt(gs, loc)
+		badgeX := px + 6
+		badgeY := py + height - 18
+		if playersAtLoc > 0 {
+			drawEntityBadge(screen, badgeX, badgeY, "P:"+strconv.Itoa(playersAtLoc), color.RGBA{R: 230, G: 226, B: 135, A: 230})
+			badgeX += 34
+		}
+		if gatesAtLoc > 0 {
+			drawEntityBadge(screen, badgeX, badgeY, "G:"+strconv.Itoa(gatesAtLoc), color.RGBA{R: 146, G: 90, B: 211, A: 230})
+			badgeX += 34
+		}
+		if enemiesAtLoc > 0 {
+			drawEntityBadge(screen, badgeX, badgeY, "E:"+strconv.Itoa(enemiesAtLoc), color.RGBA{R: 214, G: 87, B: 87, A: 230})
+		}
 	}
 
 	if currentLocation != "" {
@@ -534,6 +606,16 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 		ebitenutil.DrawRect(screen, 32, 540, 320, 22, color.RGBA{R: 8, G: 10, B: 18, A: 200})
 		drawUIText(screen, trimToWidth(movesText, 300), 40, 544, color.RGBA{R: 220, G: 240, B: 255, A: 255})
 	}
+}
+
+func (g *Game) drawDistrictGuides(screen *ebiten.Image) {
+	x, y, scale := g.projectPoint(200, 48)
+	verticalW := 12.0 * scale
+	horizontalW := 12.0 * scale
+	boardH := 292.0 * scale
+	boardW := 352.0 * scale
+	ebitenutil.DrawRect(screen, x, y, verticalW, boardH, color.RGBA{R: 6, G: 8, B: 12, A: 188})
+	ebitenutil.DrawRect(screen, x-(160.0*scale), y+(106.0*scale), boardW, horizontalW, color.RGBA{R: 6, G: 8, B: 12, A: 188})
 }
 
 // drawLocationLabels renders a readable label for each neighborhood tile.
@@ -554,6 +636,35 @@ func drawTileBorder(screen *ebiten.Image, x, y, w, h float64, clr color.RGBA) {
 	ebitenutil.DrawRect(screen, x, y+h-thickness, w, thickness, clr)
 	ebitenutil.DrawRect(screen, x, y, thickness, h, clr)
 	ebitenutil.DrawRect(screen, x+w-thickness, y, thickness, h, clr)
+}
+
+func blendRGBA(a, b color.RGBA, factor float64) color.RGBA {
+	if factor < 0 {
+		factor = 0
+	}
+	if factor > 1 {
+		factor = 1
+	}
+	inv := 1.0 - factor
+	return color.RGBA{
+		R: uint8(float64(a.R)*inv + float64(b.R)*factor),
+		G: uint8(float64(a.G)*inv + float64(b.G)*factor),
+		B: uint8(float64(a.B)*inv + float64(b.B)*factor),
+		A: uint8(float64(a.A)*inv + float64(b.A)*factor),
+	}
+}
+
+func withAlpha(col color.RGBA, alpha uint8) color.RGBA {
+	col.A = alpha
+	return col
+}
+
+func drawEntityBadge(screen *ebiten.Image, x, y float64, label string, tint color.RGBA) {
+	bg := color.RGBA{R: 10, G: 12, B: 16, A: 210}
+	ebitenutil.DrawRect(screen, x, y, 30, 12, bg)
+	ebitenutil.DrawRect(screen, x, y, 30, 2, tint)
+	ebitenutil.DrawRect(screen, x, y+10, 30, 2, tint)
+	drawUIText(screen, label, int(x+2), int(y+2), color.RGBA{R: 245, G: 245, B: 245, A: 255})
 }
 
 // enqueueTokens adds token-layer draw commands for each connected player.
@@ -617,6 +728,7 @@ func (g *Game) drawConnectionBanner(screen *ebiten.Image, connected bool) {
 
 // drawDoomCounter renders the global doom track (0–12) on the right side.
 func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
+	ebitenutil.DrawRect(screen, float64(rightPanelX()-10), 42, 386, 56, color.RGBA{R: 12, G: 14, B: 24, A: 214})
 	label := g.doomLabel(gs.Doom)
 	drawUIText(screen, label, rightPanelX(), 60, color.White)
 
@@ -643,31 +755,82 @@ func (g *Game) doomBarColors() (bg, fg color.RGBA) {
 
 // drawPlayerPanel renders resource levels for all players on the right side.
 func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID string) {
-	y := 110
-	drawUIText(screen, g.phaseLabel(gs.GamePhase), rightPanelX(), y, color.White)
-	y += 14
+	panelX := rightPanelX() - 10
+	panelY := 110
+	panelW := 386
+	ebitenutil.DrawRect(screen, float64(panelX), float64(panelY), float64(panelW), 188, color.RGBA{R: 12, G: 14, B: 24, A: 214})
+	drawUIText(screen, "Turn Overview", rightPanelX(), panelY+8, color.RGBA{R: 238, G: 240, B: 252, A: 255})
+	drawUIText(screen, g.phaseLabel(gs.GamePhase), rightPanelX()+120, panelY+8, color.RGBA{R: 182, G: 212, B: 255, A: 255})
 
+	if len(gs.TurnOrder) == 0 {
+		drawUIText(screen, "Waiting for players...", rightPanelX(), panelY+28, color.White)
+		return
+	}
+
+	y := panelY + 26
 	for i, pid := range gs.TurnOrder {
 		p, ok := gs.Players[pid]
 		if !ok {
 			continue
 		}
-		col := playerColours[i%len(playerColours)]
-		label := g.playerPanelLabel(pid, gs.CurrentPlayer, myID, p)
-		label = trimToWidth(label, 360)
-
-		// Draw background highlight for current player.
-		if pid == gs.CurrentPlayer {
-			ebitenutil.DrawRect(screen, float64(rightPanelX()-2), float64(y-1), 370, 13,
-				color.RGBA{R: col.R / 4, G: col.G / 4, B: col.B / 4, A: 255})
+		y += g.drawPlayerPanelRow(screen, y, pid, p, myID, gs.CurrentPlayer)
+		if i >= 5 {
+			break
 		}
-		drawUIText(screen, label, rightPanelX(), y, color.White)
-		y += 14
 	}
+}
 
-	if len(gs.TurnOrder) == 0 {
-		drawUIText(screen, "Waiting for players...", rightPanelX(), y, color.White)
+func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *ebclient.Player, myID, currentPlayer string) int {
+	const cardH = 24
+	fill, border := playerRowStyle(pid == currentPlayer)
+	ebitenutil.DrawRect(screen, float64(rightPanelX()-4), float64(y), 374, float64(cardH), fill)
+	drawTileBorder(screen, float64(rightPanelX()-4), float64(y), 374, float64(cardH), border)
+
+	name := trimToWidth(g.playerDisplayNameFromPlayer(pid, p), 150)
+	if pid == myID {
+		name += " (you)"
 	}
+	turnGlyph := " "
+	if pid == currentPlayer {
+		turnGlyph = g.iconLabel(ui.IconTurn, ">")
+	}
+	drawUIText(screen, turnGlyph+" "+name, rightPanelX(), y+6, color.White)
+
+	pillX := rightPanelX() + 162
+	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconHealth, "HP"), p.Resources.Health, color.RGBA{R: 200, G: 82, B: 82, A: 255})
+	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, color.RGBA{R: 90, G: 160, B: 232, A: 255})
+	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, color.RGBA{R: 86, G: 194, B: 122, A: 255})
+	g.drawResourcePill(screen, pillX, y+4, "ACT", p.ActionsRemaining, color.RGBA{R: 228, G: 197, B: 102, A: 255})
+return cardH + 5
+}
+
+func playerRowStyle(isCurrent bool) (color.RGBA, color.RGBA) {
+	if isCurrent {
+		return color.RGBA{R: 58, G: 70, B: 110, A: 228}, color.RGBA{R: 220, G: 232, B: 255, A: 250}
+	}
+	return color.RGBA{R: 24, G: 28, B: 38, A: 210}, color.RGBA{R: 98, G: 112, B: 148, A: 230}
+}
+
+func (g *Game) drawResourcePill(screen *ebiten.Image, x, y int, icon string, value int, accent color.RGBA) int {
+	if icon == "" {
+		icon = "?"
+	}
+	label := icon + ":" + strconv.Itoa(value)
+	width := textWidth(label) + 12
+	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(width), 14, color.RGBA{R: 10, G: 12, B: 20, A: 220})
+	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(width), 2, accent)
+	drawUIText(screen, label, x+4, y+3, color.RGBA{R: 245, G: 247, B: 252, A: 255})
+	return x + width + 4
+}
+
+func (g *Game) iconLabel(id ui.IconID, fallback string) string {
+	if g.icons == nil {
+		return fallback
+	}
+	if label := g.icons.Get(id); label != "" {
+		return label
+	}
+	return fallback
 }
 
 func (g *Game) playerPanelLabel(pid, currentPlayer, myID string, p *ebclient.Player) string {
@@ -1016,6 +1179,37 @@ func (g *Game) hasOpenGateAt(gs ebclient.GameState, loc ebclient.Location) bool 
 		}
 	}
 	return false
+}
+
+func (g *Game) countEnemiesAt(gs ebclient.GameState, loc ebclient.Location) int {
+	count := 0
+	for _, enemy := range gs.Enemies {
+		if enemy != nil && enemy.Location == loc {
+			count++
+		}
+	}
+	return count
+}
+
+func (g *Game) countGatesAt(gs ebclient.GameState, loc ebclient.Location) int {
+	count := 0
+	for _, gate := range gs.OpenGates {
+		if gate.Location == loc {
+			count++
+		}
+	}
+	return count
+}
+
+func (g *Game) countPlayersAt(gs ebclient.GameState, loc ebclient.Location) int {
+	count := 0
+	for _, pid := range gs.TurnOrder {
+		p := gs.Players[pid]
+		if p != nil && p.Connected && p.Location == loc {
+			count++
+		}
+	}
+	return count
 }
 
 func (g *Game) wardDetail(turnActive bool, remaining, sanity int) string {

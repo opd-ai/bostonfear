@@ -163,10 +163,10 @@ func (a *Atlas) generatePlaceholderAtlas() {
 
 	placeholderColours := [spriteCount]color.RGBA{
 		SpriteBackground:         {R: 15, G: 15, B: 25, A: 255},
-		SpriteLocationDowntown:   {R: 60, G: 80, B: 140, A: 255},
-		SpriteLocationUniversity: {R: 60, G: 120, B: 80, A: 255},
-		SpriteLocationRivertown:  {R: 120, G: 60, B: 60, A: 255},
-		SpriteLocationNorthside:  {R: 100, G: 80, B: 140, A: 255},
+		SpriteLocationDowntown:   {R: 40, G: 78, B: 132, A: 255},
+		SpriteLocationUniversity: {R: 34, G: 109, B: 74, A: 255},
+		SpriteLocationRivertown:  {R: 128, G: 66, B: 53, A: 255},
+		SpriteLocationNorthside:  {R: 112, G: 76, B: 140, A: 255},
 		SpritePlayerToken:        {R: 255, G: 220, B: 50, A: 255},
 		SpriteDoomMarker:         {R: 200, G: 40, B: 40, A: 255},
 		SpriteActionOverlay:      {R: 255, G: 255, B: 255, A: 80},

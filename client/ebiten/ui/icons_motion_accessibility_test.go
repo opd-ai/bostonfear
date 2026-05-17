@@ -35,7 +35,7 @@ func TestThemeContrastBaseline(t *testing.T) {
 func TestTokenRegistryRequiredEntries(t *testing.T) {
 	tokens := NewDefaultArkhamTheme()
 	requiredColors := []string{
-		"color-bg-dark", "color-surface", "color-health", "color-sanity", "color-clues", "color-doom",
+		"color-bg-dark", "color-surface", "color-surface-elevated", "color-health", "color-sanity", "color-clues", "color-doom",
 	}
 	fallback := Color{R: 255, G: 255, B: 255, A: 255} // Default white fallback from GetColor
 	for _, key := range requiredColors {
@@ -46,5 +46,19 @@ func TestTokenRegistryRequiredEntries(t *testing.T) {
 	}
 	if tokens.GetTypography("body") == nil {
 		t.Fatal("missing required typography token: body")
+	}
+	if got := tokens.GetSpacing("md"); got <= 0 {
+		t.Fatalf("missing required spacing token: md (got %f)", got)
+	}
+	if tokens.GetElevation("surface-raised") == nil {
+		t.Fatal("missing required elevation token: surface-raised")
+	}
+	if tokens.GetIconStyle("icon-action") == nil {
+		t.Fatal("missing required icon style token: icon-action")
+	}
+	base := tokens.GetSemanticColor("surface-base")
+	elevated := tokens.GetSemanticColor("surface-elevated")
+	if base == elevated {
+		t.Fatal("surface semantic colors should differ for hierarchy")
 	}
 }

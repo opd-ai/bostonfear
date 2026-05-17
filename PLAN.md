@@ -30,12 +30,12 @@
 - [ ] Interface and board visuals reach modern indie readability and atmosphere standards.
 
 ### Technical Checklist
-- [ ] Establish visual direction tokens (color roles, typography scale, icon style, spacing scale, elevation/surface rules). Targets: client/ebiten/ui, client/ebiten/render.
-- [ ] Refresh board readability (clear district boundaries, stronger interactable contrast, reduced decorative noise). Targets: client/ebiten/render, client/ebiten/app/game.go.
-- [ ] Upgrade entity readability (distinct silhouettes and contrast for players, gates, enemies, interactables). Targets: client/ebiten/render.
-- [ ] Modernize HUD hierarchy (icon-first status, grouped panels, reduced text wall, stronger turn/action emphasis). Targets: client/ebiten/app/game.go, client/ebiten/ui.
-- [ ] Improve atmospheric coherence (doom-reactive fog, vignette, and lighting tuned for clarity-first). Targets: client/ebiten/render/shaders, client/ebiten/render.
-- [ ] Add scene/camera transition system (smooth fades and camera interpolation rather than abrupt state jumps). Targets: client/ebiten/app/scenes.go, client/ebiten/app/game.go.
+- [x] Establish visual direction tokens (color roles, typography scale, icon style, spacing scale, elevation/surface rules). Targets: client/ebiten/ui, client/ebiten/render.
+- [x] Refresh board readability (clear district boundaries, stronger interactable contrast, reduced decorative noise). Targets: client/ebiten/render, client/ebiten/app/game.go.
+- [x] Upgrade entity readability (distinct silhouettes and contrast for players, gates, enemies, interactables). Targets: client/ebiten/render.
+- [x] Modernize HUD hierarchy (icon-first status, grouped panels, reduced text wall, stronger turn/action emphasis). Targets: client/ebiten/app/game.go, client/ebiten/ui.
+- [x] Improve atmospheric coherence (doom-reactive fog, vignette, and lighting tuned for clarity-first). Targets: client/ebiten/render/shaders, client/ebiten/render.
+- [x] Add scene/camera transition system (smooth fades and camera interpolation rather than abrupt state jumps). Targets: client/ebiten/app/scenes.go, client/ebiten/app/game.go.
 
 ### UX Acceptance Criteria
 - [ ] Critical game information is readable at gameplay distance in <=2 seconds.
@@ -48,7 +48,7 @@
 - [ ] Interaction quality feels responsive, consistent, and teachable across all scenes.
 
 ### Technical Checklist
-- [ ] Add full interaction state feedback (hover, pressed, disabled, invalid, success, failure) across all interactive controls. Targets: client/ebiten/app/game.go, client/ebiten/ui.
+- [x] Add full interaction state feedback (hover, pressed, disabled, invalid, success, failure) across all interactive controls. Targets: client/ebiten/app/game.go, client/ebiten/ui.
 - [ ] Add action outcome feedback loops (dice anticipation, result reveal, doom/resource delta callouts). Targets: client/ebiten/app/game.go, client/ebiten/render.
 - [ ] Add micro-animations for state changes (health, sanity, clues, doom, turn handoff). Targets: client/ebiten/render, client/ebiten/app/game.go.
 - [ ] Add contextual first-session guidance (coach marks for turn order, legal moves, action costs, objective cues). Targets: client/ebiten/app/scenes.go, client/ebiten/app/game.go.
