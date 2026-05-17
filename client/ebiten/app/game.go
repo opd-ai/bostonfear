@@ -97,6 +97,15 @@ var playerColours = []color.RGBA{
 	{R: 164, G: 132, B: 222, A: 255}, // Player 6: purple/violet
 }
 
+var colorblindPlayerColours = []color.RGBA{
+	{R: 230, G: 159, B: 0, A: 255},
+	{R: 86, G: 180, B: 233, A: 255},
+	{R: 0, G: 158, B: 115, A: 255},
+	{R: 240, G: 228, B: 66, A: 255},
+	{R: 0, G: 114, B: 178, A: 255},
+	{R: 213, G: 94, B: 0, A: 255},
+}
+
 // Game implements the ebiten.Game interface and drives the Arkham Horror client.
 // Update processes input and network events each tick; Draw renders the board.
 // The layered renderer composites board, tokens, effects, UI, and animations in
@@ -129,6 +138,8 @@ type Game struct {
 	uiCache     uiStringCache
 	animState   hudAnimationState
 	coachTicks  int
+
+	colorblindMode bool
 }
 
 type playerResourceSnapshot struct {
@@ -148,6 +159,7 @@ type hudAnimationState struct {
 
 	resourceSnapshot map[string]playerResourceSnapshot
 	resourceFlash    map[string]int
+	resourceDelta    map[string]int
 
 	lastOutcomeKey   string
 	resultRollFrames int
@@ -190,10 +202,13 @@ func NewGame(serverURL string) *Game {
 		stateBanner: ui.NewStateVisibilityWidget(),
 		results:     hud.NewResultsPanel(),
 		camera:      ui.NewCamera(),
-		startedAt:   time.Now(),
+		colorblindMode: strings.EqualFold(strings.TrimSpace(os.Getenv("BOSTONFEAR_COLORBLIND_MODE")), "1") ||
+			strings.EqualFold(strings.TrimSpace(os.Getenv("BOSTONFEAR_COLORBLIND_MODE")), "true"),
+		startedAt: time.Now(),
 		animState: hudAnimationState{
 			resourceSnapshot: make(map[string]playerResourceSnapshot),
 			resourceFlash:    make(map[string]int),
+			resourceDelta:    make(map[string]int),
 		},
 	}
 	g.boardView = ui.NewBoardView(g.camera, 210, 190)
@@ -279,6 +294,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.drawResultsPanel(screen)
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
+	g.drawShortcutHelp(screen)
 	g.drawCoachMarks(screen, gs, playerID)
 	g.drawCameraControls(screen)
 	g.drawOnboarding(screen)
@@ -328,6 +344,11 @@ func (g *Game) applyPostProcess(screen *ebiten.Image, doom int) {
 	}
 	if doom > 0 {
 		render.DrawDoomVignette(screen, g.shaders, float32(doom)/12)
+	}
+	if g.animState.doomFlashFrames > 0 {
+		flicker := 0.45 + 0.55*math.Sin(float64(g.frameCount)/2.7)
+		alpha := uint8(min(72, int(float64(g.animState.doomFlashFrames)*3.0*flicker)))
+		ebitenutil.DrawRect(screen, 0, 0, screenWidth, screenHeight, color.RGBA{R: 92, G: 12, B: 12, A: alpha})
 	}
 }
 
@@ -408,6 +429,12 @@ func (g *Game) updateUXWidgets(gs ebclient.GameState, connected bool) {
 	if key == g.lastOutcome {
 		return
 	}
+	if strings.TrimSpace(update.PlayerID) != "" {
+		pid := update.PlayerID
+		g.animState.resourceDelta[pid+":health"] = update.ResourceDelta.Health
+		g.animState.resourceDelta[pid+":sanity"] = update.ResourceDelta.Sanity
+		g.animState.resourceDelta[pid+":clues"] = update.ResourceDelta.Clues
+	}
 	g.lastOutcome = key
 	g.animState.lastOutcomeKey = key
 	g.animState.resultRollFrames = 20
@@ -462,18 +489,38 @@ func (g *Game) drawResultsPanel(screen *ebiten.Image) {
 	if g.results == nil || !g.results.IsVisible() {
 		return
 	}
-	ebitenutil.DrawRect(screen, 8, 24, 420, 118, color.RGBA{R: 30, G: 30, B: 40, A: 220})
+	outcome := g.results.CurrentOutcome()
+	if outcome == nil {
+		return
+	}
+	panelX := (screenWidth - 420) / 2
+	panelY := 26
+	alpha := uint8(230)
+	if g.animState.resultFadeFrames > 18 {
+		alpha = uint8(min(230, (28-g.animState.resultFadeFrames)*24))
+	}
+	bg := color.RGBA{R: 30, G: 30, B: 40, A: alpha}
+	border := color.RGBA{R: 180, G: 196, B: 228, A: 255}
+	if outcome.Successful {
+		bg = color.RGBA{R: 28, G: 74, B: 56, A: alpha}
+		border = color.RGBA{R: 164, G: 234, B: 184, A: 255}
+	} else {
+		bg = color.RGBA{R: 92, G: 38, B: 40, A: alpha}
+		border = color.RGBA{R: 248, G: 172, B: 168, A: 255}
+	}
+	ebitenutil.DrawRect(screen, float64(panelX), float64(panelY), 420, 118, bg)
+	drawTileBorder(screen, float64(panelX), float64(panelY), 420, 118, border)
 
 	// Draw outcome, resource delta, doom change, and dice text with wrapping instead of truncation.
-	y := 30
-	y = drawWrappedText(screen, g.results.OutcomeText(), 400, 14, y, color.White) + 3
-	y = drawWrappedText(screen, g.results.ResourceDeltaText(), 400, 14, y, color.RGBA{R: 210, G: 230, B: 255, A: 255}) + 2
-	y = drawWrappedText(screen, g.results.DoomChangeText(), 400, 14, y, color.RGBA{R: 255, G: 210, B: 180, A: 255}) + 2
-	drawWrappedText(screen, g.results.DiceText(), 400, 14, y, color.RGBA{R: 220, G: 240, B: 255, A: 255})
-	g.drawDiceResultVisualization(screen)
+	y := panelY + 6
+	y = drawWrappedText(screen, g.results.OutcomeText(), 400, panelX+8, y, color.White) + 3
+	y = drawWrappedText(screen, g.results.ResourceDeltaText(), 400, panelX+8, y, color.RGBA{R: 230, G: 236, B: 245, A: 255}) + 2
+	y = drawWrappedText(screen, g.results.DoomChangeText(), 400, panelX+8, y, color.RGBA{R: 255, G: 214, B: 190, A: 255}) + 2
+	drawWrappedText(screen, g.results.DiceText(), 400, panelX+8, y, color.RGBA{R: 230, G: 240, B: 255, A: 255})
+	g.drawDiceResultVisualization(screen, panelX, panelY)
 }
 
-func (g *Game) drawDiceResultVisualization(screen *ebiten.Image) {
+func (g *Game) drawDiceResultVisualization(screen *ebiten.Image, panelX, panelY int) {
 	outcome := g.results.CurrentOutcome()
 	if outcome == nil || outcome.DiceRoll == nil || len(outcome.DiceRoll.Dice) == 0 {
 		return
@@ -487,7 +534,7 @@ func (g *Game) drawDiceResultVisualization(screen *ebiten.Image) {
 
 	count := len(outcome.DiceRoll.Dice)
 	rowW := count*diceSize + (count-1)*diceGap
-	startX := 16 + (404-rowW)/2
+	startX := panelX + 8 + (404-rowW)/2
 
 	rollFrames := g.animState.resultRollFrames
 	fadeFrames := g.animState.resultFadeFrames
@@ -498,7 +545,7 @@ func (g *Game) drawDiceResultVisualization(screen *ebiten.Image) {
 
 	for i, die := range outcome.DiceRoll.Dice {
 		x := float64(startX + i*(diceSize+diceGap))
-		y := float64(baseY)
+		y := float64(panelY + baseY - 24)
 		if rollFrames > 0 {
 			phase := float64(g.frameCount+int64(i*5)) / 3.8
 			y += math.Sin(phase) * 3
@@ -512,7 +559,7 @@ func (g *Game) drawDiceResultVisualization(screen *ebiten.Image) {
 		status = "Failed - Doom +1"
 		statusColor = color.RGBA{R: 255, G: 168, B: 150, A: alpha}
 	}
-	drawUIText(screen, status, 282, 112, statusColor)
+	drawUIText(screen, status, panelX+274, panelY+88, statusColor)
 }
 
 func (g *Game) drawDiceFace(screen *ebiten.Image, x, y, size float64, outcome string, alpha uint8) {
@@ -632,7 +679,7 @@ func (g *Game) drawCameraControls(screen *ebiten.Image) {
 	}
 	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), float64(controls.left.Dx()), float64(controls.left.Dy()), leftFill)
 	drawTileBorder(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), float64(controls.left.Dx()), float64(controls.left.Dy()), leftBorder)
-	drawUIText(screen, "<", controls.left.Min.X+18, controls.left.Min.Y+16, color.White)
+	drawUIText(screen, "< Left", controls.left.Min.X+7, controls.left.Min.Y+16, highContrastText(leftFill))
 
 	rightFill := color.RGBA{R: 32, G: 36, B: 50, A: 245}
 	rightBorder := color.RGBA{R: 156, G: 176, B: 218, A: 255}
@@ -644,7 +691,7 @@ func (g *Game) drawCameraControls(screen *ebiten.Image) {
 	}
 	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), float64(controls.right.Dx()), float64(controls.right.Dy()), rightFill)
 	drawTileBorder(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), float64(controls.right.Dx()), float64(controls.right.Dy()), rightBorder)
-	drawUIText(screen, ">", controls.right.Min.X+18, controls.right.Min.Y+16, color.White)
+	drawUIText(screen, "Right >", controls.right.Min.X+5, controls.right.Min.Y+16, highContrastText(rightFill))
 
 	toggleFill := color.RGBA{R: 40, G: 58, B: 80, A: 245}
 	toggleBorder := color.RGBA{R: 188, G: 214, B: 255, A: 255}
@@ -656,7 +703,7 @@ func (g *Game) drawCameraControls(screen *ebiten.Image) {
 	}
 	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), float64(controls.toggle.Dx()), float64(controls.toggle.Dy()), toggleFill)
 	drawTileBorder(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), float64(controls.toggle.Dx()), float64(controls.toggle.Dy()), toggleBorder)
-	drawUIText(screen, "V", controls.toggle.Min.X+18, controls.toggle.Min.Y+16, color.White)
+	drawUIText(screen, "View (V)", controls.toggle.Min.X+4, controls.toggle.Min.Y+16, highContrastText(toggleFill))
 
 	tooltip := ""
 	if leftHovered {
@@ -671,6 +718,16 @@ func (g *Game) drawCameraControls(screen *ebiten.Image) {
 	if tooltip != "" {
 		drawUIText(screen, tooltip, controls.left.Min.X-4, controls.left.Max.Y+4, color.RGBA{R: 220, G: 232, B: 255, A: 255})
 	}
+}
+
+func (g *Game) drawShortcutHelp(screen *ebiten.Image) {
+	panel := image.Rect(screenWidth-250, screenHeight-124, screenWidth-8, screenHeight-8)
+	drawStyledPanel(screen, panel, panelStyle{radius: 10}, "Shortcut Help", "Keyboard quick reference")
+	drawUIText(screen, "Move: [1][2][3][4]", panel.Min.X+10, panel.Min.Y+30, color.RGBA{R: 238, G: 242, B: 252, A: 255})
+	drawUIText(screen, "Actions: G I W F R T C A E X N", panel.Min.X+10, panel.Min.Y+46, color.RGBA{R: 218, G: 228, B: 248, A: 255})
+	drawUIText(screen, "Focus: Tab / Shift+Tab / Arrows", panel.Min.X+10, panel.Min.Y+62, color.RGBA{R: 208, G: 220, B: 244, A: 255})
+	drawUIText(screen, "Activate: Enter or Space", panel.Min.X+10, panel.Min.Y+78, color.RGBA{R: 208, G: 220, B: 244, A: 255})
+	drawUIText(screen, "Camera: [ and ] / V", panel.Min.X+10, panel.Min.Y+94, color.RGBA{R: 198, G: 214, B: 236, A: 255})
 }
 
 // enqueueBoard adds one board-layer draw command per location.
@@ -934,7 +991,7 @@ func (g *Game) drawInvestigatorTokens(screen *ebiten.Image, gs ebclient.GameStat
 		offset := occupants[p.Location]
 		occupants[p.Location]++
 		colourIdx := playerColourIndex(pid, gs.TurnOrder)
-		base := atmosphericPlayerColour(colourIdx)
+		base := g.playerBaseColour(colourIdx)
 
 		tokenX := float64(rect.x + 26 + (offset%3)*38)
 		tokenY := float64(rect.y + rect.h - 22 - (offset/3)*36)
@@ -1025,8 +1082,12 @@ func investigatorSymbol(p *ebclient.Player) string {
 	return "I"
 }
 
-func atmosphericPlayerColour(index int) color.RGBA {
-	base := playerColours[index%len(playerColours)]
+func (g *Game) playerBaseColour(index int) color.RGBA {
+	palette := playerColours
+	if g != nil && g.colorblindMode {
+		palette = colorblindPlayerColours
+	}
+	base := palette[index%len(palette)]
 	shadow := color.RGBA{R: 18, G: 20, B: 28, A: 255}
 	return blendRGBA(base, shadow, 0.18)
 }
@@ -1058,7 +1119,16 @@ func (g *Game) drawConnectionBanner(screen *ebiten.Image, connected bool) {
 	if connected {
 		return
 	}
-	drawUIText(screen, "[ Connecting to server... ]", screenWidth/2-90, 38, color.White)
+	phase := int((g.frameCount / 8) % 3)
+	spinner := []string{".", "..", "..."}[phase]
+	drawUIText(screen, "[ Reconnecting"+spinner+" ]", screenWidth/2-90, 38, color.White)
+	pulse := 0.5 + 0.5*math.Sin(float64(g.frameCount)/5.0)
+	alpha := uint8(130 + int(70*pulse))
+	badgeW := 248.0
+	badgeX := float64(screenWidth) - badgeW - 12
+	ebitenutil.DrawRect(screen, badgeX, 8, badgeW, 18, color.RGBA{R: 110, G: 72, B: 18, A: alpha})
+	drawTileBorder(screen, badgeX, 8, badgeW, 18, color.RGBA{R: 255, G: 214, B: 120, A: 255})
+	drawUIText(screen, "Connection lost - Attempting to reconnect...", int(badgeX)+8, 11, color.RGBA{R: 255, G: 244, B: 220, A: 255})
 }
 
 // drawDoomCounter renders the global doom track (0–12) on the right side.
@@ -1269,6 +1339,7 @@ func (g *Game) advanceHUDAnimations(gs ebclient.GameState) {
 	for key, frames := range g.animState.resourceFlash {
 		if frames <= 1 {
 			delete(g.animState.resourceFlash, key)
+			delete(g.animState.resourceDelta, key)
 			continue
 		}
 		g.animState.resourceFlash[key] = frames - 1
@@ -1463,13 +1534,36 @@ func (g *Game) drawResourceRail(screen *ebiten.Image, gs ebclient.GameState, myI
 	clueCol := g.tokenOrDefault("color-clues", color.RGBA{R: 214, G: 176, B: 78, A: 255})
 
 	drawUIText(screen, g.iconLabel(ui.IconHealth, "HP")+" "+strconv.Itoa(player.Resources.Health), rail.Min.X+10, rail.Min.Y+30, color.White)
+	g.drawResourceDelta(screen, myID, "health", rail.Min.X+160, rail.Min.Y+30)
 	g.drawSegmentedBar(screen, rail.Min.X+74, rail.Min.Y+32, 10, player.Resources.Health, 12, 4, healthCol)
 
 	drawUIText(screen, g.iconLabel(ui.IconSanity, "SN")+" "+strconv.Itoa(player.Resources.Sanity), rail.Min.X+10, rail.Min.Y+52, color.White)
+	g.drawResourceDelta(screen, myID, "sanity", rail.Min.X+160, rail.Min.Y+52)
 	g.drawSegmentedBar(screen, rail.Min.X+74, rail.Min.Y+54, 10, player.Resources.Sanity, 12, 4, sanityCol)
 
 	drawUIText(screen, g.iconLabel(ui.IconClues, "CL")+" "+strconv.Itoa(player.Resources.Clues), rail.Min.X+10, rail.Min.Y+74, color.White)
+	g.drawResourceDelta(screen, myID, "clues", rail.Min.X+160, rail.Min.Y+74)
 	g.drawSegmentedBar(screen, rail.Min.X+74, rail.Min.Y+76, 5, player.Resources.Clues, 24, 6, clueCol)
+}
+
+func (g *Game) drawResourceDelta(screen *ebiten.Image, playerID, stat string, x, y int) {
+	key := playerID + ":" + stat
+	frames := g.animState.resourceFlash[key]
+	if frames <= 0 {
+		return
+	}
+	delta := g.animState.resourceDelta[key]
+	if delta == 0 {
+		return
+	}
+	prefix := "+"
+	col := color.RGBA{R: 160, G: 240, B: 170, A: 255}
+	if delta < 0 {
+		prefix = ""
+		col = color.RGBA{R: 255, G: 176, B: 166, A: 255}
+	}
+	col.A = uint8(min(255, 80+frames*8))
+	drawUIText(screen, prefix+strconv.Itoa(delta), x, y, col)
 }
 
 func (g *Game) drawSegmentedBar(screen *ebiten.Image, x, y, maxSegments, filled, segW, gap int, fill color.RGBA) {
@@ -2145,16 +2239,24 @@ func (g *Game) countPlayersAt(gs ebclient.GameState, loc ebclient.Location) int 
 }
 
 func locationPanelRect() image.Rectangle {
+	if currentUILayoutProfile() == layoutPortraitMobile {
+		return image.Rect(rightPanelX()-10, 252, rightPanelX()-10+386, 516)
+	}
 	return image.Rect(rightPanelX()-10, 304, rightPanelX()-10+386, 472)
 }
 
 func locationPanelButtonRect(index int) image.Rectangle {
 	panel := locationPanelRect()
-	const (
-		buttonWidth  = 178
-		buttonHeight = 64
-		gap          = 8
-	)
+	buttonWidth := 178
+	buttonHeight := 64
+	gap := 8
+	if currentUILayoutProfile() == layoutPortraitMobile {
+		buttonWidth = panel.Dx() - 20
+		buttonHeight = 54
+		x := panel.Min.X + 10
+		y := panel.Min.Y + 32 + index*(buttonHeight+gap)
+		return image.Rect(x, y, x+buttonWidth, y+buttonHeight)
+	}
 	col := index % 2
 	row := index / 2
 	x := panel.Min.X + 10 + col*(buttonWidth+gap)
@@ -2264,6 +2366,33 @@ func countConnectedPlayersAt(gs ebclient.GameState, loc ebclient.Location) int {
 		}
 	}
 	return count
+}
+
+type layoutProfile string
+
+const (
+	layoutPortraitMobile  layoutProfile = "portrait-mobile"
+	layoutLandscapeMobile layoutProfile = "landscape-mobile"
+	layoutTablet          layoutProfile = "tablet"
+	layoutDesktop         layoutProfile = "desktop"
+)
+
+func currentUILayoutProfile() layoutProfile {
+	w, h := ebiten.WindowSize()
+	if w <= 0 || h <= 0 {
+		w = screenWidth
+		h = screenHeight
+	}
+	if w < 480 && h > w {
+		return layoutPortraitMobile
+	}
+	if w < 800 {
+		return layoutLandscapeMobile
+	}
+	if w < 1200 {
+		return layoutTablet
+	}
+	return layoutDesktop
 }
 
 func (g *Game) wardDetail(turnActive bool, remaining, sanity int) string {
@@ -2433,4 +2562,42 @@ func min8(a, b uint8) uint8 {
 		return a
 	}
 	return b
+}
+
+func highContrastText(bg color.RGBA) color.RGBA {
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	ink := color.RGBA{R: 18, G: 22, B: 28, A: 255}
+	if contrastRatio(bg, white) >= 4.5 {
+		return white
+	}
+	if contrastRatio(bg, ink) >= 4.5 {
+		return ink
+	}
+	if contrastRatio(bg, white) > contrastRatio(bg, ink) {
+		return white
+	}
+	return ink
+}
+
+func contrastRatio(bg, fg color.RGBA) float64 {
+	lbg := relativeLuminance(bg)
+	lfg := relativeLuminance(fg)
+	if lbg < lfg {
+		lbg, lfg = lfg, lbg
+	}
+	return (lbg + 0.05) / (lfg + 0.05)
+}
+
+func relativeLuminance(c color.RGBA) float64 {
+	toLinear := func(v uint8) float64 {
+		s := float64(v) / 255.0
+		if s <= 0.03928 {
+			return s / 12.92
+		}
+		return math.Pow((s+0.055)/1.055, 2.4)
+	}
+	r := toLinear(c.R)
+	g := toLinear(c.G)
+	b := toLinear(c.B)
+	return 0.2126*r + 0.7152*g + 0.0722*b
 }

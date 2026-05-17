@@ -154,6 +154,9 @@ func (h *InputHandler) handleFocusNavigation() {
 	if len(h.focusOrder) == 0 || h.state == nil {
 		return
 	}
+	if h.handleArrowFocusNavigation() {
+		return
+	}
 	if !inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 		return
 	}
@@ -165,13 +168,83 @@ func (h *InputHandler) handleFocusNavigation() {
 	h.state.SetFocusedActionHint(h.focusOrder[h.focusIndex])
 }
 
+func (h *InputHandler) handleArrowFocusNavigation() bool {
+	focus := h.state.FocusedActionHint()
+	if focus == "" {
+		return false
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
+		h.state.SetFocusedActionHint(nextFocusByDirection(focus, -1, 0))
+		return true
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
+		h.state.SetFocusedActionHint(nextFocusByDirection(focus, 1, 0))
+		return true
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
+		h.state.SetFocusedActionHint(nextFocusByDirection(focus, 0, -1))
+		return true
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
+		h.state.SetFocusedActionHint(nextFocusByDirection(focus, 0, 1))
+		return true
+	}
+	return false
+}
+
 func (h *InputHandler) handleFocusedActionActivate(gs ebclient.GameState, playerID string) {
-	if !inpututil.IsKeyJustPressed(ebiten.KeyEnter) || len(h.focusOrder) == 0 {
+	if len(h.focusOrder) == 0 {
+		return
+	}
+	if !inpututil.IsKeyJustPressed(ebiten.KeyEnter) && !inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		return
 	}
 	id := h.focusOrder[h.focusIndex]
 	h.markPressedHint(id)
 	_ = h.dispatchTouchHitBox(gs, playerID, id)
+}
+
+func nextFocusByDirection(current string, dx, dy int) string {
+	locationGrid := [][]string{{"Downtown", "University"}, {"Rivertown", "Northside"}}
+	actionGrid := actionGridRows()
+
+	if id, ok := moveInGrid(locationGrid, current, dx, dy); ok {
+		return id
+	}
+	if id, ok := moveInGrid(actionGrid, current, dx, dy); ok {
+		return id
+	}
+	return current
+}
+
+func moveInGrid(grid [][]string, current string, dx, dy int) (string, bool) {
+	row, col, ok := findInGrid(grid, current)
+	if !ok {
+		return "", false
+	}
+	nr := max(0, min(len(grid)-1, row+dy))
+	nc := max(0, min(len(grid[nr])-1, col+dx))
+	if grid[nr][nc] == "" {
+		for step := 0; step < len(grid[nr]); step++ {
+			idx := max(0, min(len(grid[nr])-1, nc+step*dx))
+			if grid[nr][idx] != "" {
+				return grid[nr][idx], true
+			}
+		}
+		return current, true
+	}
+	return grid[nr][nc], true
+}
+
+func findInGrid(grid [][]string, target string) (int, int, bool) {
+	for r := range grid {
+		for c := range grid[r] {
+			if grid[r][c] == target {
+				return r, c, true
+			}
+		}
+	}
+	return 0, 0, false
 }
 
 func (h *InputHandler) handleMouseInput(gs ebclient.GameState, playerID string) {
@@ -393,7 +466,32 @@ func registerTouchActionHitBoxes(mapper *input.InputMapper) {
 
 func actionGridRows() [][]string {
 	actions := []string{"gather", "investigate", "ward", "focus", "research", "trade", "component", "attack", "evade", "closegate", "encounter"}
-	if screenWidth >= screenHeight {
+	sw, sh := ebiten.WindowSize()
+	if sw <= 0 || sh <= 0 {
+		sw, sh = screenWidth, screenHeight
+	}
+	if sw < 480 && sh > sw {
+		return [][]string{
+			actions[0:3],
+			actions[3:6],
+			actions[6:9],
+			actions[9:11],
+		}
+	}
+	if sw < 800 {
+		return [][]string{
+			actions[0:4],
+			actions[4:8],
+			actions[8:11],
+		}
+	}
+	if sw < 1200 {
+		return [][]string{
+			actions[0:6],
+			actions[6:11],
+		}
+	}
+	if sw >= sh {
 		return [][]string{actions}
 	}
 	return [][]string{
