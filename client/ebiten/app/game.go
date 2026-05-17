@@ -999,17 +999,16 @@ func (g *Game) playerPanelLabel(pid, currentPlayer, myID string, p *ebclient.Pla
 		" ACT:" + strconv.Itoa(p.ActionsRemaining)
 }
 
-// drawEventLog renders the last 8 events in the lower-right corner.
+// drawEventLog renders a compact snapshot of the latest events above the action dock.
 func (g *Game) drawEventLog(screen *ebiten.Image) {
 	entries := g.state.EventLogSnapshot()
-	y := bottomPanelY()
+	y := screenHeight - 130
 	drawUIText(screen, "-- Event Log --", rightPanelX(), y, color.White)
 	y += 12
 
-	// Show the last 8 entries.
 	start := 0
-	if len(entries) > 8 {
-		start = len(entries) - 8
+	if len(entries) > 3 {
+		start = len(entries) - 3
 	}
 	for _, e := range entries[start:] {
 		drawUIText(screen, trimToWidth(e.Text, 360), rightPanelX(), y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
@@ -1017,16 +1016,17 @@ func (g *Game) drawEventLog(screen *ebiten.Image) {
 	}
 }
 
-// drawInputHints renders a state-driven action panel in the lower-left corner.
+// drawInputHints renders the bottom action dock and its compact status line.
 func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	panelX := 10
-	panelY := bottomPanelY()
-	panelW := 360
-	panelH := 130
-	ebitenutil.DrawRect(screen, float64(panelX-2), float64(panelY-2), float64(panelW), float64(panelH), color.RGBA{R: 10, G: 12, B: 20, A: 210})
+	panelY := screenHeight - 124
+	panelW := screenWidth - 20
+	panelH := 124
+	ebitenutil.DrawRect(screen, float64(panelX), float64(panelY), float64(panelW), float64(panelH), color.RGBA{R: 10, G: 12, B: 20, A: 218})
+	drawTileBorder(screen, float64(panelX), float64(panelY), float64(panelW), float64(panelH), color.RGBA{R: 96, G: 112, B: 146, A: 240})
+	drawUIText(screen, g.actionDockSummary(gs, myID), panelX+10, panelY+8, color.RGBA{R: 232, G: 238, B: 248, A: 255})
+	drawUIText(screen, trimToWidth(g.actionDockHint(gs, myID), panelW-20), panelX+10, panelY+20, color.RGBA{R: 194, G: 212, B: 238, A: 255})
 	g.drawVisibleActionButtons(screen, gs, myID)
-	g.drawActionPanelSummary(screen, gs, myID, panelX, panelY)
-	g.drawAvailableActionList(screen, gs, myID, panelX, panelY+92)
 	g.drawEndBanner(screen, gs)
 }
 
@@ -1180,48 +1180,104 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			}
 			action := availability[actionLookupKey(actionName)]
 			rect := actionGridRect(row, col)
-			fill, border, labelColor := actionButtonStyle(action.Available, actionName, focused, hovered, pressed)
+			fill, border, labelColor, detailColor := actionButtonStyle(action.Available, actionName, focused, hovered, pressed)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), fill)
-			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), 2, border)
-			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Max.Y-2), float64(rect.Dx()), 2, border)
-			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
-			ebitenutil.DrawRect(screen, float64(rect.Max.X-2), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
-			drawUIText(screen, actionDisplayLabel(actionName), rect.Min.X+10, rect.Min.Y+5, labelColor)
+			drawTileBorder(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), border)
+			drawUIText(screen, g.actionGlyph(actionName)+" "+actionDisplayLabel(actionName), rect.Min.X+8, rect.Min.Y+5, labelColor)
 			if key := actionShortcutHints[actionName]; key != "" {
-				drawUIText(screen, "["+key+"]", rect.Max.X-30, rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
+				drawUIText(screen, "Press "+key, rect.Max.X-48, rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
 			}
-			if action.Detail != "" {
-				drawUIText(screen, trimToWidth(action.Detail, rect.Dx()-16), rect.Min.X+10, rect.Min.Y+17, color.RGBA{R: 200, G: 220, B: 235, A: 255})
+			detail := trimToWidth(action.Detail, rect.Dx()-16)
+			if strings.EqualFold(actionName, hovered) || strings.EqualFold(actionName, focused) {
+				detail = trimToWidth(actionDisplayLabel(actionName)+": "+action.Detail, rect.Dx()-16)
 			}
+			drawUIText(screen, detail, rect.Min.X+8, rect.Min.Y+19, detailColor)
 		}
 	}
 }
 
-func actionButtonStyle(available bool, actionName, focused, hovered, pressed string) (color.RGBA, color.RGBA, color.RGBA) {
+func actionButtonStyle(available bool, actionName, focused, hovered, pressed string) (color.RGBA, color.RGBA, color.RGBA, color.RGBA) {
 	fill := color.RGBA{R: 24, G: 28, B: 38, A: 245}
 	border := color.RGBA{R: 110, G: 130, B: 165, A: 255}
 	labelColor := color.RGBA{R: 220, G: 220, B: 235, A: 255}
+	detailColor := color.RGBA{R: 180, G: 198, B: 220, A: 255}
 	if available {
 		fill = color.RGBA{R: 28, G: 62, B: 50, A: 245}
 		border = color.RGBA{R: 170, G: 240, B: 190, A: 255}
 		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+		detailColor = color.RGBA{R: 214, G: 238, B: 222, A: 255}
 	}
 	if strings.EqualFold(actionName, focused) {
 		fill = color.RGBA{R: 52, G: 54, B: 82, A: 245}
 		border = color.RGBA{R: 190, G: 202, B: 255, A: 255}
 		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+		detailColor = color.RGBA{R: 220, G: 228, B: 255, A: 255}
 	}
 	if strings.EqualFold(actionName, hovered) {
 		fill = color.RGBA{R: 58, G: 64, B: 98, A: 245}
 		border = color.RGBA{R: 206, G: 220, B: 255, A: 255}
 		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+		detailColor = color.RGBA{R: 232, G: 238, B: 255, A: 255}
 	}
 	if strings.EqualFold(actionName, pressed) {
 		fill = color.RGBA{R: 78, G: 88, B: 124, A: 245}
 		border = color.RGBA{R: 232, G: 236, B: 255, A: 255}
 		labelColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+		detailColor = color.RGBA{R: 242, G: 246, B: 255, A: 255}
 	}
-	return fill, border, labelColor
+	return fill, border, labelColor, detailColor
+}
+
+func (g *Game) actionGlyph(actionName string) string {
+	switch strings.ToLower(actionName) {
+	case "gather":
+		return g.iconLabel(ui.IconGather, "G")
+	case "investigate":
+		return g.iconLabel(ui.IconInvestigate, "I")
+	case "ward":
+		return g.iconLabel(ui.IconWard, "W")
+	case "focus":
+		return "F"
+	case "research":
+		return "R"
+	case "trade":
+		return "T"
+	case "component":
+		return "C"
+	case "attack":
+		return "A"
+	case "evade":
+		return "E"
+	case "closegate":
+		return "X"
+	case "encounter":
+		return "N"
+	default:
+		return "+"
+	}
+}
+
+func (g *Game) actionDockSummary(gs ebclient.GameState, myID string) string {
+	return "Action Dock | " + g.turnStatusLabel(gs, myID, gs.CurrentPlayer == myID && gs.GamePhase == "playing") + " | Actions left: " + strconv.Itoa(g.remainingActions(gs, myID))
+}
+
+func (g *Game) actionDockHint(gs ebclient.GameState, myID string) string {
+	hovered := strings.TrimSpace(g.state.HoveredActionHint())
+	if hovered == "" {
+		hovered = strings.TrimSpace(g.state.FocusedActionHint())
+	}
+	if hovered == "" {
+		return "Hover or focus a button to see its detail. Buttons stay visible and clickable even when unavailable."
+	}
+	for _, action := range g.availableActions(gs, myID) {
+		if actionLookupKey(action.Name) == actionLookupKey(hovered) {
+			if key := actionShortcutHints[actionLookupKey(action.Name)]; key != "" {
+				return action.Name + ": " + action.Detail + " | Press " + key
+			}
+			return action.Name + ": " + action.Detail
+		}
+	}
+	return "Hover or focus a button to see its detail."
 }
 
 func actionLookupKey(name string) string {

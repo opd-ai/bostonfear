@@ -393,26 +393,26 @@ func registerTouchActionHitBoxes(mapper *input.InputMapper) {
 
 func actionGridRows() [][]string {
 	return [][]string{
-		{"gather", "investigate"},
-		{"ward", "focus"},
-		{"research", "trade"},
-		{"component", "attack"},
-		{"evade", "closegate"},
-		{"encounter"},
+		{"gather", "investigate", "ward", "focus", "research", "trade"},
+		{"component", "attack", "evade", "closegate", "encounter", ""},
 	}
 }
 
 func actionGridRect(row, col int) image.Rectangle {
 	const (
-		actionGridOriginY    = screenHeight - 264
-		actionGridCellWidth  = 170
+		actionGridOriginX    = 10
+		actionGridOriginY    = screenHeight - 96
+		actionGridCellWidth  = 126
 		actionGridCellHeight = 44
+		actionGridGap        = 6
 	)
+	x := actionGridOriginX + col*(actionGridCellWidth+actionGridGap)
+	y := actionGridOriginY + row*(actionGridCellHeight+actionGridGap)
 	return image.Rect(
-		10+col*actionGridCellWidth,
-		actionGridOriginY+row*actionGridCellHeight,
-		10+(col+1)*actionGridCellWidth,
-		actionGridOriginY+(row+1)*actionGridCellHeight,
+		x,
+		y,
+		x+actionGridCellWidth,
+		y+actionGridCellHeight,
 	)
 }
 
