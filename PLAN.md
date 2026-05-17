@@ -211,7 +211,7 @@
   - Animation: fade-in on increase, subtle glow at max
 
 ### 3.4 Dice Result Visualization
-- [ ] Design dice result display for investigation/ward actions
+- [x] Design dice result display for investigation/ward actions
   - Show 3 individual dice with success/blank/tentacle symbols
   - Styling: cube or rounded square shape
   - Colors: success=green, blank=grey, tentacle=red/purple
@@ -220,7 +220,7 @@
   - Text: "Success!" / "Failed - Doom +1" below dice
 
 ### 3.5 Player Color Scheme
-- [ ] Define primary player colors with atmospheric variants
+- [x] Define primary player colors with atmospheric variants
   - Player 1: gold/yellow → warm tone
   - Player 2: cyan/light blue → cool tone
   - Player 3: magenta/pink → warm accent
@@ -231,7 +231,7 @@
   - Apply: player tokens, resource bars, turn indicators, chat/names
 
 ### 3.6 Font & Typography
-- [ ] Replace default Ebitengine font with custom web font or bitmap font
+- [x] Replace default Ebitengine font with custom web font or bitmap font
   - Suggested: serif or slab-serif for Arkham Horror theme (e.g., "Crimson Text", "Playfair Display")
   - Fallback: ensure all sizes remain readable with default
   - Sizes: implement scaling per design token system (32pt, 24pt, 18pt, 14pt, 12pt)
@@ -242,16 +242,16 @@
 ## 4. MEDIUM — Polish & Feel
 
 ### 4.1 Animations & Transitions
-- [ ] Button interactions
+- [x] Button interactions
   - Hover: scale 1.05x + slight shadow
   - Press: scale 0.95x + color shift
   - Duration: 100-150ms easing (ease-out)
-- [ ] Action submission
+- [x] Action submission
   - Disable button briefly (100-200ms) after click
   - Show pending indicator (small spinner or highlight)
   - On success: flash green briefly, reset button
   - On failure: flash red, show error tooltip, re-enable
-- [ ] Scene transitions
+- [x] Scene transitions
   - Fade in/out between scenes (200-300ms)
   - Slide in from left/right for modals
 - [ ] Turn indicator

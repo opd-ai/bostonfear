@@ -89,12 +89,12 @@ var actionShortcutHints = map[string]string{
 
 // playerColours cycles through distinctive colours for up to 6 players.
 var playerColours = []color.RGBA{
-	{R: 255, G: 220, B: 50, A: 255},
-	{R: 50, G: 220, B: 255, A: 255},
-	{R: 255, G: 100, B: 50, A: 255},
-	{R: 150, G: 255, B: 100, A: 255},
-	{R: 255, G: 100, B: 200, A: 255},
-	{R: 200, G: 200, B: 255, A: 255},
+	{R: 238, G: 198, B: 72, A: 255},  // Player 1: gold/yellow
+	{R: 92, G: 214, B: 238, A: 255},  // Player 2: cyan/light blue
+	{R: 226, G: 104, B: 188, A: 255}, // Player 3: magenta/pink
+	{R: 162, G: 220, B: 92, A: 255},  // Player 4: lime/green
+	{R: 236, G: 132, B: 96, A: 255},  // Player 5: orange/coral
+	{R: 164, G: 132, B: 222, A: 255}, // Player 6: purple/violet
 }
 
 // Game implements the ebiten.Game interface and drives the Arkham Horror client.
@@ -148,6 +148,14 @@ type hudAnimationState struct {
 
 	resourceSnapshot map[string]playerResourceSnapshot
 	resourceFlash    map[string]int
+
+	lastOutcomeKey   string
+	resultRollFrames int
+	resultFadeFrames int
+
+	actionResult      string
+	actionResultOK    bool
+	actionResultFlash int
 }
 
 type uiStringCache struct {
@@ -401,6 +409,12 @@ func (g *Game) updateUXWidgets(gs ebclient.GameState, connected bool) {
 		return
 	}
 	g.lastOutcome = key
+	g.animState.lastOutcomeKey = key
+	g.animState.resultRollFrames = 20
+	g.animState.resultFadeFrames = 28
+	g.animState.actionResult = strings.ToLower(strings.TrimSpace(update.Event))
+	g.animState.actionResultOK = update.Result != "fail"
+	g.animState.actionResultFlash = 18
 	outcome := &hud.ActionOutcome{
 		PlayerID:    update.PlayerID,
 		PlayerName:  g.playerDisplayName(gs, update.PlayerID),
@@ -448,7 +462,7 @@ func (g *Game) drawResultsPanel(screen *ebiten.Image) {
 	if g.results == nil || !g.results.IsVisible() {
 		return
 	}
-	ebitenutil.DrawRect(screen, 8, 24, 420, 78, color.RGBA{R: 30, G: 30, B: 40, A: 220})
+	ebitenutil.DrawRect(screen, 8, 24, 420, 118, color.RGBA{R: 30, G: 30, B: 40, A: 220})
 
 	// Draw outcome, resource delta, doom change, and dice text with wrapping instead of truncation.
 	y := 30
@@ -456,6 +470,74 @@ func (g *Game) drawResultsPanel(screen *ebiten.Image) {
 	y = drawWrappedText(screen, g.results.ResourceDeltaText(), 400, 14, y, color.RGBA{R: 210, G: 230, B: 255, A: 255}) + 2
 	y = drawWrappedText(screen, g.results.DoomChangeText(), 400, 14, y, color.RGBA{R: 255, G: 210, B: 180, A: 255}) + 2
 	drawWrappedText(screen, g.results.DiceText(), 400, 14, y, color.RGBA{R: 220, G: 240, B: 255, A: 255})
+	g.drawDiceResultVisualization(screen)
+}
+
+func (g *Game) drawDiceResultVisualization(screen *ebiten.Image) {
+	outcome := g.results.CurrentOutcome()
+	if outcome == nil || outcome.DiceRoll == nil || len(outcome.DiceRoll.Dice) == 0 {
+		return
+	}
+
+	const (
+		diceSize = 26
+		diceGap  = 8
+		baseY    = 110
+	)
+
+	count := len(outcome.DiceRoll.Dice)
+	rowW := count*diceSize + (count-1)*diceGap
+	startX := 16 + (404-rowW)/2
+
+	rollFrames := g.animState.resultRollFrames
+	fadeFrames := g.animState.resultFadeFrames
+	alpha := uint8(255)
+	if fadeFrames > 0 {
+		alpha = uint8(min(255, 120+fadeFrames*4))
+	}
+
+	for i, die := range outcome.DiceRoll.Dice {
+		x := float64(startX + i*(diceSize+diceGap))
+		y := float64(baseY)
+		if rollFrames > 0 {
+			phase := float64(g.frameCount+int64(i*5)) / 3.8
+			y += math.Sin(phase) * 3
+		}
+		g.drawDiceFace(screen, x, y, float64(diceSize), strings.ToLower(strings.TrimSpace(die)), alpha)
+	}
+
+	status := "Success!"
+	statusColor := color.RGBA{R: 150, G: 235, B: 168, A: alpha}
+	if !outcome.DiceRoll.Passed {
+		status = "Failed - Doom +1"
+		statusColor = color.RGBA{R: 255, G: 168, B: 150, A: alpha}
+	}
+	drawUIText(screen, status, 282, 112, statusColor)
+}
+
+func (g *Game) drawDiceFace(screen *ebiten.Image, x, y, size float64, outcome string, alpha uint8) {
+	fill := color.RGBA{R: 82, G: 92, B: 108, A: alpha}
+	border := color.RGBA{R: 188, G: 198, B: 216, A: alpha}
+	glyph := "?"
+	switch outcome {
+	case "success":
+		fill = color.RGBA{R: 54, G: 132, B: 82, A: alpha}
+		border = color.RGBA{R: 170, G: 250, B: 190, A: alpha}
+		glyph = "S"
+	case "tentacle":
+		fill = color.RGBA{R: 132, G: 56, B: 78, A: alpha}
+		border = color.RGBA{R: 242, G: 178, B: 200, A: alpha}
+		glyph = "T"
+	default:
+		fill = color.RGBA{R: 92, G: 96, B: 110, A: alpha}
+		border = color.RGBA{R: 198, G: 204, B: 220, A: alpha}
+		glyph = "-"
+	}
+
+	rect := image.Rect(int(x), int(y), int(x+size), int(y+size))
+	drawRoundedRect(screen, rect, 6, fill)
+	drawRoundedBorder(screen, rect, 6, border)
+	drawUIText(screen, glyph, rect.Min.X+8, rect.Min.Y+9, color.RGBA{R: 245, G: 246, B: 250, A: alpha})
 }
 
 func (g *Game) drawOnboarding(screen *ebiten.Image) {
@@ -467,18 +549,20 @@ func (g *Game) drawOnboarding(screen *ebiten.Image) {
 		return
 	}
 	controls := newOnboardingControls()
-	ebitenutil.DrawRect(screen, 120, 90, 560, 108, color.RGBA{R: 12, G: 12, B: 22, A: 240})
-	drawTileBorder(screen, 120, 90, 560, 108, color.RGBA{R: 140, G: 154, B: 182, A: 255})
+	slide := max(0, 36-int(g.frameCount/2))
+	panelX := 120 + slide
+	ebitenutil.DrawRect(screen, float64(panelX), 90, 560, 108, color.RGBA{R: 12, G: 12, B: 22, A: 240})
+	drawTileBorder(screen, float64(panelX), 90, 560, 108, color.RGBA{R: 140, G: 154, B: 182, A: 255})
 	g.drawOnboardingHighlight(screen, step)
 	currentStep, totalSteps := g.onboarding.Progress()
 	progress := "Step " + strconv.Itoa(currentStep) + " of " + strconv.Itoa(totalSteps)
-	drawUIText(screen, progress, 136, 94, color.RGBA{R: 208, G: 220, B: 246, A: 255})
+	drawUIText(screen, progress, panelX+16, 94, color.RGBA{R: 208, G: 220, B: 246, A: 255})
 
 	// Draw title and description with wrapping for better readability.
 	y := 110
-	y = drawWrappedText(screen, step.Title, 540, 136, y, color.RGBA{R: 230, G: 230, B: 255, A: 255}) + 3
-	y = drawWrappedText(screen, step.Description, 540, 136, y, color.White) + 1
-	drawUIText(screen, "Use NEXT and SKIP TUTORIAL buttons (keyboard shortcuts are optional)", 136, y, color.RGBA{R: 200, G: 200, B: 220, A: 255})
+	y = drawWrappedText(screen, step.Title, 540, panelX+16, y, color.RGBA{R: 230, G: 230, B: 255, A: 255}) + 3
+	y = drawWrappedText(screen, step.Description, 540, panelX+16, y, color.White) + 1
+	drawUIText(screen, "Use NEXT and SKIP TUTORIAL buttons (keyboard shortcuts are optional)", panelX+16, y, color.RGBA{R: 200, G: 200, B: 220, A: 255})
 
 	nextFill := color.RGBA{R: 58, G: 78, B: 114, A: 245}
 	nextBorder := color.RGBA{R: 210, G: 225, B: 255, A: 255}
@@ -850,7 +934,7 @@ func (g *Game) drawInvestigatorTokens(screen *ebiten.Image, gs ebclient.GameStat
 		offset := occupants[p.Location]
 		occupants[p.Location]++
 		colourIdx := playerColourIndex(pid, gs.TurnOrder)
-		base := playerColours[colourIdx%len(playerColours)]
+		base := atmosphericPlayerColour(colourIdx)
 
 		tokenX := float64(rect.x + 26 + (offset%3)*38)
 		tokenY := float64(rect.y + rect.h - 22 - (offset/3)*36)
@@ -941,6 +1025,12 @@ func investigatorSymbol(p *ebclient.Player) string {
 	return "I"
 }
 
+func atmosphericPlayerColour(index int) color.RGBA {
+	base := playerColours[index%len(playerColours)]
+	shadow := color.RGBA{R: 18, G: 20, B: 28, A: 255}
+	return blendRGBA(base, shadow, 0.18)
+}
+
 func (g *Game) projectPoint(x, y float64) (float64, float64, float64) {
 	if g.boardView == nil {
 		return x, y, 1.0
@@ -979,9 +1069,9 @@ func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	if gs.Doom >= 12 {
 		g.drawMaxDoomGlow(screen)
 	}
-	drawUIText(screen, g.doomLabel(gs.Doom), rightPanelX(), 66, g.doomLabelColor(flash))
+	drawUITextScaled(screen, g.doomLabel(gs.Doom), rightPanelX(), 64, g.doomLabelColor(flash), textScaleHeader)
 	g.drawDoomTrackSegments(screen, gs.Doom, flash)
-	drawUIText(screen, strconv.Itoa(gs.Doom)+"/12", 652, 83, color.RGBA{R: 242, G: 246, B: 255, A: 255})
+	drawUITextScaled(screen, strconv.Itoa(gs.Doom)+"/12", 652, 82, color.RGBA{R: 242, G: 246, B: 255, A: 255}, textScaleCaption)
 }
 
 func (g *Game) doomLabelColor(flash int) color.RGBA {
@@ -1093,7 +1183,7 @@ func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *eb
 	if pid == currentPlayer {
 		turnGlyph = g.iconLabel(ui.IconTurn, ">")
 	}
-	drawUIText(screen, turnGlyph+" "+name, rightPanelX(), y+6, color.White)
+	drawUITextScaled(screen, turnGlyph+" "+name, rightPanelX(), y+5, color.White, textScaleHeader)
 
 	pillX := rightPanelX() + 162
 	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconHealth, "HP"), p.Resources.Health, color.RGBA{R: 200, G: 82, B: 82, A: 255}, g.resourceFlashLevel(pid, "health"))
@@ -1182,6 +1272,15 @@ func (g *Game) advanceHUDAnimations(gs ebclient.GameState) {
 			continue
 		}
 		g.animState.resourceFlash[key] = frames - 1
+	}
+	if g.animState.resultRollFrames > 0 {
+		g.animState.resultRollFrames--
+	}
+	if g.animState.resultFadeFrames > 0 {
+		g.animState.resultFadeFrames--
+	}
+	if g.animState.actionResultFlash > 0 {
+		g.animState.actionResultFlash--
 	}
 }
 
@@ -1322,8 +1421,21 @@ func (g *Game) drawStatusRail(screen *ebiten.Image, gs ebclient.GameState, myID 
 	if !connected {
 		connection = "reconnecting"
 	}
+	if g.animState.turnFlashFrames > 0 {
+		pulse := 0.4 + 0.6*math.Sin(float64(g.frameCount)/5.0)
+		w := 230 + int(14*pulse)
+		h := 18 + int(4*pulse)
+		x := rail.Min.X + 98 - (w-230)/2
+		y := rail.Min.Y + 9 - (h-18)/2
+		ebitenutil.DrawRect(screen, float64(x), float64(y), float64(w), float64(h), color.RGBA{R: 76, G: 104, B: 154, A: uint8(80 + int(40*pulse))})
+		drawTileBorder(screen, float64(x), float64(y), float64(w), float64(h), color.RGBA{R: 188, G: 214, B: 255, A: 228})
+	}
 	status := "Turn: " + trimToWidth(turnLabel, 220) + " | Doom: " + strconv.Itoa(gs.Doom) + "/12 | Connection: " + connection
-	drawUIText(screen, trimToWidth(status, rail.Dx()-250), rail.Min.X+104, rail.Min.Y+10, color.RGBA{R: 246, G: 248, B: 255, A: 255})
+	statusColor := color.RGBA{R: 246, G: 248, B: 255, A: 255}
+	if g.animState.turnFlashFrames > 0 {
+		statusColor = color.RGBA{R: 255, G: 246, B: 214, A: 255}
+	}
+	drawUIText(screen, trimToWidth(status, rail.Dx()-250), rail.Min.X+104, rail.Min.Y+10, statusColor)
 
 	// Action dots mirror remaining action economy for the current turn.
 	dotX := rail.Max.X - 98
@@ -1519,7 +1631,12 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			}
 			action := availability[actionLookupKey(actionName)]
 			rect := actionGridRect(row, col)
+			rect = animatedActionRect(rect, actionName, focused, hovered, pressed)
 			fill, border, labelColor, detailColor := actionButtonStyle(action.Available, actionName, focused, hovered, pressed)
+			fill, border = g.actionResultFeedbackColors(actionName, fill, border)
+			if strings.EqualFold(actionName, hovered) {
+				drawRoundedRect(screen, image.Rect(rect.Min.X+2, rect.Min.Y+2, rect.Max.X+2, rect.Max.Y+2), 6, color.RGBA{R: 8, G: 10, B: 18, A: 170})
+			}
 
 			// Rounded cards and an explicit icon badge improve affordance and readability.
 			drawRoundedRect(screen, rect, 6, fill)
@@ -1537,6 +1654,9 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			drawRoundedBorder(screen, iconRect, 4, border)
 			iconLabel := trimToWidth(g.actionGlyph(actionName), iconRect.Dx()-8)
 			drawUIText(screen, iconLabel, iconRect.Min.X+4, iconRect.Min.Y+8, labelColor)
+			if strings.EqualFold(actionName, pressed) {
+				g.drawActionPendingIndicator(screen, iconRect)
+			}
 
 			labelX := iconRect.Max.X + 6
 			label := trimToWidth(g.actionButtonLabel(actionName), rect.Max.X-labelX-8)
@@ -1548,6 +1668,43 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			drawUIText(screen, detail, labelX, rect.Min.Y+19, detailColor)
 		}
 	}
+}
+
+func animatedActionRect(rect image.Rectangle, actionName, focused, hovered, pressed string) image.Rectangle {
+	if strings.EqualFold(actionName, pressed) {
+		return image.Rect(rect.Min.X+2, rect.Min.Y+1, rect.Max.X-2, rect.Max.Y-1)
+	}
+	if strings.EqualFold(actionName, hovered) || strings.EqualFold(actionName, focused) {
+		return image.Rect(rect.Min.X-2, rect.Min.Y-1, rect.Max.X+2, rect.Max.Y+1)
+	}
+	return rect
+}
+
+func (g *Game) drawActionPendingIndicator(screen *ebiten.Image, rect image.Rectangle) {
+	phase := (g.frameCount / 3) % 8
+	x := rect.Max.X - 7
+	y := rect.Min.Y + 6
+	for i := int64(0); i < 8; i++ {
+		alpha := uint8(60)
+		if i == phase {
+			alpha = 220
+		}
+		ebitenutil.DrawRect(screen, float64(x), float64(y+int(i*2)), 2, 1, color.RGBA{R: 238, G: 246, B: 255, A: alpha})
+	}
+}
+
+func (g *Game) actionResultFeedbackColors(actionName string, fill, border color.RGBA) (color.RGBA, color.RGBA) {
+	if g.animState.actionResultFlash <= 0 {
+		return fill, border
+	}
+	if !strings.EqualFold(strings.TrimSpace(actionName), g.animState.actionResult) {
+		return fill, border
+	}
+	blend := float64(g.animState.actionResultFlash) / 18.0
+	if g.animState.actionResultOK {
+		return blendRGBA(fill, color.RGBA{R: 58, G: 120, B: 78, A: fill.A}, blend*0.8), blendRGBA(border, color.RGBA{R: 178, G: 244, B: 190, A: border.A}, blend)
+	}
+	return blendRGBA(fill, color.RGBA{R: 132, G: 52, B: 52, A: fill.A}, blend*0.8), blendRGBA(border, color.RGBA{R: 242, G: 168, B: 160, A: border.A}, blend)
 }
 
 func drawRoundedRect(screen *ebiten.Image, rect image.Rectangle, radius int, fill color.RGBA) {
