@@ -11,6 +11,7 @@ import (
 	"image"
 	"image/color"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -257,6 +258,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 
 	// Flush layers 0-2 and 4 (no animation sprites yet) before overlaying text UI.
 	g.renderer.Flush(screen)
+	g.drawInvestigatorTokens(screen, gs, playerID)
 
 	// Layer 3 — UI: text overlays drawn directly on screen after sprite flush.
 	g.drawStatusRail(screen, gs, playerID, connected)
@@ -824,33 +826,119 @@ func drawEntityBadge(screen *ebiten.Image, x, y float64, label string, tint colo
 	drawUIText(screen, label, int(x+2), int(y+2), color.RGBA{R: 245, G: 245, B: 245, A: 255})
 }
 
-// enqueueTokens adds token-layer draw commands for each connected player.
+// enqueueTokens is kept for layer compatibility; token visuals now draw in
+// drawInvestigatorTokens to support richer badge patterns and state styling.
 func (g *Game) enqueueTokens(gs ebclient.GameState, myID string) {
-	occupants := make(map[ebclient.Location]int) // count tokens per location for offset
-	for i, pid := range gs.TurnOrder {
+	_ = gs
+	_ = myID
+}
+
+// drawInvestigatorTokens renders investigator-themed board badges with distinct
+// patterns per player and state styling for active and disconnected players.
+func (g *Game) drawInvestigatorTokens(screen *ebiten.Image, gs ebclient.GameState, myID string) {
+	occupants := make(map[ebclient.Location]int)
+	for _, pid := range gs.TurnOrder {
 		p, ok := gs.Players[pid]
-		if !ok || !p.Connected {
+		if !ok || p == nil {
 			continue
 		}
-		rect := locationRects[p.Location]
+		rect, ok := locationRects[p.Location]
+		if !ok {
+			continue
+		}
+
 		offset := occupants[p.Location]
 		occupants[p.Location]++
+		colourIdx := playerColourIndex(pid, gs.TurnOrder)
+		base := playerColours[colourIdx%len(playerColours)]
 
-		col := playerColours[i%len(playerColours)]
+		tokenX := float64(rect.x + 26 + (offset%3)*38)
+		tokenY := float64(rect.y + rect.h - 22 - (offset/3)*36)
+		px, py, scale := g.projectPoint(tokenX, tokenY)
+		size := 44.0 * scale
+		bob := math.Sin(float64(g.frameCount+int64(colourIdx*7))/14.0) * 0.9 * scale
+
+		isCurrent := pid == gs.CurrentPlayer && gs.GamePhase == "playing"
+		isGone := !p.Connected
 		if pid == myID {
-			// Slightly enlarge own token to make it stand out.
-			col.A = 255
+			size += 2 * scale
 		}
-		px, py, scale := g.projectPoint(float64(rect.x+4+offset*14), float64(rect.y+rect.h-16))
-		g.renderer.Enqueue(render.LayerTokens, render.DrawCmd{
-			Sprite: render.SpritePlayerToken,
-			X:      px,
-			Y:      py,
-			ScaleX: scale,
-			ScaleY: scale,
-			Tint:   col,
-		})
+		g.drawInvestigatorTokenBadge(screen, px+size/2, py+bob, size, base, investigatorSymbol(p), colourIdx, isCurrent, isGone)
 	}
+}
+
+func (g *Game) drawInvestigatorTokenBadge(screen *ebiten.Image, cx, cy, size float64, base color.RGBA, symbol string, pattern int, isCurrent, isGone bool) {
+	radius := size / 2
+	alpha := uint8(245)
+	if isGone {
+		alpha = 118
+	}
+	base.A = alpha
+	border := blendRGBA(base, color.RGBA{R: 245, G: 245, B: 235, A: alpha}, 0.35)
+
+	if isCurrent {
+		pulse := 0.45 + 0.55*math.Sin(float64(g.frameCount)/7.0)
+		glow := color.RGBA{R: 255, G: uint8(180 + int(50*pulse)), B: 98, A: uint8(120 + int(65*pulse))}
+		ebitenutil.DrawRect(screen, cx-radius-4, cy-radius-4, size+8, size+8, glow)
+	}
+
+	ebitenutil.DrawRect(screen, cx-radius, cy-radius, size, size, base)
+	drawTileBorder(screen, cx-radius, cy-radius, size, size, border)
+	g.drawTokenPattern(screen, cx, cy, radius, pattern, isGone)
+
+	textColor := color.RGBA{R: 246, G: 246, B: 240, A: 255}
+	if isGone {
+		textColor = color.RGBA{R: 192, G: 192, B: 188, A: 220}
+	}
+	drawUIText(screen, symbol, int(cx-4), int(cy+4), textColor)
+}
+
+func (g *Game) drawTokenPattern(screen *ebiten.Image, cx, cy, radius float64, pattern int, isGone bool) {
+	overlay := color.RGBA{R: 10, G: 14, B: 18, A: 78}
+	if isGone {
+		overlay.A = 48
+	}
+
+	switch pattern % 6 {
+	case 0:
+		for i := -2; i <= 2; i++ {
+			ebitenutil.DrawRect(screen, cx-radius+float64(i*6), cy-radius, 2, radius*2, overlay)
+		}
+	case 1:
+		for i := -2; i <= 2; i++ {
+			ebitenutil.DrawRect(screen, cx-radius, cy-radius+float64(i*6), radius*2, 2, overlay)
+		}
+	case 2:
+		for i := -2; i <= 2; i++ {
+			ebitenutil.DrawRect(screen, cx-radius+float64(i*6), cy-radius+float64(i*6), 2, radius*2, overlay)
+		}
+	case 3:
+		for i := -2; i <= 2; i++ {
+			ebitenutil.DrawRect(screen, cx-radius+float64(i*6), cy-radius-float64(i*6), 2, radius*2, overlay)
+		}
+	case 4:
+		for y := -1; y <= 1; y++ {
+			for x := -1; x <= 1; x++ {
+				ebitenutil.DrawRect(screen, cx+float64(x*7)-1, cy+float64(y*7)-1, 3, 3, overlay)
+			}
+		}
+	default:
+		ebitenutil.DrawRect(screen, cx-radius, cy-1, radius*2, 2, overlay)
+		ebitenutil.DrawRect(screen, cx-1, cy-radius, 2, radius*2, overlay)
+	}
+}
+
+func investigatorSymbol(p *ebclient.Player) string {
+	if p == nil {
+		return "?"
+	}
+	if name := strings.TrimSpace(string(p.InvestigatorType)); name != "" {
+		r := []rune(strings.ToUpper(name))
+		if len(r) > 0 {
+			return string(r[0])
+		}
+	}
+	return "I"
 }
 
 func (g *Game) projectPoint(x, y float64) (float64, float64, float64) {
@@ -888,6 +976,9 @@ func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	panel := image.Rect(rightPanelX()-10, 42, rightPanelX()-10+386, 98)
 	drawStyledPanel(screen, panel, panelStyle{radius: 10}, "Doom Track", "Global pressure")
 	flash := g.animState.doomFlashFrames
+	if gs.Doom >= 12 {
+		g.drawMaxDoomGlow(screen)
+	}
 	drawUIText(screen, g.doomLabel(gs.Doom), rightPanelX(), 66, g.doomLabelColor(flash))
 	g.drawDoomTrackSegments(screen, gs.Doom, flash)
 	drawUIText(screen, strconv.Itoa(gs.Doom)+"/12", 652, 83, color.RGBA{R: 242, G: 246, B: 255, A: 255})
@@ -937,6 +1028,12 @@ func brightenDoomColor(col color.RGBA, flash int) color.RGBA {
 		B: uint8(min(255, int(col.B)+int(boost/4))),
 		A: 255,
 	}
+}
+
+func (g *Game) drawMaxDoomGlow(screen *ebiten.Image) {
+	pulse := 0.55 + 0.45*math.Sin(float64(g.frameCount)/8.0)
+	glow := color.RGBA{R: 170, G: 36, B: 30, A: uint8(70 + int(50*pulse))}
+	ebitenutil.DrawRect(screen, 422, 78, 194, 22, glow)
 }
 
 func (g *Game) doomBarColors() (bg, fg color.RGBA) {
