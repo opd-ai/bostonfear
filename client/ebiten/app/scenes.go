@@ -243,7 +243,7 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 		Height:  16,
 	}
 	instrBounds := instrConstraint.Bounds(vp)
-	drawUIText(screen, "Click fields to edit, CLEAR to blank them, ENTER or CONNECT to join", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+	drawUIText(screen, "Click fields to edit, then press Connect (or Enter) to join", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 
 	// Player ID display (if assigned).
 	if playerID != "" {
@@ -903,7 +903,7 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 		ebitenutil.DrawRect(screen, float64(option.rect.Max.X-2), float64(option.rect.Min.Y), 2, float64(option.rect.Dy()), border)
 		drawUIText(screen, option.label, option.rect.Min.X+18, option.rect.Min.Y+13, color.White)
 	}
-	drawUIText(screen, "Tap one of the three buttons or use E/S/H", screenWidth/2-135, 528, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+	drawUIText(screen, "Choose a difficulty button or use E/S/H", screenWidth/2-135, 528, color.RGBA{R: 180, G: 180, B: 180, A: 255})
 
 	// Highlight selected difficulty.
 	if s.selectedDifficulty != "" {
@@ -1146,7 +1146,7 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 	ebitenutil.DrawRect(screen, float64(layout.toLobby.Max.X-2), float64(layout.toLobby.Min.Y), 2, float64(layout.toLobby.Dy()), lobbyBorder)
 	drawUIText(screen, "RETURN TO LOBBY", layout.toLobby.Min.X+18, layout.toLobby.Min.Y+11, color.White)
 
-	drawUIText(screen, "ENTER/SPACE: play again", screenWidth/2-102, screenHeight/2+104, color.White)
+	drawUIText(screen, "Enter/Space: play again", screenWidth/2-102, screenHeight/2+104, color.White)
 }
 
 // updateScene evaluates current state and transitions to the appropriate scene.

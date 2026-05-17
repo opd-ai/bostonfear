@@ -119,6 +119,27 @@ type Game struct {
 	activeScene Scene // current full-screen scene; managed by updateScene
 	sceneFade   int
 	uiCache     uiStringCache
+	animState   hudAnimationState
+	coachTicks  int
+}
+
+type playerResourceSnapshot struct {
+	health int
+	sanity int
+	clues  int
+
+	actions int
+}
+
+type hudAnimationState struct {
+	lastDoom        int
+	doomFlashFrames int
+
+	lastCurrentPlayer string
+	turnFlashFrames   int
+
+	resourceSnapshot map[string]playerResourceSnapshot
+	resourceFlash    map[string]int
 }
 
 type uiStringCache struct {
@@ -154,6 +175,10 @@ func NewGame(serverURL string) *Game {
 		results:     hud.NewResultsPanel(),
 		camera:      ui.NewCamera(),
 		startedAt:   time.Now(),
+		animState: hudAnimationState{
+			resourceSnapshot: make(map[string]playerResourceSnapshot),
+			resourceFlash:    make(map[string]int),
+		},
 	}
 	g.boardView = ui.NewBoardView(g.camera, 210, 190)
 	g.activeScene = &SceneConnect{game: g}
@@ -208,6 +233,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	screen.Fill(g.theme.Background)
 
 	gs, playerID, connected := g.state.Snapshot()
+	g.advanceHUDAnimations(gs)
 	g.updateUXWidgets(gs, connected)
 	g.ensureProceduralSeed(gs)
 	g.drawProceduralAtmosphere(screen)
@@ -233,6 +259,7 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.drawResultsPanel(screen)
 	g.drawEventLog(screen)
 	g.drawInputHints(screen, gs, playerID)
+	g.drawCoachMarks(screen, gs, playerID)
 	g.drawCameraControls(screen)
 	g.drawOnboarding(screen)
 	g.applyPostProcess(screen, gs.Doom)
@@ -752,12 +779,22 @@ func (g *Game) drawConnectionBanner(screen *ebiten.Image, connected bool) {
 func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
 	ebitenutil.DrawRect(screen, float64(rightPanelX()-10), 42, 386, 56, color.RGBA{R: 12, G: 14, B: 24, A: 214})
 	label := g.doomLabel(gs.Doom)
-	drawUIText(screen, label, rightPanelX(), 60, color.White)
+	doomFlash := g.animState.doomFlashFrames
+	labelColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	if doomFlash > 0 {
+		boost := uint8(min(70, doomFlash*3))
+		labelColor = color.RGBA{R: 255, G: uint8(205 + boost/3), B: uint8(205 + boost/3), A: 255}
+	}
+	drawUIText(screen, label, rightPanelX(), 60, labelColor)
 
 	// Draw a simple bar.
 	barW := 200.0
 	filled := float64(gs.Doom) / 12.0 * barW
 	bg, fg := g.doomBarColors()
+	if doomFlash > 0 {
+		barBoost := uint8(min(90, doomFlash*4))
+		fg = color.RGBA{R: 255, G: uint8(min(255, int(fg.G)+int(barBoost/4))), B: uint8(min(255, int(fg.B)+int(barBoost/4))), A: 255}
+	}
 	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, barW, 14, bg)
 	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, filled, 14, fg)
 }
@@ -804,7 +841,11 @@ func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID
 
 func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *ebclient.Player, myID, currentPlayer string) int {
 	const cardH = 24
-	fill, border := playerRowStyle(pid == currentPlayer)
+	pulse := 0
+	if pid == currentPlayer {
+		pulse = g.animState.turnFlashFrames
+	}
+	fill, border := playerRowStyle(pid == currentPlayer, pulse)
 	ebitenutil.DrawRect(screen, float64(rightPanelX()-4), float64(y), 374, float64(cardH), fill)
 	drawTileBorder(screen, float64(rightPanelX()-4), float64(y), 374, float64(cardH), border)
 
@@ -819,30 +860,100 @@ func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *eb
 	drawUIText(screen, turnGlyph+" "+name, rightPanelX(), y+6, color.White)
 
 	pillX := rightPanelX() + 162
-	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconHealth, "HP"), p.Resources.Health, color.RGBA{R: 200, G: 82, B: 82, A: 255})
-	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, color.RGBA{R: 90, G: 160, B: 232, A: 255})
-	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, color.RGBA{R: 86, G: 194, B: 122, A: 255})
-	g.drawResourcePill(screen, pillX, y+4, "ACT", p.ActionsRemaining, color.RGBA{R: 228, G: 197, B: 102, A: 255})
+	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconHealth, "HP"), p.Resources.Health, color.RGBA{R: 200, G: 82, B: 82, A: 255}, g.resourceFlashLevel(pid, "health"))
+	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, color.RGBA{R: 90, G: 160, B: 232, A: 255}, g.resourceFlashLevel(pid, "sanity"))
+	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, color.RGBA{R: 86, G: 194, B: 122, A: 255}, g.resourceFlashLevel(pid, "clues"))
+	g.drawResourcePill(screen, pillX, y+4, "ACT", p.ActionsRemaining, color.RGBA{R: 228, G: 197, B: 102, A: 255}, g.resourceFlashLevel(pid, "actions"))
 	return cardH + 5
 }
 
-func playerRowStyle(isCurrent bool) (color.RGBA, color.RGBA) {
+func playerRowStyle(isCurrent bool, pulse int) (color.RGBA, color.RGBA) {
 	if isCurrent {
-		return color.RGBA{R: 58, G: 70, B: 110, A: 228}, color.RGBA{R: 220, G: 232, B: 255, A: 250}
+		fill := color.RGBA{R: 58, G: 70, B: 110, A: 228}
+		border := color.RGBA{R: 220, G: 232, B: 255, A: 250}
+		if pulse > 0 {
+			boost := uint8(min(95, pulse*3))
+			fill = color.RGBA{R: uint8(min(255, int(fill.R)+int(boost/5))), G: uint8(min(255, int(fill.G)+int(boost/5))), B: uint8(min(255, int(fill.B)+int(boost/3))), A: fill.A}
+			border = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+		}
+		return fill, border
 	}
 	return color.RGBA{R: 24, G: 28, B: 38, A: 210}, color.RGBA{R: 98, G: 112, B: 148, A: 230}
 }
 
-func (g *Game) drawResourcePill(screen *ebiten.Image, x, y int, icon string, value int, accent color.RGBA) int {
+func (g *Game) drawResourcePill(screen *ebiten.Image, x, y int, icon string, value int, accent color.RGBA, flash int) int {
 	if icon == "" {
 		icon = "?"
 	}
 	label := icon + ":" + strconv.Itoa(value)
 	width := textWidth(label) + 12
-	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(width), 14, color.RGBA{R: 10, G: 12, B: 20, A: 220})
+	bg := color.RGBA{R: 10, G: 12, B: 20, A: 220}
+	if flash > 0 {
+		boost := uint8(min(80, flash*4))
+		bg = color.RGBA{R: uint8(min(255, int(bg.R)+int(boost/6))), G: uint8(min(255, int(bg.G)+int(boost/6))), B: uint8(min(255, int(bg.B)+int(boost/4))), A: bg.A}
+		accent = color.RGBA{R: uint8(min(255, int(accent.R)+int(boost/3))), G: uint8(min(255, int(accent.G)+int(boost/3))), B: uint8(min(255, int(accent.B)+int(boost/3))), A: 255}
+	}
+	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(width), 14, bg)
 	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(width), 2, accent)
 	drawUIText(screen, label, x+4, y+3, color.RGBA{R: 245, G: 247, B: 252, A: 255})
 	return x + width + 4
+}
+
+func (g *Game) advanceHUDAnimations(gs ebclient.GameState) {
+	if gs.Doom != g.animState.lastDoom {
+		g.animState.lastDoom = gs.Doom
+		g.animState.doomFlashFrames = 22
+	}
+	if gs.CurrentPlayer != g.animState.lastCurrentPlayer {
+		g.animState.lastCurrentPlayer = gs.CurrentPlayer
+		g.animState.turnFlashFrames = 24
+	}
+
+	for pid, p := range gs.Players {
+		if p == nil {
+			continue
+		}
+		prev := g.animState.resourceSnapshot[pid]
+		if prev.health != p.Resources.Health {
+			g.animState.resourceFlash[pid+":health"] = 18
+		}
+		if prev.sanity != p.Resources.Sanity {
+			g.animState.resourceFlash[pid+":sanity"] = 18
+		}
+		if prev.clues != p.Resources.Clues {
+			g.animState.resourceFlash[pid+":clues"] = 18
+		}
+		if prev.actions != p.ActionsRemaining {
+			g.animState.resourceFlash[pid+":actions"] = 14
+		}
+		g.animState.resourceSnapshot[pid] = playerResourceSnapshot{
+			health:  p.Resources.Health,
+			sanity:  p.Resources.Sanity,
+			clues:   p.Resources.Clues,
+			actions: p.ActionsRemaining,
+		}
+	}
+
+	if g.animState.doomFlashFrames > 0 {
+		g.animState.doomFlashFrames--
+	}
+	if g.animState.turnFlashFrames > 0 {
+		g.animState.turnFlashFrames--
+	}
+	for key, frames := range g.animState.resourceFlash {
+		if frames <= 1 {
+			delete(g.animState.resourceFlash, key)
+			continue
+		}
+		g.animState.resourceFlash[key] = frames - 1
+	}
+}
+
+func (g *Game) resourceFlashLevel(playerID, stat string) int {
+	if g == nil {
+		return 0
+	}
+	return g.animState.resourceFlash[playerID+":"+stat]
 }
 
 func (g *Game) iconLabel(id ui.IconID, fallback string) string {
@@ -910,6 +1021,68 @@ func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID 
 	g.drawActionPanelSummary(screen, gs, myID, panelX, panelY)
 	g.drawAvailableActionList(screen, gs, myID, panelX, panelY+92)
 	g.drawEndBanner(screen, gs)
+}
+
+func (g *Game) drawCoachMarks(screen *ebiten.Image, gs ebclient.GameState, myID string) {
+	if g.onboarding != nil && g.onboarding.IsActive() {
+		return
+	}
+	if gs.GamePhase != "playing" {
+		return
+	}
+	if g.coachTicks > 60*90 {
+		return
+	}
+	g.coachTicks++
+
+	hints := g.buildCoachHints(gs, myID)
+	if len(hints) == 0 {
+		return
+	}
+
+	x := 10
+	y := 402
+	w := 410
+	h := 18 + len(hints)*14
+	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(w), float64(h), color.RGBA{R: 10, G: 14, B: 26, A: 212})
+	border := color.RGBA{R: 188, G: 210, B: 255, A: 235}
+	drawTileBorder(screen, float64(x), float64(y), float64(w), float64(h), border)
+	drawUIText(screen, "Coach marks", x+8, y+5, color.RGBA{R: 238, G: 246, B: 255, A: 255})
+	lineY := y + 19
+	for _, hint := range hints {
+		drawUIText(screen, trimToWidth("- "+hint, w-14), x+7, lineY, color.RGBA{R: 225, G: 235, B: 252, A: 255})
+		lineY += 14
+	}
+}
+
+func (g *Game) buildCoachHints(gs ebclient.GameState, myID string) []string {
+	hints := make([]string, 0, 4)
+	currentName := g.playerDisplayName(gs, gs.CurrentPlayer)
+	if gs.CurrentPlayer != myID {
+		hints = append(hints, "Wait for your turn. Current player: "+currentName)
+		return hints
+	}
+
+	remaining := g.remainingActions(gs, myID)
+	legalMoves := boardAdjacency[g.playerLocation(gs, myID)]
+	hints = append(hints, "You have "+strconv.Itoa(remaining)+" actions this turn. Move only to highlighted adjacent locations.")
+	if len(legalMoves) > 0 {
+		moves := string(legalMoves[0])
+		for i := 1; i < len(legalMoves); i++ {
+			moves += ", " + string(legalMoves[i])
+		}
+		hints = append(hints, "Legal moves now: "+moves)
+	}
+
+	if sanity := g.playerSanity(gs, myID); sanity <= 1 {
+		hints = append(hints, "Ward costs 1 sanity. Gather or recover sanity before casting.")
+	} else {
+		hints = append(hints, "Ward costs 1 sanity and can reduce doom on a successful roll.")
+	}
+
+	needed := len(gs.Players) * 4
+	hints = append(hints, "Objective: collect "+strconv.Itoa(needed)+" clues before doom reaches 12.")
+	return hints
 }
 
 func (g *Game) drawMoveChips(screen *ebiten.Image, gs ebclient.GameState, myID string, panelX, panelY int) {
@@ -982,7 +1155,7 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Max.Y-2), float64(rect.Dx()), 2, border)
 			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
 			ebitenutil.DrawRect(screen, float64(rect.Max.X-2), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
-			drawUIText(screen, strings.Title(strings.ReplaceAll(actionName, "closegate", "close gate")), rect.Min.X+10, rect.Min.Y+5, labelColor)
+			drawUIText(screen, actionDisplayLabel(actionName), rect.Min.X+10, rect.Min.Y+5, labelColor)
 			if key := actionShortcutHints[actionName]; key != "" {
 				drawUIText(screen, "["+key+"]", rect.Max.X-30, rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
 			}
@@ -1022,6 +1195,24 @@ func actionButtonStyle(available bool, actionName, focused, hovered, pressed str
 
 func actionLookupKey(name string) string {
 	return strings.ToLower(strings.ReplaceAll(name, " ", ""))
+}
+
+func actionDisplayLabel(actionName string) string {
+	switch strings.ToLower(actionName) {
+	case "closegate":
+		return "Close Gate"
+	case "investigate":
+		return "Investigate"
+	case "component":
+		return "Component"
+	case "encounter":
+		return "Encounter"
+	default:
+		if actionName == "" {
+			return ""
+		}
+		return strings.ToUpper(actionName[:1]) + actionName[1:]
+	}
 }
 
 func (g *Game) drawActionPanelSummary(screen *ebiten.Image, gs ebclient.GameState, myID string, panelX, panelY int) {
@@ -1289,13 +1480,13 @@ func (g *Game) closeGateDetail(turnActive bool, remaining int, openGate bool) st
 func (g *Game) invalidActionHint(reason string) string {
 	switch reason {
 	case "":
-		return "Last invalid: none yet"
+		return "Last invalid action: none"
 	case "out-of-turn-or-disconnected":
-		return "Last invalid: wait for your turn or reconnect"
+		return "Last invalid action: wait for your turn or reconnect"
 	case "trade-no-colocated-player":
-		return "Last invalid: trade needs a co-located ally; move to the same location first"
+		return "Last invalid action: trade needs a co-located ally; move to the same location first"
 	default:
-		return "Last invalid: " + reason
+		return "Last invalid action: " + reason
 	}
 }
 
@@ -1360,9 +1551,9 @@ func (g *Game) turnStatusLabel(gs ebclient.GameState, myID string, isMyTurn bool
 	if g.uiCache.statusKey != key {
 		g.uiCache.statusKey = key
 		if !isMyTurn {
-			g.uiCache.statusText = "waiting for your turn"
+			g.uiCache.statusText = "Waiting for your turn"
 		} else {
-			g.uiCache.statusText = "YOUR TURN (" + strconv.Itoa(actions) + " actions left)"
+			g.uiCache.statusText = "Your turn (" + strconv.Itoa(actions) + " actions left)"
 		}
 	}
 	return g.uiCache.statusText

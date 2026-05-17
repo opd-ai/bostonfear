@@ -49,10 +49,10 @@
 
 ### Technical Checklist
 - [x] Add full interaction state feedback (hover, pressed, disabled, invalid, success, failure) across all interactive controls. Targets: client/ebiten/app/game.go, client/ebiten/ui.
-- [ ] Add action outcome feedback loops (dice anticipation, result reveal, doom/resource delta callouts). Targets: client/ebiten/app/game.go, client/ebiten/render.
-- [ ] Add micro-animations for state changes (health, sanity, clues, doom, turn handoff). Targets: client/ebiten/render, client/ebiten/app/game.go.
-- [ ] Add contextual first-session guidance (coach marks for turn order, legal moves, action costs, objective cues). Targets: client/ebiten/app/scenes.go, client/ebiten/app/game.go.
-- [ ] Execute consistency pass (labels, icon semantics, timing, motion curves, error wording) across connect/select/play/game-over. Targets: client/ebiten/app/scenes.go, client/ebiten/app/game.go, client/ebiten/ui.
+- [x] Add action outcome feedback loops (dice anticipation, result reveal, doom/resource delta callouts). Targets: client/ebiten/app/game.go, client/ebiten/render.
+- [x] Add micro-animations for state changes (health, sanity, clues, doom, turn handoff). Targets: client/ebiten/render, client/ebiten/app/game.go.
+- [x] Add contextual first-session guidance (coach marks for turn order, legal moves, action costs, objective cues). Targets: client/ebiten/app/scenes.go, client/ebiten/app/game.go.
+- [x] Execute consistency pass (labels, icon semantics, timing, motion curves, error wording) across connect/select/play/game-over. Targets: client/ebiten/app/scenes.go, client/ebiten/app/game.go, client/ebiten/ui.
 
 ### UX Acceptance Criteria
 - [ ] User always receives visible feedback within one frame cycle for every interaction.
