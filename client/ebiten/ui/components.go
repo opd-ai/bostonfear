@@ -185,3 +185,133 @@ const (
 	ActionHintGather
 	ActionHintWard
 )
+
+// ButtonVariant defines semantic button intent.
+type ButtonVariant int
+
+const (
+	ButtonPrimary ButtonVariant = iota
+	ButtonSecondary
+	ButtonDanger
+	ButtonDisabled
+)
+
+// ButtonSize defines standard button dimensions.
+type ButtonSize int
+
+const (
+	ButtonSizeSmall ButtonSize = iota
+	ButtonSizeMedium
+	ButtonSizeLarge
+)
+
+// ButtonState defines interaction state for rendering.
+type ButtonState int
+
+const (
+	ButtonStateDefault ButtonState = iota
+	ButtonStateHover
+	ButtonStatePressed
+	ButtonStateDisabled
+	ButtonStateLoading
+)
+
+// ButtonStyle captures resolved visuals for a button instance.
+type ButtonStyle struct {
+	Variant      ButtonVariant
+	Size         ButtonSize
+	State        ButtonState
+	Width        float64
+	Height       float64
+	CornerRadius float64
+	Padding      float64
+	Fill         Color
+	Border       Color
+	Text         Color
+	ShowSpinner  bool
+	IconAllowed  bool
+}
+
+// ResolveButtonStyle resolves a reusable button style from semantic inputs.
+// The returned style is renderer-agnostic and can be used by desktop/mobile/web.
+func ResolveButtonStyle(variant ButtonVariant, size ButtonSize, state ButtonState, tokens *DesignTokenRegistry) ButtonStyle {
+	if state == ButtonStateDisabled {
+		variant = ButtonDisabled
+	}
+
+	style := ButtonStyle{
+		Variant:      variant,
+		Size:         size,
+		State:        state,
+		CornerRadius: 8,
+		Padding:      10,
+		IconAllowed:  true,
+	}
+
+	switch size {
+	case ButtonSizeSmall:
+		style.Width, style.Height = 32, 32
+		style.Padding = 8
+	case ButtonSizeLarge:
+		style.Width, style.Height = 64, 64
+		style.Padding = 12
+	default:
+		style.Width, style.Height = 48, 48
+	}
+
+	style.Fill = ColorPrimary
+	style.Border = Color{R: 220, G: 232, B: 248, A: 255}
+	style.Text = Color{R: 255, G: 255, B: 255, A: 255}
+
+	switch variant {
+	case ButtonSecondary:
+		style.Fill = Color{R: 42, G: 54, B: 70, A: 255}
+		style.Border = Color{R: 150, G: 176, B: 214, A: 255}
+	case ButtonDanger:
+		style.Fill = ColorDanger
+		style.Border = Color{R: 255, G: 210, B: 200, A: 255}
+	case ButtonDisabled:
+		style.Fill = ColorNeutral
+		style.Border = Color{R: 132, G: 132, B: 132, A: 255}
+		style.Text = Color{R: 220, G: 220, B: 220, A: 255}
+		style.IconAllowed = false
+	}
+
+	switch state {
+	case ButtonStateHover:
+		style.Fill = lightenColor(style.Fill, 16)
+		style.Border = lightenColor(style.Border, 12)
+	case ButtonStatePressed:
+		style.Fill = lightenColor(style.Fill, 30)
+		style.Border = lightenColor(style.Border, 20)
+	case ButtonStateDisabled:
+		style.Fill = Color{R: 88, G: 88, B: 96, A: 255}
+		style.Border = Color{R: 122, G: 122, B: 132, A: 255}
+		style.Text = Color{R: 196, G: 196, B: 204, A: 255}
+		style.IconAllowed = false
+	case ButtonStateLoading:
+		style.ShowSpinner = true
+	}
+
+	if tokens != nil {
+		if radius := tokens.GetCornerRadius("md"); radius > 0 {
+			style.CornerRadius = radius
+		}
+		if padding := tokens.GetSpacing("button-padding"); padding > 0 {
+			style.Padding = padding
+		}
+	}
+
+	return style
+}
+
+func lightenColor(c Color, delta uint8) Color {
+	add := func(v uint8) uint8 {
+		max := int(v) + int(delta)
+		if max > 255 {
+			max = 255
+		}
+		return uint8(max)
+	}
+	return Color{R: add(c.R), G: add(c.G), B: add(c.B), A: c.A}
+}

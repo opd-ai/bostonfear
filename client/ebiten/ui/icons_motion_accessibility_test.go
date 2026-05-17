@@ -10,6 +10,25 @@ func TestIconRegistry_Defaults(t *testing.T) {
 	if r.Get(IconDoom) == "" {
 		t.Fatal("expected IconDoom to be registered")
 	}
+	if r.Count() < 20 {
+		t.Fatalf("expected at least 20 icon semantics, got %d", r.Count())
+	}
+
+	ids := []IconID{IconMove, IconGather, IconInvestigate, IconWard, IconFocus, IconResearch, IconTrade, IconComponent,
+		IconAttack, IconEvade, IconCloseGate, IconEncounter, IconHealth, IconSanity, IconClues, IconDoom,
+		IconDifficulty, IconConnection, IconTurn, IconArrowLeft, IconArrowRight, IconCameraTop, IconCamera3D, IconPlayer}
+	for _, id := range ids {
+		spec := r.Spec(id)
+		if spec.Glyph == "" {
+			t.Fatalf("missing glyph for %q", id)
+		}
+		if spec.SizePx != 32 && spec.SizePx != 64 {
+			t.Fatalf("icon %q size must be 32 or 64, got %d", id, spec.SizePx)
+		}
+		if spec.StrokePx < 1.0 || spec.StrokePx > 3.0 {
+			t.Fatalf("icon %q stroke must be in [1.0, 3.0], got %.2f", id, spec.StrokePx)
+		}
+	}
 }
 
 func TestMotionCatalog_Defaults(t *testing.T) {
@@ -60,5 +79,26 @@ func TestTokenRegistryRequiredEntries(t *testing.T) {
 	elevated := tokens.GetSemanticColor("surface-elevated")
 	if base == elevated {
 		t.Fatal("surface semantic colors should differ for hierarchy")
+	}
+}
+
+func TestIconLegibilityAgainstCommonBackgrounds(t *testing.T) {
+	tokens := NewDefaultArkhamTheme()
+	r := NewIconRegistry()
+
+	bgKeys := []string{"color-bg-dark", "color-surface", "color-surface-elevated"}
+	fgKeys := []string{"color-primary-light", "color-secondary-light", "color-info"}
+	for _, bgKey := range bgKeys {
+		bg := tokens.GetColor(bgKey)
+		for _, fgKey := range fgKeys {
+			fg := tokens.GetColor(fgKey)
+			if ratio := ContrastRatio(bg, fg); ratio < 3.0 {
+				t.Fatalf("insufficient icon contrast: bg=%s fg=%s ratio=%.2f", bgKey, fgKey, ratio)
+			}
+		}
+	}
+
+	if r.Spec(IconMove).SizePx != 32 {
+		t.Fatalf("expected minimum legibility size to default to 32px, got %d", r.Spec(IconMove).SizePx)
 	}
 }

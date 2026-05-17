@@ -43,6 +43,17 @@ func (tt *TypographyToken) Value() interface{} {
 	return tt.FontSize
 }
 
+// CornerRadiusToken represents corner curvature for UI hierarchy.
+type CornerRadiusToken struct {
+	Name   string
+	Radius float64
+}
+
+// Value returns the corner radius.
+func (rt *CornerRadiusToken) Value() interface{} {
+	return rt.Radius
+}
+
 // ElevationToken represents depth styling for layered UI surfaces.
 type ElevationToken struct {
 	Name    string
@@ -74,6 +85,7 @@ type DesignTokenRegistry struct {
 	colors     map[string]*ColorToken
 	spacing    map[string]*SpacingToken
 	typography map[string]*TypographyToken
+	radius     map[string]*CornerRadiusToken
 	elevation  map[string]*ElevationToken
 	iconStyles map[string]*IconStyleToken
 	semantics  map[string]string // Maps semantic name to token name.
@@ -85,6 +97,7 @@ func NewDesignTokenRegistry() *DesignTokenRegistry {
 		colors:     make(map[string]*ColorToken),
 		spacing:    make(map[string]*SpacingToken),
 		typography: make(map[string]*TypographyToken),
+		radius:     make(map[string]*CornerRadiusToken),
 		elevation:  make(map[string]*ElevationToken),
 		iconStyles: make(map[string]*IconStyleToken),
 		semantics:  make(map[string]string),
@@ -143,6 +156,25 @@ func (dtr *DesignTokenRegistry) GetTypography(name string) *TypographyToken {
 		return dtr.typography[name]
 	}
 	return nil
+}
+
+// RegisterCornerRadius adds a corner radius token.
+func (dtr *DesignTokenRegistry) RegisterCornerRadius(name string, radius float64) {
+	if dtr == nil {
+		return
+	}
+	dtr.radius[name] = &CornerRadiusToken{Name: name, Radius: radius}
+}
+
+// GetCornerRadius retrieves a corner radius token value by name.
+func (dtr *DesignTokenRegistry) GetCornerRadius(name string) float64 {
+	if dtr == nil {
+		return 0
+	}
+	if token, exists := dtr.radius[name]; exists {
+		return token.Radius
+	}
+	return 0
 }
 
 // RegisterElevation adds an elevation token.
@@ -210,39 +242,49 @@ func NewDefaultArkhamTheme() *DesignTokenRegistry {
 	dtr := NewDesignTokenRegistry()
 
 	// Core colors
-	dtr.RegisterColor("color-bg-dark", color.RGBA{R: 15, G: 12, B: 18, A: 255})       // Deep dark background
-	dtr.RegisterColor("color-bg-darker", color.RGBA{R: 8, G: 6, B: 10, A: 255})       // Even darker
-	dtr.RegisterColor("color-surface", color.RGBA{R: 25, G: 20, B: 30, A: 255})       // Panel background
-	dtr.RegisterColor("color-surface-light", color.RGBA{R: 40, G: 35, B: 45, A: 255}) // Lighter surface
-	dtr.RegisterColor("color-surface-elevated", color.RGBA{R: 50, G: 44, B: 59, A: 255})
-	dtr.RegisterColor("color-border-strong", color.RGBA{R: 126, G: 110, B: 152, A: 255})
+	dtr.RegisterColor("color-bg-dark", color.RGBA{R: 14, G: 12, B: 16, A: 255})         // Deep dark background
+	dtr.RegisterColor("color-bg-darker", color.RGBA{R: 8, G: 7, B: 10, A: 255})         // Even darker
+	dtr.RegisterColor("color-bg-gradient-top", color.RGBA{R: 22, G: 18, B: 22, A: 255}) // Atmospheric top tone
+	dtr.RegisterColor("color-bg-gradient-bottom", color.RGBA{R: 10, G: 9, B: 12, A: 255})
+	dtr.RegisterColor("color-surface", color.RGBA{R: 28, G: 24, B: 30, A: 255})
+	dtr.RegisterColor("color-surface-light", color.RGBA{R: 42, G: 36, B: 44, A: 255})
+	dtr.RegisterColor("color-surface-elevated", color.RGBA{R: 52, G: 46, B: 56, A: 255})
+	dtr.RegisterColor("color-border-strong", color.RGBA{R: 146, G: 134, B: 120, A: 255})
 
-	// Primary (eldritch)
-	dtr.RegisterColor("color-primary", color.RGBA{R: 155, G: 89, B: 182, A: 255}) // Purple
-	dtr.RegisterColor("color-primary-light", color.RGBA{R: 200, G: 150, B: 210, A: 255})
+	// Primary / secondary interaction colors.
+	dtr.RegisterColor("color-primary", color.RGBA{R: 214, G: 162, B: 79, A: 255})
+	dtr.RegisterColor("color-primary-light", color.RGBA{R: 236, G: 198, B: 122, A: 255})
+	dtr.RegisterColor("color-secondary", color.RGBA{R: 104, G: 146, B: 172, A: 255})
+	dtr.RegisterColor("color-secondary-light", color.RGBA{R: 148, G: 184, B: 210, A: 255})
+	dtr.RegisterColor("color-hover", color.RGBA{R: 244, G: 208, B: 132, A: 255})
+	dtr.RegisterColor("color-disabled", color.RGBA{R: 92, G: 92, B: 102, A: 255})
 
 	// Status colors
-	dtr.RegisterColor("color-success", color.RGBA{R: 46, G: 213, B: 115, A: 255}) // Green
-	dtr.RegisterColor("color-danger", color.RGBA{R: 231, G: 76, B: 60, A: 255})   // Red
-	dtr.RegisterColor("color-warning", color.RGBA{R: 241, G: 196, B: 15, A: 255}) // Gold
-	dtr.RegisterColor("color-info", color.RGBA{R: 52, G: 152, B: 219, A: 255})    // Blue
+	dtr.RegisterColor("color-success", color.RGBA{R: 66, G: 186, B: 120, A: 255})
+	dtr.RegisterColor("color-danger", color.RGBA{R: 198, G: 76, B: 72, A: 255})
+	dtr.RegisterColor("color-warning", color.RGBA{R: 226, G: 184, B: 78, A: 255})
+	dtr.RegisterColor("color-info", color.RGBA{R: 90, G: 150, B: 212, A: 255})
 
 	// Resource colors
-	dtr.RegisterColor("color-health", color.RGBA{R: 192, G: 57, B: 43, A: 255})  // Red
-	dtr.RegisterColor("color-sanity", color.RGBA{R: 52, G: 152, B: 219, A: 255}) // Blue
-	dtr.RegisterColor("color-clues", color.RGBA{R: 46, G: 213, B: 115, A: 255})  // Green
-	dtr.RegisterColor("color-doom", color.RGBA{R: 230, G: 126, B: 34, A: 255})   // Orange
+	dtr.RegisterColor("color-health", color.RGBA{R: 194, G: 72, B: 66, A: 255})
+	dtr.RegisterColor("color-sanity", color.RGBA{R: 86, G: 150, B: 218, A: 255})
+	dtr.RegisterColor("color-clues", color.RGBA{R: 214, G: 176, B: 78, A: 255})
+	dtr.RegisterColor("color-doom", color.RGBA{R: 178, G: 62, B: 54, A: 255})
 
 	// Semantics
 	dtr.MapSemantic("bg-primary", "color-bg-dark")
 	dtr.MapSemantic("bg-secondary", "color-surface")
 	dtr.MapSemantic("surface-base", "color-surface")
 	dtr.MapSemantic("surface-elevated", "color-surface-elevated")
-	dtr.MapSemantic("text-primary", "color-primary")
+	dtr.MapSemantic("text-primary", "color-primary-light")
 	dtr.MapSemantic("border-primary", "color-primary-light")
 	dtr.MapSemantic("border-strong", "color-border-strong")
 	dtr.MapSemantic("status-success", "color-success")
 	dtr.MapSemantic("status-danger", "color-danger")
+	dtr.MapSemantic("interactive-hover", "color-hover")
+	dtr.MapSemantic("interactive-disabled", "color-disabled")
+	dtr.MapSemantic("status-info", "color-info")
+	dtr.MapSemantic("status-warning", "color-warning")
 
 	// Spacing scale (0.5x, 1x, 2x, 4x, 8x)
 	scales := []string{"xs", "sm", "md", "lg", "xl"}
@@ -250,12 +292,21 @@ func NewDefaultArkhamTheme() *DesignTokenRegistry {
 	for i, name := range scales {
 		dtr.RegisterSpacing(name, bases[i])
 	}
+	dtr.RegisterSpacing("button-padding", 10)
+	dtr.RegisterSpacing("panel-margin", 20)
+	dtr.RegisterSpacing("grid-gap", 10)
 
 	// Typography scale  (heading1, heading2, body, caption)
-	dtr.RegisterTypography("heading1", 32, 40, 700)
-	dtr.RegisterTypography("heading2", 24, 32, 700)
+	dtr.RegisterTypography("heading1", 40, 48, 700)
+	dtr.RegisterTypography("heading2", 28, 34, 700)
+	dtr.RegisterTypography("button", 20, 24, 600)
 	dtr.RegisterTypography("body", 14, 20, 400)
 	dtr.RegisterTypography("caption", 12, 16, 400)
+
+	// Corner radius hierarchy.
+	dtr.RegisterCornerRadius("sm", 4)
+	dtr.RegisterCornerRadius("md", 8)
+	dtr.RegisterCornerRadius("lg", 12)
 
 	// Elevation scale for layered surfaces.
 	dtr.RegisterElevation("surface-flat", 0, 0, 0.00)

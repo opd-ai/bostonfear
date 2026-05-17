@@ -35,6 +35,7 @@ type SceneConnect struct {
 	tick          int
 	activeField   int
 	reconnectTick int
+	statusHint    string
 }
 
 type connectControlID string
@@ -62,7 +63,7 @@ func newConnectLayout() connectLayout {
 		addressClear:  image.Rect(542, 194, 610, 218),
 		nameField:     image.Rect(180, 244, 620, 292),
 		nameClear:     image.Rect(542, 256, 610, 280),
-		connectButton: image.Rect(322, 316, 478, 354),
+		connectButton: image.Rect(310, 312, 490, 364),
 	}
 }
 
@@ -244,6 +245,9 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 	}
 	instrBounds := instrConstraint.Bounds(vp)
 	drawUIText(screen, "Click fields to edit, then press Connect (or Enter) to join", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+	if hint := strings.TrimSpace(s.statusHint); hint != "" {
+		drawUIText(screen, trimToWidth(hint, 420), screenWidth/2-190, 396, color.RGBA{R: 255, G: 210, B: 180, A: 255})
+	}
 
 	// Player ID display (if assigned).
 	if playerID != "" {
@@ -368,13 +372,21 @@ func (s *SceneConnect) confirmConnectForm() {
 	if !inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		return
 	}
+	s.attemptConnect()
+}
 
+func (s *SceneConnect) attemptConnect() {
 	address, name := s.game.state.ConnectFormSnapshot()
-	if strings.TrimSpace(address) != "" {
-		s.game.state.SetConnectAddress(address)
+	if strings.TrimSpace(address) == "" {
+		s.statusHint = "Enter a server address like ws://localhost:8080/ws, then press Connect."
+		return
 	}
+	s.game.state.SetConnectAddress(address)
 	if strings.TrimSpace(name) == "" {
 		s.game.state.SetDisplayName("Investigator")
+		s.statusHint = "Connecting as Investigator. If connection fails, verify address and try again."
+	} else {
+		s.statusHint = "Connecting... If connection fails, verify address and press Connect again."
 	}
 	// Abort the current backoff sleep and redial immediately with the new address.
 	s.game.net.Reconnect()
@@ -404,11 +416,13 @@ func (s *SceneConnect) activateConnectControl(control connectControlID) {
 	case connectControlAddressClear:
 		s.game.state.ClearConnectAddress()
 		s.activeField = connectFieldAddress
+		s.statusHint = ""
 	case connectControlNameClear:
 		s.game.state.ClearDisplayName()
 		s.activeField = connectFieldName
+		s.statusHint = ""
 	case connectControlConnectButton:
-		s.confirmConnectForm()
+		s.attemptConnect()
 	}
 }
 
@@ -420,9 +434,11 @@ func (s *SceneConnect) appendRune(r rune) {
 	address, displayName := s.game.state.ConnectFormSnapshot()
 	if s.activeField == connectFieldAddress {
 		s.game.state.SetConnectAddress(address + string(r))
+		s.statusHint = ""
 		return
 	}
 	s.game.state.SetDisplayName(displayName + string(r))
+	s.statusHint = ""
 }
 
 func countConnectedPlayers(gs ebclient.GameState) int {
@@ -463,17 +479,26 @@ const (
 
 func newOnboardingControls() onboardingControls {
 	return onboardingControls{
-		next: image.Rect(404, 154, 516, 182),
-		skip: image.Rect(528, 154, 664, 182),
+		next: image.Rect(352, 140, 500, 188),
+		skip: image.Rect(512, 140, 684, 188),
 	}
 }
 
 func newCameraControls() cameraControls {
-	y := bottomPanelY() - 28
+	const (
+		buttonSize = 44
+		gap        = 8
+		margin     = 12
+	)
+	top := 12
+	right := screenWidth - margin
+	toggle := image.Rect(right-buttonSize, top, right, top+buttonSize)
+	rightBtn := image.Rect(toggle.Min.X-gap-buttonSize, top, toggle.Min.X-gap, top+buttonSize)
+	leftBtn := image.Rect(rightBtn.Min.X-gap-buttonSize, top, rightBtn.Min.X-gap, top+buttonSize)
 	return cameraControls{
-		left:   image.Rect(374, y, 454, y+24),
-		right:  image.Rect(462, y, 542, y+24),
-		toggle: image.Rect(550, y, 692, y+24),
+		left:   leftBtn,
+		right:  rightBtn,
+		toggle: toggle,
 	}
 }
 
@@ -727,7 +752,7 @@ func NewSceneCharacterSelect(g *Game) *SceneCharacterSelect {
 	}
 }
 
-// Update checks for key presses 1-6 (investigator) and E/S/H (difficulty) and sends selections to the server.
+// Update handles pointer-first investigator selection while preserving keyboard fallback keys.
 func (s *SceneCharacterSelect) Update() error {
 	gs, playerID, _ := s.game.state.Snapshot()
 
@@ -789,69 +814,119 @@ func (s *SceneCharacterSelect) Update() error {
 	return nil
 }
 
-// Draw renders the character selection menu with 6 options and their key bindings.
+// Draw renders a card-based investigator and difficulty selection interface.
 func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
-	gs, _, _ := s.game.state.Snapshot()
+	gs, myID, _ := s.game.state.Snapshot()
 	selected, waiting := investigatorSelectionStatus(gs)
 	layout := newCharacterSelectLayout()
 
-	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
-	drawUIText(screen, "Select Your Investigator", screenWidth/2-100, screenHeight/2-110, color.White)
-	drawUIText(screen, "Click a card or press [1-6] to choose", screenWidth/2-135, screenHeight/2-95, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+	screen.Fill(color.RGBA{R: 8, G: 10, B: 18, A: 255})
+	drawUIText(screen, "Choose Your Investigator", screenWidth/2-112, 24, color.White)
+	drawUIText(screen, "Pick a card, choose difficulty, then confirm to lock in.", screenWidth/2-196, 40, color.RGBA{R: 188, G: 198, B: 220, A: 255})
 
 	for i, investigator := range s.investigators {
 		rect := layout.cardRect(i)
 		isSelected := s.selectedInvestigator == investigator.name
-		hovered, pressed := pointerState(rect)
-		if playerID := gs.CurrentPlayer; playerID != "" {
-			if player, exists := gs.Players[playerID]; exists && player.InvestigatorType == protocol.InvestigatorType(investigator.name) && player.InvestigatorType != "" {
-				isSelected = true
-			}
+		lockedBy, locked := selectedInvestigatorOwner(gs, investigator.name, myID)
+		if player, exists := gs.Players[myID]; exists && player.InvestigatorType == protocol.InvestigatorType(investigator.name) {
+			isSelected = true
 		}
+		hovered, pressed := pointerState(rect)
+		selectButton := layout.selectButtonRect(i)
+		selectHovered, selectPressed := pointerState(selectButton)
 		keyLabel := strconv.Itoa(i + 1)
 
-		fill := color.RGBA{R: 18, G: 20, B: 32, A: 240}
-		border := color.RGBA{R: 115, G: 128, B: 165, A: 255}
+		fill := color.RGBA{R: 16, G: 20, B: 34, A: 245}
+		border := color.RGBA{R: 108, G: 126, B: 164, A: 255}
 		if hovered {
-			fill = color.RGBA{R: 28, G: 32, B: 48, A: 245}
+			fill = color.RGBA{R: 24, G: 30, B: 52, A: 248}
 			border = color.RGBA{R: 150, G: 176, B: 220, A: 255}
 		}
 		if pressed {
-			fill = color.RGBA{R: 40, G: 46, B: 66, A: 248}
+			fill = color.RGBA{R: 32, G: 42, B: 70, A: 250}
 			border = color.RGBA{R: 204, G: 220, B: 255, A: 255}
 		}
 		if isSelected {
-			fill = color.RGBA{R: 38, G: 32, B: 18, A: 245}
+			fill = color.RGBA{R: 44, G: 36, B: 20, A: 248}
 			border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
 		}
+		if locked && !isSelected {
+			fill = color.RGBA{R: 30, G: 30, B: 36, A: 235}
+			border = color.RGBA{R: 128, G: 128, B: 142, A: 255}
+		}
 		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), fill)
-		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), 2, border)
-		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Max.Y-2), float64(rect.Dx()), 2, border)
-		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
-		ebitenutil.DrawRect(screen, float64(rect.Max.X-2), float64(rect.Min.Y), 2, float64(rect.Dy()), border)
+		drawTileBorder(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), border)
 
-		// Choose color based on selection state.
 		titleColor := color.RGBA{R: 220, G: 220, B: 220, A: 255}
-		descColor := color.RGBA{R: 160, G: 160, B: 160, A: 255}
+		descColor := color.RGBA{R: 174, G: 184, B: 206, A: 255}
 		if isSelected {
-			titleColor = color.RGBA{R: 255, G: 215, B: 100, A: 255} // Gold highlight
+			titleColor = color.RGBA{R: 255, G: 220, B: 120, A: 255}
 			descColor = color.RGBA{R: 200, G: 180, B: 100, A: 255}
 		}
-
-		// Draw the key, name, and description.
-		text := "[" + keyLabel + "] " + investigator.display
-		if isSelected {
-			text += " ✓"
+		if locked && !isSelected {
+			titleColor = color.RGBA{R: 176, G: 176, B: 188, A: 255}
+			descColor = color.RGBA{R: 136, G: 142, B: 156, A: 255}
 		}
-		drawUIText(screen, text, rect.Min.X+12, rect.Min.Y+8, titleColor)
-		drawUIText(screen, "    "+investigator.description, rect.Min.X+12, rect.Min.Y+22, descColor)
+
+		drawUIText(screen, "#"+keyLabel+"  "+investigator.display, rect.Min.X+12, rect.Min.Y+10, titleColor)
+		drawUIText(screen, trimToWidth(investigator.description, 212), rect.Min.X+12, rect.Min.Y+26, descColor)
+		if locked && !isSelected {
+			drawUIText(screen, "Taken by "+lockedBy, rect.Min.X+12, rect.Min.Y+40, color.RGBA{R: 190, G: 164, B: 164, A: 255})
+		}
+		if isSelected {
+			drawUIText(screen, "Selected", rect.Min.X+12, rect.Min.Y+40, color.RGBA{R: 255, G: 228, B: 140, A: 255})
+		}
+
+		selectFill := color.RGBA{R: 108, G: 148, B: 214, A: 255}
+		selectBorder := color.RGBA{R: 218, G: 232, B: 255, A: 255}
+		selectLabel := "Select"
+		if locked && !isSelected {
+			selectFill = color.RGBA{R: 78, G: 84, B: 98, A: 255}
+			selectBorder = color.RGBA{R: 142, G: 146, B: 164, A: 255}
+			selectLabel = "Unavailable"
+		}
+		if isSelected {
+			selectFill = color.RGBA{R: 126, G: 174, B: 90, A: 255}
+			selectBorder = color.RGBA{R: 232, G: 248, B: 210, A: 255}
+			selectLabel = "Selected"
+		}
+		if !locked && selectHovered {
+			selectFill = color.RGBA{R: 132, G: 176, B: 246, A: 255}
+		}
+		if !locked && selectPressed {
+			selectFill = color.RGBA{R: 148, G: 194, B: 255, A: 255}
+		}
+		ebitenutil.DrawRect(screen, float64(selectButton.Min.X), float64(selectButton.Min.Y), float64(selectButton.Dx()), float64(selectButton.Dy()), selectFill)
+		drawTileBorder(screen, float64(selectButton.Min.X), float64(selectButton.Min.Y), float64(selectButton.Dx()), float64(selectButton.Dy()), selectBorder)
+		drawUIText(screen, selectLabel, selectButton.Min.X+18, selectButton.Min.Y+17, color.White)
 	}
 
-	// Draw difficulty selection.
-	drawUIText(screen, "Confirm Selection", layout.confirmButton.Min.X+20, layout.confirmButton.Min.Y+10, color.White)
+	drawUIText(screen, "Difficulty", screenWidth/2-36, 468, color.White)
+	drawUIText(screen, "Use buttons or press E/S/H", screenWidth/2-86, 482, color.RGBA{R: 184, G: 194, B: 212, A: 255})
+	for _, option := range layout.difficultyButtons() {
+		hovered, pressed := pointerState(option.rect)
+		fill := color.RGBA{R: 28, G: 32, B: 45, A: 242}
+		border := color.RGBA{R: 132, G: 146, B: 176, A: 255}
+		if hovered {
+			fill = color.RGBA{R: 38, G: 46, B: 64, A: 248}
+			border = color.RGBA{R: 165, G: 186, B: 224, A: 255}
+		}
+		if pressed {
+			fill = color.RGBA{R: 46, G: 56, B: 80, A: 250}
+			border = color.RGBA{R: 208, G: 220, B: 250, A: 255}
+		}
+		if s.selectedDifficulty == option.value {
+			fill = color.RGBA{R: 72, G: 94, B: 136, A: 255}
+			border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
+		}
+		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), float64(option.rect.Dx()), float64(option.rect.Dy()), fill)
+		drawTileBorder(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), float64(option.rect.Dx()), float64(option.rect.Dy()), border)
+		drawUIText(screen, option.label, option.rect.Min.X+24, option.rect.Min.Y+19, color.White)
+	}
+
 	confirmHovered, confirmPressed := pointerState(layout.confirmButton)
 	confirmEnabled := s.selectedInvestigator != ""
-	confirmColor := color.RGBA{R: 80, G: 120, B: 195, A: 255}
+	confirmColor := color.RGBA{R: 80, G: 110, B: 156, A: 255}
 	confirmBorder := color.RGBA{R: 220, G: 230, B: 255, A: 255}
 	if confirmEnabled {
 		confirmColor = color.RGBA{R: 120, G: 170, B: 240, A: 255}
@@ -869,51 +944,22 @@ func (s *SceneCharacterSelect) Draw(screen *ebiten.Image) {
 		confirmBorder = color.RGBA{R: 250, G: 250, B: 255, A: 255}
 	}
 	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), float64(layout.confirmButton.Dy()), confirmColor)
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), 2, confirmBorder)
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Max.Y-2), float64(layout.confirmButton.Dx()), 2, confirmBorder)
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), confirmBorder)
-	ebitenutil.DrawRect(screen, float64(layout.confirmButton.Max.X-2), float64(layout.confirmButton.Min.Y), 2, float64(layout.confirmButton.Dy()), confirmBorder)
-	confirmLabel := "Tap a card first"
+	drawTileBorder(screen, float64(layout.confirmButton.Min.X), float64(layout.confirmButton.Min.Y), float64(layout.confirmButton.Dx()), float64(layout.confirmButton.Dy()), confirmBorder)
+	confirmLabel := "Select an investigator first"
 	if s.selectedInvestigator != "" {
-		confirmLabel = "Tap here or press ENTER"
+		confirmLabel = "Confirm Selection / Start Game"
 	}
-	drawUIText(screen, confirmLabel, layout.confirmButton.Min.X+20, layout.confirmButton.Min.Y+22, color.White)
+	drawUIText(screen, confirmLabel, layout.confirmButton.Min.X+18, layout.confirmButton.Min.Y+20, color.White)
+	drawUIText(screen, "Press ENTER to confirm selected card", layout.confirmButton.Min.X+18, layout.confirmButton.Min.Y+34, color.RGBA{R: 232, G: 236, B: 248, A: 255})
 
-	drawUIText(screen, "Select Difficulty:", screenWidth/2-120, 468, color.White)
-	for _, option := range layout.difficultyButtons() {
-		hovered, pressed := pointerState(option.rect)
-		fill := color.RGBA{R: 25, G: 28, B: 40, A: 240}
-		border := color.RGBA{R: 130, G: 145, B: 175, A: 255}
-		if hovered {
-			fill = color.RGBA{R: 34, G: 42, B: 58, A: 245}
-			border = color.RGBA{R: 165, G: 186, B: 224, A: 255}
-		}
-		if pressed {
-			fill = color.RGBA{R: 44, G: 56, B: 76, A: 250}
-			border = color.RGBA{R: 208, G: 220, B: 250, A: 255}
-		}
-		if s.selectedDifficulty == option.value {
-			fill = color.RGBA{R: 45, G: 62, B: 96, A: 255}
-			border = color.RGBA{R: 255, G: 220, B: 120, A: 255}
-		}
-		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), float64(option.rect.Dx()), float64(option.rect.Dy()), fill)
-		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), float64(option.rect.Dx()), 2, border)
-		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Max.Y-2), float64(option.rect.Dx()), 2, border)
-		ebitenutil.DrawRect(screen, float64(option.rect.Min.X), float64(option.rect.Min.Y), 2, float64(option.rect.Dy()), border)
-		ebitenutil.DrawRect(screen, float64(option.rect.Max.X-2), float64(option.rect.Min.Y), 2, float64(option.rect.Dy()), border)
-		drawUIText(screen, option.label, option.rect.Min.X+18, option.rect.Min.Y+13, color.White)
-	}
-	drawUIText(screen, "Choose a difficulty button or use E/S/H", screenWidth/2-135, 528, color.RGBA{R: 180, G: 180, B: 180, A: 255})
-
-	// Highlight selected difficulty.
 	if s.selectedDifficulty != "" {
-		diffColor := color.RGBA{R: 255, G: 215, B: 100, A: 255} // Gold
-		drawUIText(screen, "Current: "+strings.ToTitle(s.selectedDifficulty), screenWidth/2-120, screenHeight/2+170, diffColor)
+		diffColor := color.RGBA{R: 255, G: 215, B: 100, A: 255}
+		drawUIText(screen, "Current Difficulty: "+strings.ToTitle(s.selectedDifficulty), screenWidth/2-98, 660, diffColor)
+	} else {
+		drawUIText(screen, "Current Difficulty: Standard (default)", screenWidth/2-108, 660, color.RGBA{R: 188, G: 198, B: 220, A: 255})
 	}
-
-	drawUIText(screen, "", screenWidth/2-100, screenHeight/2+190, color.White) // Spacing
-	drawUIText(screen, "Selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-100, screenHeight/2+205, color.White)
-	drawUIText(screen, "Scene advances when all connected players confirm.", screenWidth/2-150, screenHeight/2+220, color.RGBA{R: 180, G: 180, B: 180, A: 255})
+	drawUIText(screen, "Connected selected: "+strconv.Itoa(selected)+"  Waiting: "+strconv.Itoa(waiting), screenWidth/2-116, 676, color.White)
+	drawUIText(screen, "Scene advances when all connected players confirm selection.", screenWidth/2-170, 692, color.RGBA{R: 180, G: 180, B: 180, A: 255})
 }
 
 func (s *SceneCharacterSelect) handlePointerInput(gs ebclient.GameState, playerID string) {
@@ -934,8 +980,24 @@ func (s *SceneCharacterSelect) handlePointerInput(gs ebclient.GameState, playerI
 }
 
 func (s *SceneCharacterSelect) activateCharacterChoice(layout characterSelectLayout, x, y int, gs ebclient.GameState, playerID string) {
+	if idx, ok := layout.selectButtonIndexAt(x, y); ok && idx < len(s.investigators) {
+		investigator := s.investigators[idx]
+		if _, locked := selectedInvestigatorOwner(gs, investigator.name, playerID); !locked {
+			s.selectedInvestigator = investigator.name
+			s.game.net.SendAction(ebclient.PlayerActionMessage{
+				Type:     "playerAction",
+				PlayerID: playerID,
+				Action:   protocol.ActionSelectInvestigator,
+				Target:   s.selectedInvestigator,
+			})
+		}
+		return
+	}
 	if idx, ok := layout.cardIndexAt(x, y); ok && idx < len(s.investigators) {
-		s.selectedInvestigator = s.investigators[idx].name
+		investigator := s.investigators[idx]
+		if _, locked := selectedInvestigatorOwner(gs, investigator.name, playerID); !locked {
+			s.selectedInvestigator = investigator.name
+		}
 		return
 	}
 	if image.Pt(x, y).In(layout.confirmButton) && s.selectedInvestigator != "" {
@@ -980,9 +1042,9 @@ func (l characterSelectLayout) difficultyButtons() []difficultyButton {
 		return nil
 	}
 	centerX := screenWidth / 2
-	y := 500
-	buttonWidth := 126
-	buttonHeight := 36
+	y := 502
+	buttonWidth := 156
+	buttonHeight := 50
 	gap := 12
 	left := centerX - buttonWidth - gap - buttonWidth/2
 	return []difficultyButton{
@@ -994,14 +1056,22 @@ func (l characterSelectLayout) difficultyButtons() []difficultyButton {
 
 func newCharacterSelectLayout() characterSelectLayout {
 	cards := make([]image.Rectangle, 0, 6)
-	startY := 120
+	cardWidth := 392
+	cardHeight := 108
+	gapX := 20
+	gapY := 16
+	startX := (screenWidth - (cardWidth*2 + gapX)) / 2
+	startY := 76
 	for i := 0; i < 6; i++ {
-		y := startY + i*46
-		cards = append(cards, image.Rect(screenWidth/2-220, y, screenWidth/2+220, y+40))
+		row := i / 2
+		col := i % 2
+		x := startX + col*(cardWidth+gapX)
+		y := startY + row*(cardHeight+gapY)
+		cards = append(cards, image.Rect(x, y, x+cardWidth, y+cardHeight))
 	}
 	return characterSelectLayout{
 		cards:         cards,
-		confirmButton: image.Rect(screenWidth/2-110, 414, screenWidth/2+110, 452),
+		confirmButton: image.Rect(screenWidth/2-190, 570, screenWidth/2+190, 622),
 	}
 }
 
@@ -1022,6 +1092,43 @@ func (l characterSelectLayout) cardIndexAt(x, y int) (int, bool) {
 	return 0, false
 }
 
+func (l characterSelectLayout) selectButtonRect(index int) image.Rectangle {
+	rect := l.cardRect(index)
+	if rect.Empty() {
+		return image.Rectangle{}
+	}
+	buttonWidth := 128
+	buttonHeight := 48
+	left := rect.Max.X - buttonWidth - 12
+	top := rect.Max.Y - buttonHeight - 8
+	return image.Rect(left, top, left+buttonWidth, top+buttonHeight)
+}
+
+func (l characterSelectLayout) selectButtonIndexAt(x, y int) (int, bool) {
+	pt := image.Pt(x, y)
+	for i := range l.cards {
+		if pt.In(l.selectButtonRect(i)) {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+func selectedInvestigatorOwner(gs ebclient.GameState, investigatorName, selfID string) (string, bool) {
+	target := protocol.InvestigatorType(investigatorName)
+	for _, player := range gs.Players {
+		if !player.Connected || player.ID == selfID || player.InvestigatorType != target {
+			continue
+		}
+		owner := strings.TrimSpace(player.DisplayName)
+		if owner == "" {
+			owner = player.ID
+		}
+		return owner, true
+	}
+	return "", false
+}
+
 // SceneGameOver is shown when the game reaches a win or lose condition.
 // It displays the outcome and prompts the player to close the window.
 type SceneGameOver struct {
@@ -1035,8 +1142,8 @@ type gameOverLayout struct {
 
 func newGameOverLayout() gameOverLayout {
 	return gameOverLayout{
-		playAgain: image.Rect(screenWidth/2-172, screenHeight/2+54, screenWidth/2-16, screenHeight/2+92),
-		toLobby:   image.Rect(screenWidth/2+16, screenHeight/2+54, screenWidth/2+188, screenHeight/2+92),
+		playAgain: image.Rect(screenWidth/2-186, screenHeight/2+76, screenWidth/2-20, screenHeight/2+128),
+		toLobby:   image.Rect(screenWidth/2+20, screenHeight/2+76, screenWidth/2+206, screenHeight/2+128),
 	}
 }
 
@@ -1100,16 +1207,20 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	gs, _, _ := s.game.state.Snapshot()
 	layout := newGameOverLayout()
+	totalClues, survivors, connected := gameOverSummary(gs)
 
 	if gs.WinCondition {
 		screen.Fill(color.RGBA{R: 10, G: 30, B: 10, A: 255})
-		drawUIText(screen, "* INVESTIGATORS WIN! *", screenWidth/2-90, screenHeight/2-10, color.RGBA{R: 140, G: 255, B: 140, A: 255})
-		drawUIText(screen, "The Ancient One's influence has been sealed.", screenWidth/2-130, screenHeight/2+10, color.White)
+		drawUIText(screen, "* INVESTIGATORS WIN! *", screenWidth/2-94, screenHeight/2-20, color.RGBA{R: 140, G: 255, B: 140, A: 255})
+		drawUIText(screen, "The Ancient One's influence has been sealed.", screenWidth/2-132, screenHeight/2+2, color.White)
 	} else {
 		screen.Fill(color.RGBA{R: 30, G: 10, B: 10, A: 255})
-		drawUIText(screen, "* ANCIENT ONE AWAKENS - YOU LOSE *", screenWidth/2-140, screenHeight/2-10, color.RGBA{R: 255, G: 140, B: 140, A: 255})
-		drawUIText(screen, "Doom has consumed Arkham.", screenWidth/2-80, screenHeight/2+10, color.White)
+		drawUIText(screen, "* ANCIENT ONE AWAKENS - YOU LOSE *", screenWidth/2-144, screenHeight/2-20, color.RGBA{R: 255, G: 140, B: 140, A: 255})
+		drawUIText(screen, "Doom has consumed Arkham.", screenWidth/2-84, screenHeight/2+2, color.White)
 	}
+	drawUIText(screen, "Final Doom: "+strconv.Itoa(gs.Doom), screenWidth/2-84, screenHeight/2+20, color.RGBA{R: 244, G: 194, B: 194, A: 255})
+	drawUIText(screen, "Team Clues: "+strconv.Itoa(totalClues)+"  Survivors: "+strconv.Itoa(survivors)+"/"+strconv.Itoa(connected), screenWidth/2-132, screenHeight/2+34, color.RGBA{R: 220, G: 224, B: 236, A: 255})
+
 	playFill := color.RGBA{R: 60, G: 92, B: 140, A: 255}
 	playBorder := color.RGBA{R: 206, G: 222, B: 255, A: 255}
 	playHovered, playPressed := pointerState(layout.playAgain)
@@ -1122,11 +1233,8 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 		playBorder = color.RGBA{R: 242, G: 246, B: 255, A: 255}
 	}
 	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), float64(layout.playAgain.Dx()), float64(layout.playAgain.Dy()), playFill)
-	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), float64(layout.playAgain.Dx()), 2, playBorder)
-	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Max.Y-2), float64(layout.playAgain.Dx()), 2, playBorder)
-	ebitenutil.DrawRect(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), 2, float64(layout.playAgain.Dy()), playBorder)
-	ebitenutil.DrawRect(screen, float64(layout.playAgain.Max.X-2), float64(layout.playAgain.Min.Y), 2, float64(layout.playAgain.Dy()), playBorder)
-	drawUIText(screen, "PLAY AGAIN", layout.playAgain.Min.X+30, layout.playAgain.Min.Y+11, color.White)
+	drawTileBorder(screen, float64(layout.playAgain.Min.X), float64(layout.playAgain.Min.Y), float64(layout.playAgain.Dx()), float64(layout.playAgain.Dy()), playBorder)
+	drawUIText(screen, "PLAY AGAIN", layout.playAgain.Min.X+32, layout.playAgain.Min.Y+20, color.White)
 
 	lobbyFill := color.RGBA{R: 52, G: 54, B: 70, A: 255}
 	lobbyBorder := color.RGBA{R: 184, G: 192, B: 225, A: 255}
@@ -1140,13 +1248,24 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 		lobbyBorder = color.RGBA{R: 228, G: 232, B: 248, A: 255}
 	}
 	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), float64(layout.toLobby.Dx()), float64(layout.toLobby.Dy()), lobbyFill)
-	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), float64(layout.toLobby.Dx()), 2, lobbyBorder)
-	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Max.Y-2), float64(layout.toLobby.Dx()), 2, lobbyBorder)
-	ebitenutil.DrawRect(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), 2, float64(layout.toLobby.Dy()), lobbyBorder)
-	ebitenutil.DrawRect(screen, float64(layout.toLobby.Max.X-2), float64(layout.toLobby.Min.Y), 2, float64(layout.toLobby.Dy()), lobbyBorder)
-	drawUIText(screen, "RETURN TO LOBBY", layout.toLobby.Min.X+18, layout.toLobby.Min.Y+11, color.White)
+	drawTileBorder(screen, float64(layout.toLobby.Min.X), float64(layout.toLobby.Min.Y), float64(layout.toLobby.Dx()), float64(layout.toLobby.Dy()), lobbyBorder)
+	drawUIText(screen, "RETURN TO LOBBY", layout.toLobby.Min.X+20, layout.toLobby.Min.Y+20, color.White)
 
-	drawUIText(screen, "Enter/Space: play again", screenWidth/2-102, screenHeight/2+104, color.White)
+	drawUIText(screen, "Buttons are clickable; Enter/Space also starts a new run.", screenWidth/2-174, screenHeight/2+146, color.RGBA{R: 220, G: 224, B: 236, A: 255})
+}
+
+func gameOverSummary(gs ebclient.GameState) (clues int, survivors int, connected int) {
+	for _, player := range gs.Players {
+		if !player.Connected {
+			continue
+		}
+		connected++
+		clues += player.Resources.Clues
+		if !player.Defeated {
+			survivors++
+		}
+	}
+	return clues, survivors, connected
 }
 
 // updateScene evaluates current state and transitions to the appropriate scene.

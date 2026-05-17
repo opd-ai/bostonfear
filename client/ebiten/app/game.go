@@ -259,9 +259,11 @@ func (g *Game) drawGameContent(screen *ebiten.Image) {
 	g.renderer.Flush(screen)
 
 	// Layer 3 — UI: text overlays drawn directly on screen after sprite flush.
+	g.drawStatusRail(screen, gs, playerID, connected)
 	g.drawConnectionBanner(screen, connected)
 	g.drawStateBanner(screen)
 	g.drawDoomCounter(screen, gs)
+	g.drawResourceRail(screen, gs, playerID)
 	g.drawPlayerPanel(screen, gs, playerID)
 	g.drawLocationPanel(screen, gs, playerID)
 	g.drawResultsPanel(screen)
@@ -463,31 +465,66 @@ func (g *Game) drawOnboarding(screen *ebiten.Image) {
 		return
 	}
 	controls := newOnboardingControls()
-	ebitenutil.DrawRect(screen, 120, 90, 560, 96, color.RGBA{R: 12, G: 12, B: 22, A: 240})
+	ebitenutil.DrawRect(screen, 120, 90, 560, 108, color.RGBA{R: 12, G: 12, B: 22, A: 240})
+	drawTileBorder(screen, 120, 90, 560, 108, color.RGBA{R: 140, G: 154, B: 182, A: 255})
+	g.drawOnboardingHighlight(screen, step)
+	currentStep, totalSteps := g.onboarding.Progress()
+	progress := "Step " + strconv.Itoa(currentStep) + " of " + strconv.Itoa(totalSteps)
+	drawUIText(screen, progress, 136, 94, color.RGBA{R: 208, G: 220, B: 246, A: 255})
 
 	// Draw title and description with wrapping for better readability.
-	y := 102
+	y := 110
 	y = drawWrappedText(screen, step.Title, 540, 136, y, color.RGBA{R: 230, G: 230, B: 255, A: 255}) + 3
 	y = drawWrappedText(screen, step.Description, 540, 136, y, color.White) + 1
-	drawUIText(screen, "Use NEXT/SKIP buttons or ENTER/H shortcuts", 136, y, color.RGBA{R: 200, G: 200, B: 220, A: 255})
+	drawUIText(screen, "Use NEXT and SKIP TUTORIAL buttons (keyboard shortcuts are optional)", 136, y, color.RGBA{R: 200, G: 200, B: 220, A: 255})
 
 	nextFill := color.RGBA{R: 58, G: 78, B: 114, A: 245}
 	nextBorder := color.RGBA{R: 210, G: 225, B: 255, A: 255}
 	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Min.Y), float64(controls.next.Dx()), float64(controls.next.Dy()), nextFill)
-	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Min.Y), float64(controls.next.Dx()), 2, nextBorder)
-	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Max.Y-2), float64(controls.next.Dx()), 2, nextBorder)
-	ebitenutil.DrawRect(screen, float64(controls.next.Min.X), float64(controls.next.Min.Y), 2, float64(controls.next.Dy()), nextBorder)
-	ebitenutil.DrawRect(screen, float64(controls.next.Max.X-2), float64(controls.next.Min.Y), 2, float64(controls.next.Dy()), nextBorder)
-	drawUIText(screen, "NEXT", controls.next.Min.X+36, controls.next.Min.Y+8, color.White)
+	drawTileBorder(screen, float64(controls.next.Min.X), float64(controls.next.Min.Y), float64(controls.next.Dx()), float64(controls.next.Dy()), nextBorder)
+	drawUIText(screen, "NEXT", controls.next.Min.X+52, controls.next.Min.Y+18, color.White)
 
 	skipFill := color.RGBA{R: 78, G: 46, B: 48, A: 245}
 	skipBorder := color.RGBA{R: 245, G: 195, B: 195, A: 255}
 	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Min.Y), float64(controls.skip.Dx()), float64(controls.skip.Dy()), skipFill)
-	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Min.Y), float64(controls.skip.Dx()), 2, skipBorder)
-	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Max.Y-2), float64(controls.skip.Dx()), 2, skipBorder)
-	ebitenutil.DrawRect(screen, float64(controls.skip.Min.X), float64(controls.skip.Min.Y), 2, float64(controls.skip.Dy()), skipBorder)
-	ebitenutil.DrawRect(screen, float64(controls.skip.Max.X-2), float64(controls.skip.Min.Y), 2, float64(controls.skip.Dy()), skipBorder)
-	drawUIText(screen, "SKIP TUTORIAL", controls.skip.Min.X+12, controls.skip.Min.Y+8, color.White)
+	drawTileBorder(screen, float64(controls.skip.Min.X), float64(controls.skip.Min.Y), float64(controls.skip.Dx()), float64(controls.skip.Dy()), skipBorder)
+	drawUIText(screen, "SKIP TUTORIAL", controls.skip.Min.X+26, controls.skip.Min.Y+18, color.White)
+}
+
+func (g *Game) drawOnboardingHighlight(screen *ebiten.Image, step *onboarding.OnboardingStep) {
+	if step == nil {
+		return
+	}
+	rect, ok := g.onboardingHighlightRect(step)
+	if !ok {
+		return
+	}
+	ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), color.RGBA{R: 54, G: 74, B: 112, A: 70})
+	drawTileBorder(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), color.RGBA{R: 214, G: 230, B: 255, A: 255})
+}
+
+func (g *Game) onboardingHighlightRect(step *onboarding.OnboardingStep) (image.Rectangle, bool) {
+	if step.Highlight != nil {
+		r := step.Highlight
+		return image.Rect(int(r.X), int(r.Y), int(r.X+r.Width), int(r.Y+r.Height)), true
+	}
+	controls := newCameraControls()
+	switch step.ID {
+	case "resources":
+		return image.Rect(10, 32, 190, 116), true
+	case "doom":
+		return image.Rect(screenWidth-190, 4, screenWidth-8, 64), true
+	case "locations":
+		return image.Rect(28, 44, 376, 348), true
+	case "actions":
+		return image.Rect(8, screenHeight-actionGridTotalHeight(), screenWidth-8, screenHeight-8), true
+	case "roll_dice":
+		return image.Rect(8, 24, 432, 108), true
+	case "ready":
+		return image.Rect(controls.left.Min.X-4, controls.left.Min.Y-4, controls.toggle.Max.X+4, controls.toggle.Max.Y+4), true
+	default:
+		return image.Rectangle{}, false
+	}
 }
 
 func (g *Game) drawCameraControls(screen *ebiten.Image) {
@@ -495,33 +532,59 @@ func (g *Game) drawCameraControls(screen *ebiten.Image) {
 		return
 	}
 	controls := newCameraControls()
+	leftHovered, leftPressed := pointerState(controls.left)
+	rightHovered, rightPressed := pointerState(controls.right)
+	toggleHovered, togglePressed := pointerState(controls.toggle)
 
-	leftFill := color.RGBA{R: 34, G: 38, B: 52, A: 245}
+	leftFill := color.RGBA{R: 32, G: 36, B: 50, A: 245}
 	leftBorder := color.RGBA{R: 156, G: 176, B: 218, A: 255}
+	if leftHovered {
+		leftFill = color.RGBA{R: 42, G: 50, B: 72, A: 248}
+	}
+	if leftPressed {
+		leftFill = color.RGBA{R: 56, G: 66, B: 94, A: 252}
+	}
 	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), float64(controls.left.Dx()), float64(controls.left.Dy()), leftFill)
-	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), float64(controls.left.Dx()), 2, leftBorder)
-	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Max.Y-2), float64(controls.left.Dx()), 2, leftBorder)
-	ebitenutil.DrawRect(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), 2, float64(controls.left.Dy()), leftBorder)
-	ebitenutil.DrawRect(screen, float64(controls.left.Max.X-2), float64(controls.left.Min.Y), 2, float64(controls.left.Dy()), leftBorder)
-	drawUIText(screen, "[", controls.left.Min.X+34, controls.left.Min.Y+6, color.White)
+	drawTileBorder(screen, float64(controls.left.Min.X), float64(controls.left.Min.Y), float64(controls.left.Dx()), float64(controls.left.Dy()), leftBorder)
+	drawUIText(screen, "<", controls.left.Min.X+18, controls.left.Min.Y+16, color.White)
 
-	rightFill := color.RGBA{R: 34, G: 38, B: 52, A: 245}
+	rightFill := color.RGBA{R: 32, G: 36, B: 50, A: 245}
 	rightBorder := color.RGBA{R: 156, G: 176, B: 218, A: 255}
+	if rightHovered {
+		rightFill = color.RGBA{R: 42, G: 50, B: 72, A: 248}
+	}
+	if rightPressed {
+		rightFill = color.RGBA{R: 56, G: 66, B: 94, A: 252}
+	}
 	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), float64(controls.right.Dx()), float64(controls.right.Dy()), rightFill)
-	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), float64(controls.right.Dx()), 2, rightBorder)
-	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Max.Y-2), float64(controls.right.Dx()), 2, rightBorder)
-	ebitenutil.DrawRect(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), 2, float64(controls.right.Dy()), rightBorder)
-	ebitenutil.DrawRect(screen, float64(controls.right.Max.X-2), float64(controls.right.Min.Y), 2, float64(controls.right.Dy()), rightBorder)
-	drawUIText(screen, "]", controls.right.Min.X+34, controls.right.Min.Y+6, color.White)
+	drawTileBorder(screen, float64(controls.right.Min.X), float64(controls.right.Min.Y), float64(controls.right.Dx()), float64(controls.right.Dy()), rightBorder)
+	drawUIText(screen, ">", controls.right.Min.X+18, controls.right.Min.Y+16, color.White)
 
 	toggleFill := color.RGBA{R: 40, G: 58, B: 80, A: 245}
 	toggleBorder := color.RGBA{R: 188, G: 214, B: 255, A: 255}
+	if toggleHovered {
+		toggleFill = color.RGBA{R: 52, G: 74, B: 102, A: 248}
+	}
+	if togglePressed {
+		toggleFill = color.RGBA{R: 64, G: 90, B: 122, A: 252}
+	}
 	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), float64(controls.toggle.Dx()), float64(controls.toggle.Dy()), toggleFill)
-	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), float64(controls.toggle.Dx()), 2, toggleBorder)
-	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Max.Y-2), float64(controls.toggle.Dx()), 2, toggleBorder)
-	ebitenutil.DrawRect(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), 2, float64(controls.toggle.Dy()), toggleBorder)
-	ebitenutil.DrawRect(screen, float64(controls.toggle.Max.X-2), float64(controls.toggle.Min.Y), 2, float64(controls.toggle.Dy()), toggleBorder)
-	drawUIText(screen, "Toggle View (V)", controls.toggle.Min.X+18, controls.toggle.Min.Y+6, color.White)
+	drawTileBorder(screen, float64(controls.toggle.Min.X), float64(controls.toggle.Min.Y), float64(controls.toggle.Dx()), float64(controls.toggle.Dy()), toggleBorder)
+	drawUIText(screen, "V", controls.toggle.Min.X+18, controls.toggle.Min.Y+16, color.White)
+
+	tooltip := ""
+	if leftHovered {
+		tooltip = "Orbit left ["
+	}
+	if rightHovered {
+		tooltip = "Orbit right ]"
+	}
+	if toggleHovered {
+		tooltip = "Toggle view V"
+	}
+	if tooltip != "" {
+		drawUIText(screen, tooltip, controls.left.Min.X-4, controls.left.Max.Y+4, color.RGBA{R: 220, G: 232, B: 255, A: 255})
+	}
 }
 
 // enqueueBoard adds one board-layer draw command per location.
@@ -610,6 +673,7 @@ func (g *Game) drawLocationTileOverlay(screen *ebiten.Image, loc ebclient.Locati
 	height := float64(rect.h) * scale
 	v := locationTileVisual(loc, currentLocation, legalSet)
 	ebitenutil.DrawRect(screen, px, py, width, height, v.fill)
+	g.drawLocationPattern(screen, loc, px, py, width, height)
 	drawTileBorder(screen, px, py, width, height, v.border)
 
 	noteW := float64(textWidth(v.note) + 6)
@@ -647,6 +711,42 @@ func locationNoteBG(note string) color.RGBA {
 		return color.RGBA{R: 74, G: 55, B: 12, A: 230}
 	}
 	return color.RGBA{R: 8, G: 10, B: 16, A: 210}
+}
+
+// drawLocationPattern adds district-specific line art so tiles read as stylized
+// neighborhoods rather than flat placeholder fills.
+func (g *Game) drawLocationPattern(screen *ebiten.Image, loc ebclient.Location, x, y, w, h float64) {
+	line := color.RGBA{R: 230, G: 236, B: 246, A: 34}
+	shadow := color.RGBA{R: 0, G: 0, B: 0, A: 22}
+	switch loc {
+	case "Downtown":
+		for i := 1; i < 5; i++ {
+			xi := x + float64(i)*w/5
+			ebitenutil.DrawLine(screen, xi, y+6, xi, y+h-8, line)
+		}
+		for i := 1; i < 3; i++ {
+			yi := y + float64(i)*h/3
+			ebitenutil.DrawLine(screen, x+6, yi, x+w-6, yi, line)
+		}
+	case "University":
+		for i := 0; i < 6; i++ {
+			x0 := x + float64(i)*w/6
+			ebitenutil.DrawLine(screen, x0, y+h-6, x+w/2, y+8, line)
+		}
+		ebitenutil.DrawLine(screen, x+10, y+h-20, x+w-10, y+h-20, shadow)
+	case "Rivertown":
+		for i := 0; i < 6; i++ {
+			yi := y + float64(i)*h/6
+			ebitenutil.DrawLine(screen, x+6, yi, x+w-6, yi+4, line)
+		}
+		ebitenutil.DrawLine(screen, x+12, y+10, x+w-12, y+h-12, shadow)
+	case "Northside":
+		for i := 0; i < 6; i++ {
+			x0 := x + float64(i)*w/6
+			ebitenutil.DrawLine(screen, x0, y+8, x0+8, y+h-8, line)
+		}
+		ebitenutil.DrawLine(screen, x+10, y+12, x+w-12, y+h-10, shadow)
+	}
 }
 
 func (g *Game) drawLocationEntityBadges(screen *ebiten.Image, gs ebclient.GameState, loc ebclient.Location, px, py, height float64) {
@@ -780,31 +880,63 @@ func (g *Game) drawConnectionBanner(screen *ebiten.Image, connected bool) {
 	if connected {
 		return
 	}
-	drawUIText(screen, "[ Connecting to server... ]", screenWidth/2-90, 8, color.White)
+	drawUIText(screen, "[ Connecting to server... ]", screenWidth/2-90, 38, color.White)
 }
 
 // drawDoomCounter renders the global doom track (0–12) on the right side.
 func (g *Game) drawDoomCounter(screen *ebiten.Image, gs ebclient.GameState) {
-	ebitenutil.DrawRect(screen, float64(rightPanelX()-10), 42, 386, 56, color.RGBA{R: 12, G: 14, B: 24, A: 214})
-	label := g.doomLabel(gs.Doom)
-	doomFlash := g.animState.doomFlashFrames
-	labelColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	if doomFlash > 0 {
-		boost := uint8(min(70, doomFlash*3))
-		labelColor = color.RGBA{R: 255, G: uint8(205 + boost/3), B: uint8(205 + boost/3), A: 255}
-	}
-	drawUIText(screen, label, rightPanelX(), 60, labelColor)
+	panel := image.Rect(rightPanelX()-10, 42, rightPanelX()-10+386, 98)
+	drawStyledPanel(screen, panel, panelStyle{radius: 10}, "Doom Track", "Global pressure")
+	flash := g.animState.doomFlashFrames
+	drawUIText(screen, g.doomLabel(gs.Doom), rightPanelX(), 66, g.doomLabelColor(flash))
+	g.drawDoomTrackSegments(screen, gs.Doom, flash)
+	drawUIText(screen, strconv.Itoa(gs.Doom)+"/12", 652, 83, color.RGBA{R: 242, G: 246, B: 255, A: 255})
+}
 
-	// Draw a simple bar.
-	barW := 200.0
-	filled := float64(gs.Doom) / 12.0 * barW
-	bg, fg := g.doomBarColors()
-	if doomFlash > 0 {
-		barBoost := uint8(min(90, doomFlash*4))
-		fg = color.RGBA{R: 255, G: uint8(min(255, int(fg.G)+int(barBoost/4))), B: uint8(min(255, int(fg.B)+int(barBoost/4))), A: 255}
+func (g *Game) doomLabelColor(flash int) color.RGBA {
+	if flash <= 0 {
+		return color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	}
-	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, barW, 14, bg)
-	ebitenutil.DrawRect(screen, float64(rightPanelX()), 76, filled, 14, fg)
+	boost := uint8(min(70, flash*3))
+	return color.RGBA{R: 255, G: uint8(205 + boost/3), B: uint8(205 + boost/3), A: 255}
+}
+
+func (g *Game) drawDoomTrackSegments(screen *ebiten.Image, doom, flash int) {
+	const (
+		segments     = 12
+		segmentW     = 14
+		segmentGap   = 2
+		segmentH     = 14
+		segmentY     = 82
+		segmentStart = 430
+	)
+	for i := 0; i < segments; i++ {
+		x := segmentStart + i*(segmentW+segmentGap)
+		col := g.doomSegmentFill(i, doom, flash)
+		ebitenutil.DrawRect(screen, float64(x), segmentY, segmentW, segmentH, col)
+		drawTileBorder(screen, float64(x), segmentY, segmentW, segmentH, color.RGBA{R: 94, G: 104, B: 122, A: 255})
+	}
+}
+
+func (g *Game) doomSegmentFill(index, doom, flash int) color.RGBA {
+	bg := color.RGBA{R: 34, G: 38, B: 46, A: 255}
+	if index >= doom {
+		return bg
+	}
+	return brightenDoomColor(g.doomSegmentColor(index), flash)
+}
+
+func brightenDoomColor(col color.RGBA, flash int) color.RGBA {
+	if flash <= 0 {
+		return col
+	}
+	boost := uint8(min(80, flash*4))
+	return color.RGBA{
+		R: uint8(min(255, int(col.R)+int(boost/3))),
+		G: uint8(min(255, int(col.G)+int(boost/4))),
+		B: uint8(min(255, int(col.B)+int(boost/4))),
+		A: 255,
+	}
 }
 
 func (g *Game) doomBarColors() (bg, fg color.RGBA) {
@@ -825,16 +957,15 @@ func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID
 	panelX := rightPanelX() - 10
 	panelY := 110
 	panelW := 386
-	ebitenutil.DrawRect(screen, float64(panelX), float64(panelY), float64(panelW), 188, color.RGBA{R: 12, G: 14, B: 24, A: 214})
-	drawUIText(screen, "Turn Overview", rightPanelX(), panelY+8, color.RGBA{R: 238, G: 240, B: 252, A: 255})
-	drawUIText(screen, g.phaseLabel(gs.GamePhase), rightPanelX()+120, panelY+8, color.RGBA{R: 182, G: 212, B: 255, A: 255})
+	panel := image.Rect(panelX, panelY, panelX+panelW, panelY+188)
+	drawStyledPanel(screen, panel, panelStyle{radius: 10}, "Turn Overview", g.phaseLabel(gs.GamePhase))
 
 	if len(gs.TurnOrder) == 0 {
 		drawUIText(screen, "Waiting for players...", rightPanelX(), panelY+28, color.White)
 		return
 	}
 
-	y := panelY + 26
+	y := panelY + 34
 	for i, pid := range gs.TurnOrder {
 		p, ok := gs.Players[pid]
 		if !ok {
@@ -1019,23 +1150,24 @@ func (g *Game) drawEventLog(screen *ebiten.Image) {
 // drawInputHints renders the bottom action dock and its compact status line.
 func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	panelX := 10
-	panelY := screenHeight - 124
+	panelH := actionGridTotalHeight()
+	panelY := screenHeight - panelH
 	panelW := screenWidth - 20
-	panelH := 124
-	ebitenutil.DrawRect(screen, float64(panelX), float64(panelY), float64(panelW), float64(panelH), color.RGBA{R: 10, G: 12, B: 20, A: 218})
-	drawTileBorder(screen, float64(panelX), float64(panelY), float64(panelW), float64(panelH), color.RGBA{R: 96, G: 112, B: 146, A: 240})
-	drawUIText(screen, g.actionDockSummary(gs, myID), panelX+10, panelY+8, color.RGBA{R: 232, G: 238, B: 248, A: 255})
-	drawUIText(screen, trimToWidth(g.actionDockHint(gs, myID), panelW-20), panelX+10, panelY+20, color.RGBA{R: 194, G: 212, B: 238, A: 255})
+	panel := image.Rect(panelX, panelY, panelX+panelW, panelY+panelH)
+	drawStyledPanel(screen, panel, panelStyle{radius: 12}, "Action Bar", "Available actions and shortcuts")
+	// Split header and action grid into clear sections for readability.
+	headerY := panelY + 26
+	ebitenutil.DrawRect(screen, float64(panelX+2), float64(headerY), float64(panelW-4), 20, color.RGBA{R: 30, G: 34, B: 48, A: 182})
+	ebitenutil.DrawRect(screen, float64(panelX+2), float64(headerY+20), float64(panelW-4), float64(panelH-22), color.RGBA{R: 14, G: 18, B: 28, A: 176})
+	drawUIText(screen, g.actionDockSummary(gs, myID), panelX+10, panelY+30, color.RGBA{R: 232, G: 238, B: 248, A: 255})
+	drawUIText(screen, trimToWidth(g.actionDockHint(gs, myID), panelW-20), panelX+10, panelY+42, color.RGBA{R: 194, G: 212, B: 238, A: 255})
 	g.drawVisibleActionButtons(screen, gs, myID)
 	g.drawEndBanner(screen, gs)
 }
 
 func (g *Game) drawLocationPanel(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	panel := locationPanelRect()
-	ebitenutil.DrawRect(screen, float64(panel.Min.X), float64(panel.Min.Y), float64(panel.Dx()), float64(panel.Dy()), color.RGBA{R: 10, G: 12, B: 20, A: 216})
-	drawTileBorder(screen, float64(panel.Min.X), float64(panel.Min.Y), float64(panel.Dx()), float64(panel.Dy()), color.RGBA{R: 108, G: 126, B: 158, A: 240})
-	drawUIText(screen, "Location Panel", panel.Min.X+10, panel.Min.Y+8, color.RGBA{R: 242, G: 244, B: 252, A: 255})
-	drawUIText(screen, "Click or tap to move. Press 1-4 for shortcuts.", panel.Min.X+10, panel.Min.Y+22, color.RGBA{R: 196, G: 214, B: 240, A: 255})
+	drawStyledPanel(screen, panel, panelStyle{radius: 12}, "Location Panel", "Click or tap to move. Press 1-4 for shortcuts.")
 
 	hovered := g.state.HoveredActionHint()
 	focused := g.state.FocusedActionHint()
@@ -1052,6 +1184,116 @@ func (g *Game) drawLocationPanel(screen *ebiten.Image, gs ebclient.GameState, my
 			drawUIText(screen, "P:"+strconv.Itoa(button.population), button.rect.Max.X-34, button.rect.Min.Y+42, color.RGBA{R: 236, G: 224, B: 152, A: 255})
 		}
 	}
+}
+
+type panelStyle struct {
+	radius int
+}
+
+func drawStyledPanel(screen *ebiten.Image, rect image.Rectangle, style panelStyle, title string, subtitle ...string) {
+	if rect.Empty() {
+		return
+	}
+	radius := style.radius
+	if radius <= 0 {
+		radius = 8
+	}
+
+	shadow := image.Rect(rect.Min.X+2, rect.Min.Y+2, rect.Max.X+2, rect.Max.Y+2)
+	drawRoundedRect(screen, shadow, radius, color.RGBA{R: 0, G: 0, B: 0, A: 72})
+	drawRoundedRect(screen, rect, radius, color.RGBA{R: 12, G: 14, B: 24, A: 214})
+	drawRoundedBorder(screen, rect, radius, color.RGBA{R: 110, G: 130, B: 165, A: 245})
+
+	titleBar := image.Rect(rect.Min.X+1, rect.Min.Y+1, rect.Max.X-1, rect.Min.Y+24)
+	drawRoundedRect(screen, titleBar, max(2, radius-3), color.RGBA{R: 34, G: 40, B: 58, A: 220})
+	drawUIText(screen, title, rect.Min.X+10, rect.Min.Y+8, color.RGBA{R: 242, G: 244, B: 252, A: 255})
+	if len(subtitle) > 0 && strings.TrimSpace(subtitle[0]) != "" {
+		drawUIText(screen, trimToWidth(subtitle[0], rect.Dx()-20), rect.Min.X+136, rect.Min.Y+8, color.RGBA{R: 196, G: 214, B: 240, A: 255})
+	}
+}
+
+func (g *Game) drawStatusRail(screen *ebiten.Image, gs ebclient.GameState, myID string, connected bool) {
+	rail := image.Rect(10, 8, screenWidth-10, 36)
+	drawStyledPanel(screen, rail, panelStyle{radius: 10}, "Status Rail")
+
+	turnLabel := g.turnStatusLabel(gs, myID, gs.CurrentPlayer == myID)
+	actionsLeft := 0
+	if current, ok := gs.Players[gs.CurrentPlayer]; ok && current != nil {
+		actionsLeft = current.ActionsRemaining
+	}
+	connection := "online"
+	if !connected {
+		connection = "reconnecting"
+	}
+	status := "Turn: " + trimToWidth(turnLabel, 220) + " | Doom: " + strconv.Itoa(gs.Doom) + "/12 | Connection: " + connection
+	drawUIText(screen, trimToWidth(status, rail.Dx()-250), rail.Min.X+104, rail.Min.Y+10, color.RGBA{R: 246, G: 248, B: 255, A: 255})
+
+	// Action dots mirror remaining action economy for the current turn.
+	dotX := rail.Max.X - 98
+	drawUIText(screen, "ACT", dotX-26, rail.Min.Y+10, color.RGBA{R: 220, G: 228, B: 252, A: 255})
+	for i := 0; i < 2; i++ {
+		col := color.RGBA{R: 66, G: 72, B: 86, A: 255}
+		if i < actionsLeft {
+			col = color.RGBA{R: 226, G: 190, B: 98, A: 255}
+		}
+		ebitenutil.DrawRect(screen, float64(dotX+i*16), float64(rail.Min.Y+12), 10, 10, col)
+		drawTileBorder(screen, float64(dotX+i*16), float64(rail.Min.Y+12), 10, 10, color.RGBA{R: 188, G: 196, B: 220, A: 255})
+	}
+}
+
+func (g *Game) drawResourceRail(screen *ebiten.Image, gs ebclient.GameState, myID string) {
+	player, ok := gs.Players[myID]
+	if !ok || player == nil {
+		return
+	}
+	rail := image.Rect(10, 42, 236, 140)
+	drawStyledPanel(screen, rail, panelStyle{radius: 10}, "Resources", "Current investigator")
+
+	healthCol := g.tokenOrDefault("color-health", color.RGBA{R: 194, G: 72, B: 66, A: 255})
+	sanityCol := g.tokenOrDefault("color-sanity", color.RGBA{R: 86, G: 150, B: 218, A: 255})
+	clueCol := g.tokenOrDefault("color-clues", color.RGBA{R: 214, G: 176, B: 78, A: 255})
+
+	drawUIText(screen, g.iconLabel(ui.IconHealth, "HP")+" "+strconv.Itoa(player.Resources.Health), rail.Min.X+10, rail.Min.Y+30, color.White)
+	g.drawSegmentedBar(screen, rail.Min.X+74, rail.Min.Y+32, 10, player.Resources.Health, 12, 4, healthCol)
+
+	drawUIText(screen, g.iconLabel(ui.IconSanity, "SN")+" "+strconv.Itoa(player.Resources.Sanity), rail.Min.X+10, rail.Min.Y+52, color.White)
+	g.drawSegmentedBar(screen, rail.Min.X+74, rail.Min.Y+54, 10, player.Resources.Sanity, 12, 4, sanityCol)
+
+	drawUIText(screen, g.iconLabel(ui.IconClues, "CL")+" "+strconv.Itoa(player.Resources.Clues), rail.Min.X+10, rail.Min.Y+74, color.White)
+	g.drawSegmentedBar(screen, rail.Min.X+74, rail.Min.Y+76, 5, player.Resources.Clues, 24, 6, clueCol)
+}
+
+func (g *Game) drawSegmentedBar(screen *ebiten.Image, x, y, maxSegments, filled, segW, gap int, fill color.RGBA) {
+	for i := 0; i < maxSegments; i++ {
+		col := color.RGBA{R: 36, G: 40, B: 52, A: 255}
+		if i < filled {
+			col = fill
+		}
+		xi := x + i*(segW+gap)
+		ebitenutil.DrawRect(screen, float64(xi), float64(y), float64(segW), 10, col)
+		drawTileBorder(screen, float64(xi), float64(y), float64(segW), 10, color.RGBA{R: 116, G: 126, B: 144, A: 255})
+	}
+}
+
+func (g *Game) tokenOrDefault(name string, fallback color.RGBA) color.RGBA {
+	if g.tokens == nil {
+		return fallback
+	}
+	tok := g.tokens.GetColor(name)
+	if tok == (color.RGBA{R: 255, G: 255, B: 255, A: 255}) {
+		return fallback
+	}
+	return tok
+}
+
+func (g *Game) doomSegmentColor(segment int) color.RGBA {
+	if segment <= 3 {
+		return g.tokenOrDefault("color-success", color.RGBA{R: 78, G: 176, B: 108, A: 255})
+	}
+	if segment <= 7 {
+		return g.tokenOrDefault("color-warning", color.RGBA{R: 226, G: 184, B: 78, A: 255})
+	}
+	return g.tokenOrDefault("color-doom", color.RGBA{R: 198, G: 76, B: 72, A: 255})
 }
 
 func (g *Game) drawCoachMarks(screen *ebiten.Image, gs ebclient.GameState, myID string) {
@@ -1181,17 +1423,116 @@ func (g *Game) drawVisibleActionButtons(screen *ebiten.Image, gs ebclient.GameSt
 			action := availability[actionLookupKey(actionName)]
 			rect := actionGridRect(row, col)
 			fill, border, labelColor, detailColor := actionButtonStyle(action.Available, actionName, focused, hovered, pressed)
-			ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), fill)
-			drawTileBorder(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(rect.Dx()), float64(rect.Dy()), border)
-			drawUIText(screen, g.actionGlyph(actionName)+" "+actionDisplayLabel(actionName), rect.Min.X+8, rect.Min.Y+5, labelColor)
-			if key := actionShortcutHints[actionName]; key != "" {
-				drawUIText(screen, "Press "+key, rect.Max.X-48, rect.Min.Y+5, color.RGBA{R: 216, G: 228, B: 255, A: 255})
+
+			// Rounded cards and an explicit icon badge improve affordance and readability.
+			drawRoundedRect(screen, rect, 6, fill)
+			drawRoundedBorder(screen, rect, 6, border)
+
+			iconRect := image.Rect(rect.Min.X+6, rect.Min.Y+6, rect.Min.X+30, rect.Min.Y+30)
+			iconFill := color.RGBA{R: 18, G: 22, B: 34, A: 248}
+			if action.Available {
+				iconFill = color.RGBA{R: 22, G: 42, B: 34, A: 248}
 			}
-			detail := trimToWidth(action.Detail, rect.Dx()-16)
 			if strings.EqualFold(actionName, hovered) || strings.EqualFold(actionName, focused) {
-				detail = trimToWidth(actionDisplayLabel(actionName)+": "+action.Detail, rect.Dx()-16)
+				iconFill = color.RGBA{R: 34, G: 44, B: 72, A: 248}
 			}
-			drawUIText(screen, detail, rect.Min.X+8, rect.Min.Y+19, detailColor)
+			drawRoundedRect(screen, iconRect, 4, iconFill)
+			drawRoundedBorder(screen, iconRect, 4, border)
+			iconLabel := trimToWidth(g.actionGlyph(actionName), iconRect.Dx()-8)
+			drawUIText(screen, iconLabel, iconRect.Min.X+4, iconRect.Min.Y+8, labelColor)
+
+			labelX := iconRect.Max.X + 6
+			label := trimToWidth(g.actionButtonLabel(actionName), rect.Max.X-labelX-8)
+			drawUIText(screen, label, labelX, rect.Min.Y+5, labelColor)
+			detail := trimToWidth(action.Detail, rect.Max.X-labelX-8)
+			if strings.EqualFold(actionName, hovered) || strings.EqualFold(actionName, focused) {
+				detail = trimToWidth(actionDisplayLabel(actionName)+": "+action.Detail+g.actionShortcutTooltip(actionName), rect.Max.X-labelX-8)
+			}
+			drawUIText(screen, detail, labelX, rect.Min.Y+19, detailColor)
+		}
+	}
+}
+
+func drawRoundedRect(screen *ebiten.Image, rect image.Rectangle, radius int, fill color.RGBA) {
+	if rect.Empty() {
+		return
+	}
+	w := rect.Dx()
+	h := rect.Dy()
+	if radius < 1 {
+		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(w), float64(h), fill)
+		return
+	}
+	if radius*2 > w {
+		radius = w / 2
+	}
+	if radius*2 > h {
+		radius = h / 2
+	}
+	if radius < 1 {
+		ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(w), float64(h), fill)
+		return
+	}
+
+	ebitenutil.DrawRect(screen, float64(rect.Min.X+radius), float64(rect.Min.Y), float64(w-2*radius), float64(h), fill)
+	ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y+radius), float64(radius), float64(h-2*radius), fill)
+	ebitenutil.DrawRect(screen, float64(rect.Max.X-radius), float64(rect.Min.Y+radius), float64(radius), float64(h-2*radius), fill)
+
+	r2 := radius * radius
+	for dy := 0; dy < radius; dy++ {
+		for dx := 0; dx < radius; dx++ {
+			xd := radius - 1 - dx
+			yd := radius - 1 - dy
+			if xd*xd+yd*yd > r2 {
+				continue
+			}
+			ebitenutil.DrawRect(screen, float64(rect.Min.X+dx), float64(rect.Min.Y+dy), 1, 1, fill)
+			ebitenutil.DrawRect(screen, float64(rect.Max.X-radius+dx), float64(rect.Min.Y+dy), 1, 1, fill)
+			ebitenutil.DrawRect(screen, float64(rect.Min.X+dx), float64(rect.Max.Y-radius+dy), 1, 1, fill)
+			ebitenutil.DrawRect(screen, float64(rect.Max.X-radius+dx), float64(rect.Max.Y-radius+dy), 1, 1, fill)
+		}
+	}
+}
+
+func drawRoundedBorder(screen *ebiten.Image, rect image.Rectangle, radius int, border color.RGBA) {
+	if rect.Empty() {
+		return
+	}
+	w := rect.Dx()
+	h := rect.Dy()
+	if radius < 1 {
+		drawTileBorder(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(w), float64(h), border)
+		return
+	}
+	if radius*2 > w {
+		radius = w / 2
+	}
+	if radius*2 > h {
+		radius = h / 2
+	}
+	if radius < 1 {
+		drawTileBorder(screen, float64(rect.Min.X), float64(rect.Min.Y), float64(w), float64(h), border)
+		return
+	}
+
+	ebitenutil.DrawRect(screen, float64(rect.Min.X+radius), float64(rect.Min.Y), float64(w-2*radius), 1, border)
+	ebitenutil.DrawRect(screen, float64(rect.Min.X+radius), float64(rect.Max.Y-1), float64(w-2*radius), 1, border)
+	ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y+radius), 1, float64(h-2*radius), border)
+	ebitenutil.DrawRect(screen, float64(rect.Max.X-1), float64(rect.Min.Y+radius), 1, float64(h-2*radius), border)
+
+	r2 := radius * radius
+	for dy := 0; dy < radius; dy++ {
+		for dx := 0; dx < radius; dx++ {
+			xd := radius - 1 - dx
+			yd := radius - 1 - dy
+			d := xd*xd + yd*yd
+			if d > r2 || d < (radius-2)*(radius-2) {
+				continue
+			}
+			ebitenutil.DrawRect(screen, float64(rect.Min.X+dx), float64(rect.Min.Y+dy), 1, 1, border)
+			ebitenutil.DrawRect(screen, float64(rect.Max.X-radius+dx), float64(rect.Min.Y+dy), 1, 1, border)
+			ebitenutil.DrawRect(screen, float64(rect.Min.X+dx), float64(rect.Max.Y-radius+dy), 1, 1, border)
+			ebitenutil.DrawRect(screen, float64(rect.Max.X-radius+dx), float64(rect.Max.Y-radius+dy), 1, 1, border)
 		}
 	}
 }
@@ -1258,7 +1599,47 @@ func (g *Game) actionGlyph(actionName string) string {
 }
 
 func (g *Game) actionDockSummary(gs ebclient.GameState, myID string) string {
-	return "Action Dock | " + g.turnStatusLabel(gs, myID, gs.CurrentPlayer == myID && gs.GamePhase == "playing") + " | Actions left: " + strconv.Itoa(g.remainingActions(gs, myID))
+	layout := "portrait rows"
+	if screenWidth >= screenHeight {
+		layout = "desktop row"
+	}
+	return "Action Dock | " + layout + " | " + g.turnStatusLabel(gs, myID, gs.CurrentPlayer == myID && gs.GamePhase == "playing") + " | Actions left: " + strconv.Itoa(g.remainingActions(gs, myID))
+}
+
+func (g *Game) actionButtonLabel(actionName string) string {
+	switch strings.ToLower(actionName) {
+	case "gather":
+		return "Gather Clues"
+	case "investigate":
+		return "Investigate"
+	case "ward":
+		return "Cast Ward"
+	case "focus":
+		return "Gain Focus"
+	case "research":
+		return "Research"
+	case "trade":
+		return "Trade"
+	case "component":
+		return "Ability"
+	case "attack":
+		return "Attack"
+	case "evade":
+		return "Evade"
+	case "closegate":
+		return "Close Gate"
+	case "encounter":
+		return "Draw"
+	default:
+		return actionDisplayLabel(actionName)
+	}
+}
+
+func (g *Game) actionShortcutTooltip(actionName string) string {
+	if key := actionShortcutHints[actionName]; key != "" {
+		return " | Press " + key
+	}
+	return ""
 }
 
 func (g *Game) actionDockHint(gs ebclient.GameState, myID string) string {
@@ -1271,10 +1652,7 @@ func (g *Game) actionDockHint(gs ebclient.GameState, myID string) string {
 	}
 	for _, action := range g.availableActions(gs, myID) {
 		if actionLookupKey(action.Name) == actionLookupKey(hovered) {
-			if key := actionShortcutHints[actionLookupKey(action.Name)]; key != "" {
-				return action.Name + ": " + action.Detail + " | Press " + key
-			}
-			return action.Name + ": " + action.Detail
+			return g.actionButtonLabel(actionLookupKey(action.Name)) + ": " + action.Detail + g.actionShortcutTooltip(actionLookupKey(action.Name))
 		}
 	}
 	return "Hover or focus a button to see its detail."

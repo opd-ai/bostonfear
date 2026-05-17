@@ -392,28 +392,58 @@ func registerTouchActionHitBoxes(mapper *input.InputMapper) {
 }
 
 func actionGridRows() [][]string {
+	actions := []string{"gather", "investigate", "ward", "focus", "research", "trade", "component", "attack", "evade", "closegate", "encounter"}
+	if screenWidth >= screenHeight {
+		return [][]string{actions}
+	}
 	return [][]string{
-		{"gather", "investigate", "ward", "focus", "research", "trade"},
-		{"component", "attack", "evade", "closegate", "encounter", ""},
+		actions[0:4],
+		actions[4:8],
+		actions[8:11],
 	}
 }
 
 func actionGridRect(row, col int) image.Rectangle {
 	const (
 		actionGridOriginX    = 10
-		actionGridOriginY    = screenHeight - 96
-		actionGridCellWidth  = 126
-		actionGridCellHeight = 44
 		actionGridGap        = 6
+		actionGridCellHeight = 44
 	)
-	x := actionGridOriginX + col*(actionGridCellWidth+actionGridGap)
-	y := actionGridOriginY + row*(actionGridCellHeight+actionGridGap)
+	rows := actionGridRows()
+	y := screenHeight - actionGridTotalHeight() + row*(actionGridCellHeight+actionGridGap)
+	buttonsInRow := len(rows[row])
+	if buttonsInRow == 0 {
+		return image.Rect(actionGridOriginX, y, actionGridOriginX, y+actionGridCellHeight)
+	}
+	availableWidth := screenWidth - 20 - (buttonsInRow-1)*actionGridGap
+	cellWidth := availableWidth / buttonsInRow
+	if cellWidth < 96 {
+		cellWidth = 96
+	}
+	rowWidth := buttonsInRow*cellWidth + (buttonsInRow-1)*actionGridGap
+	x := actionGridOriginX + (screenWidth-20-rowWidth)/2 + col*(cellWidth+actionGridGap)
+	if len(rows) == 1 {
+		x = actionGridOriginX + col*(cellWidth+actionGridGap)
+	}
 	return image.Rect(
 		x,
 		y,
-		x+actionGridCellWidth,
+		x+cellWidth,
 		y+actionGridCellHeight,
 	)
+}
+
+func actionGridTotalHeight() int {
+	const (
+		actionGridGap        = 6
+		actionGridCellHeight = 44
+		actionGridHeader     = 28
+	)
+	rows := len(actionGridRows())
+	if rows == 0 {
+		return actionGridHeader
+	}
+	return actionGridHeader + rows*actionGridCellHeight + (rows-1)*actionGridGap + 8
 }
 
 func hasActionInputAttempted() bool {
