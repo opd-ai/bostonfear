@@ -197,7 +197,7 @@ BOSTONFEAR_GAME=finalhour go run ./cmd/server
 ### Ebitengine Client Features (Active — alpha; placeholder sprites)
 - **Sprite/Layer Rendering**: Board, tokens, UI overlays, and animations via Ebitengine draw layers
 - **Platform Input Handling**: Keyboard/mouse (desktop), touch (mobile), pointer events (WASM)
-- **Multi-Resolution Support**: Logical 1280×720 resolution scaled to any display; safe-area insets on mobile
+- **Multi-Resolution Support**: Logical 800×600 resolution scaled to any display; safe-area insets on mobile
 - **Shader Effects**: Kage shaders for fog-of-war, doom vignette, and interactive highlights
 - **WASM Compatibility**: Same Go codebase compiled to WebAssembly for browser play
 - **WebSocket Connection**: Automatic reconnection with exponential backoff (5 s initial, doubles per attempt, 30 s cap)
@@ -321,7 +321,7 @@ standard `go test ./...` invocation. They verify Ebitengine `App` initialisation
 renderer atlas logic, and nil-safety paths. Run them locally with a real or virtual
 display (`Xvfb` on Linux):
 ```bash
-Xvfb :99 -screen 0 1280x720x24 &
+Xvfb :99 -screen 0 1024x768x24 &
 DISPLAY=:99 go test -race -tags=requires_display ./client/ebiten/app/... ./client/ebiten/render/...
 ```
 

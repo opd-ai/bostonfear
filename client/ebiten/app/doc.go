@@ -17,7 +17,7 @@
 //
 //  1. Update(): Process input, update game state from WebSocket messages, tick timers
 //  2. Draw(): Render board, sprites, UI overlays, animations
-//  3. Layout(): Return desired screen dimensions (1280x720 logical, scaled to display)
+//  3. Layout(): Return desired screen dimensions (800x600 logical, scaled to display)
 //
 // Input Handling:
 //

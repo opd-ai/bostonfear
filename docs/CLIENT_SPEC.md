@@ -43,10 +43,10 @@ stateDiagram-v2
 
 ### Rendering
 
-- **Logical resolution**: 1280×720, scalable to window size (source: ROADMAP.md Phase 5 — resolution strategy)
-- **Minimum window size**: 1024×600 (derived from logical resolution 1280×720 at ~80% scale)
+- **Logical resolution**: 800×600, scalable to window size
+- **Minimum window size**: 800×600 (current logical resolution; scaling handled by Ebitengine)
 - **Target frame rate**: 60 FPS (Ebitengine default; source: ROADMAP.md Phase 5 — "≥ 60 FPS on desktop")
-- **Layout method**: `ebiten.Game.Layout` returns the logical size (1280×720); the framework handles scaling to the actual display
+- **Layout method**: `ebiten.Game.Layout` returns the logical size (800×600); the framework handles scaling to the actual display
 
 ### Input Model
 
@@ -230,7 +230,7 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 | Input latency | < 16 ms click → action send | 1-frame budget at 60 FPS |
 | State render lag | ≤ 1 frame after `gameState` receipt | README.md Performance Standards |
 | Reconnect token storage | Browser `localStorage` or file-based per platform | README.md — "Session Persistence: The JS browser client reclaims its player slot automatically using a server-issued reconnect token (stored in `localStorage`)" |
-| Minimum window size | 1024×600 | Derived from logical 1280×720 at ~80% scale |
+| Minimum window size | 800×600 | Equal to current logical resolution |
 | Max players | 6 | serverengine/game_constants.go — `MaxPlayers = 6` |
 | State sync SLA | < 500 ms | README.md Performance Standards — "Real-time game state synchronization"; ROADMAP.md Priority 1 broadcast latency gate |
 | Automatic reconnection retry | 5s initial, doubles per attempt, capped at 30s | README.md — "The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap)" |

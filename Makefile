@@ -15,7 +15,7 @@ test:
 
 ## test-display: run Ebitengine tests that require a local or virtual display.
 ## Set DISPLAY before calling if no physical display is available:
-##   Xvfb :99 -screen 0 1280x720x24 & DISPLAY=:99 make test-display
+##   Xvfb :99 -screen 0 1024x768x24 & DISPLAY=:99 make test-display
 test-display:
 	go test -race -tags=requires_display ./client/ebiten/app/... ./client/ebiten/render/...
 
