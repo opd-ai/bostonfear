@@ -539,37 +539,7 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 	}
 
 	for loc, rect := range locationRects {
-		px, py, scale := g.projectPoint(float64(rect.x), float64(rect.y))
-		width := float64(rect.w) * scale
-		height := float64(rect.h) * scale
-		base := locationColours[loc]
-		border := color.RGBA{R: 225, G: 226, B: 235, A: 165}
-		fill := withAlpha(blendRGBA(base, color.RGBA{R: 12, G: 14, B: 20, A: 255}, 0.42), 155)
-		note := "locked"
-		switch {
-		case loc == currentLocation:
-			border = color.RGBA{R: 252, G: 220, B: 104, A: 250}
-			fill = withAlpha(blendRGBA(base, color.RGBA{R: 190, G: 145, B: 44, A: 255}, 0.45), 190)
-			note = "current"
-		case func() bool { _, ok := legalSet[loc]; return ok }():
-			border = color.RGBA{R: 98, G: 234, B: 255, A: 238}
-			fill = withAlpha(blendRGBA(base, color.RGBA{R: 44, G: 130, B: 176, A: 255}, 0.40), 180)
-			note = "move"
-		}
-
-		ebitenutil.DrawRect(screen, px, py, width, height, fill)
-		drawTileBorder(screen, px, py, width, height, border)
-
-		noteW := float64(textWidth(note) + 6)
-		noteBg := color.RGBA{R: 8, G: 10, B: 16, A: 210}
-		if note == "move" {
-			noteBg = color.RGBA{R: 9, G: 40, B: 53, A: 225}
-		}
-		if note == "current" {
-			noteBg = color.RGBA{R: 74, G: 55, B: 12, A: 230}
-		}
-		ebitenutil.DrawRect(screen, px+width-noteW-4, py+4, noteW, 14, noteBg)
-		drawUIText(screen, strings.ToUpper(note), int(px+width-noteW), int(py+6), color.RGBA{R: 235, G: 240, B: 250, A: 255})
+		px, py, _, height := g.drawLocationTileOverlay(screen, loc, rect, currentLocation, legalSet)
 
 		labelX, labelY := ui.ProjectLabelPosition(float64(rect.x), float64(rect.y), float64(rect.w), float64(rect.h), g.boardView)
 		label := string(loc)
@@ -577,22 +547,7 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 		ebitenutil.DrawRect(screen, labelX-4, labelY-2, labelW, 16, color.RGBA{R: 8, G: 8, B: 16, A: 214})
 		drawUIText(screen, label, int(labelX), int(labelY), color.White)
 
-		gatesAtLoc := g.countGatesAt(gs, loc)
-		enemiesAtLoc := g.countEnemiesAt(gs, loc)
-		playersAtLoc := g.countPlayersAt(gs, loc)
-		badgeX := px + 6
-		badgeY := py + height - 18
-		if playersAtLoc > 0 {
-			drawEntityBadge(screen, badgeX, badgeY, "P:"+strconv.Itoa(playersAtLoc), color.RGBA{R: 230, G: 226, B: 135, A: 230})
-			badgeX += 34
-		}
-		if gatesAtLoc > 0 {
-			drawEntityBadge(screen, badgeX, badgeY, "G:"+strconv.Itoa(gatesAtLoc), color.RGBA{R: 146, G: 90, B: 211, A: 230})
-			badgeX += 34
-		}
-		if enemiesAtLoc > 0 {
-			drawEntityBadge(screen, badgeX, badgeY, "E:"+strconv.Itoa(enemiesAtLoc), color.RGBA{R: 214, G: 87, B: 87, A: 230})
-		}
+		g.drawLocationEntityBadges(screen, gs, loc, px, py, height)
 	}
 
 	if currentLocation != "" {
@@ -606,6 +561,73 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 		ebitenutil.DrawRect(screen, 32, 540, 320, 22, color.RGBA{R: 8, G: 10, B: 18, A: 200})
 		drawUIText(screen, trimToWidth(movesText, 300), 40, 544, color.RGBA{R: 220, G: 240, B: 255, A: 255})
 	}
+}
+
+type tileVisual struct {
+	border color.RGBA
+	fill   color.RGBA
+	note   string
+}
+
+func (g *Game) drawLocationTileOverlay(screen *ebiten.Image, loc ebclient.Location, rect struct{ x, y, w, h int }, currentLocation ebclient.Location, legalSet map[ebclient.Location]struct{}) (float64, float64, float64, float64) {
+	px, py, scale := g.projectPoint(float64(rect.x), float64(rect.y))
+	width := float64(rect.w) * scale
+	height := float64(rect.h) * scale
+	v := locationTileVisual(loc, currentLocation, legalSet)
+	ebitenutil.DrawRect(screen, px, py, width, height, v.fill)
+	drawTileBorder(screen, px, py, width, height, v.border)
+
+	noteW := float64(textWidth(v.note) + 6)
+	ebitenutil.DrawRect(screen, px+width-noteW-4, py+4, noteW, 14, locationNoteBG(v.note))
+	drawUIText(screen, strings.ToUpper(v.note), int(px+width-noteW), int(py+6), color.RGBA{R: 235, G: 240, B: 250, A: 255})
+	return px, py, width, height
+}
+
+func locationTileVisual(loc, currentLocation ebclient.Location, legalSet map[ebclient.Location]struct{}) tileVisual {
+	base := locationColours[loc]
+	v := tileVisual{
+		border: color.RGBA{R: 225, G: 226, B: 235, A: 165},
+		fill:   withAlpha(blendRGBA(base, color.RGBA{R: 12, G: 14, B: 20, A: 255}, 0.42), 155),
+		note:   "locked",
+	}
+	if loc == currentLocation {
+		v.border = color.RGBA{R: 252, G: 220, B: 104, A: 250}
+		v.fill = withAlpha(blendRGBA(base, color.RGBA{R: 190, G: 145, B: 44, A: 255}, 0.45), 190)
+		v.note = "current"
+		return v
+	}
+	if _, ok := legalSet[loc]; ok {
+		v.border = color.RGBA{R: 98, G: 234, B: 255, A: 238}
+		v.fill = withAlpha(blendRGBA(base, color.RGBA{R: 44, G: 130, B: 176, A: 255}, 0.40), 180)
+		v.note = "move"
+	}
+	return v
+}
+
+func locationNoteBG(note string) color.RGBA {
+	if note == "move" {
+		return color.RGBA{R: 9, G: 40, B: 53, A: 225}
+	}
+	if note == "current" {
+		return color.RGBA{R: 74, G: 55, B: 12, A: 230}
+	}
+	return color.RGBA{R: 8, G: 10, B: 16, A: 210}
+}
+
+func (g *Game) drawLocationEntityBadges(screen *ebiten.Image, gs ebclient.GameState, loc ebclient.Location, px, py, height float64) {
+	badgeX := px + 6
+	badgeY := py + height - 18
+	badgeX = drawCountBadge(screen, badgeX, badgeY, "P", g.countPlayersAt(gs, loc), color.RGBA{R: 230, G: 226, B: 135, A: 230})
+	badgeX = drawCountBadge(screen, badgeX, badgeY, "G", g.countGatesAt(gs, loc), color.RGBA{R: 146, G: 90, B: 211, A: 230})
+	drawCountBadge(screen, badgeX, badgeY, "E", g.countEnemiesAt(gs, loc), color.RGBA{R: 214, G: 87, B: 87, A: 230})
+}
+
+func drawCountBadge(screen *ebiten.Image, x, y float64, prefix string, value int, tint color.RGBA) float64 {
+	if value <= 0 {
+		return x
+	}
+	drawEntityBadge(screen, x, y, prefix+":"+strconv.Itoa(value), tint)
+	return x + 34
 }
 
 func (g *Game) drawDistrictGuides(screen *ebiten.Image) {
@@ -801,7 +823,7 @@ func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *eb
 	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, color.RGBA{R: 90, G: 160, B: 232, A: 255})
 	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, color.RGBA{R: 86, G: 194, B: 122, A: 255})
 	g.drawResourcePill(screen, pillX, y+4, "ACT", p.ActionsRemaining, color.RGBA{R: 228, G: 197, B: 102, A: 255})
-return cardH + 5
+	return cardH + 5
 }
 
 func playerRowStyle(isCurrent bool) (color.RGBA, color.RGBA) {
