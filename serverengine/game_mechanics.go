@@ -11,17 +11,20 @@ import (
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/actions"
 	"github.com/opd-ai/bostonfear/serverengine/arkhamhorror/model"
 	"github.com/opd-ai/bostonfear/serverengine/common/logging"
+	commonstate "github.com/opd-ai/bostonfear/serverengine/common/state"
 )
 
 // ValidateResources ensures resources stay within bounds.
-// S4: Uses arkhamhorror/model clamping functions to enforce resource bounds.
+// S4: Uses shared common/state bounds for core resources and arkhamhorror/model
+// clamping helpers for extended AH3e resource tracks.
 // Health and Sanity may reach 0 (investigator defeat); callers must call
 // checkInvestigatorDefeat after this to handle that transition.
 func (gs *GameServer) ValidateResources(resources *Resources) {
-	// S4 Migration: Delegate to arkhamhorror module resource bounds
-	resources.Health = model.ClampHealth(resources.Health)
-	resources.Sanity = model.ClampSanity(resources.Sanity)
-	resources.Clues = model.ClampClues(resources.Clues)
+	resources.Health, resources.Sanity, resources.Clues = commonstate.ClampCoreResources(
+		resources.Health,
+		resources.Sanity,
+		resources.Clues,
+	)
 	resources.Money = model.ClampMoney(resources.Money)
 	resources.Focus = model.ClampFocus(resources.Focus)
 	resources.Remnants = model.ClampRemnants(resources.Remnants)

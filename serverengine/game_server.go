@@ -5,7 +5,6 @@ package serverengine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -14,6 +13,7 @@ import (
 
 	arkhamrules "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/rules"
 	"github.com/opd-ai/bostonfear/serverengine/common/logging"
+	"github.com/opd-ai/bostonfear/serverengine/common/messaging"
 )
 
 // GameServer manages the central game state for the Arkham Horror multiplayer game,
@@ -530,7 +530,7 @@ func (gs *GameServer) marshalAndBroadcast(payload interface{}, msgType string) {
 	if payload == nil {
 		return
 	}
-	if data, err := json.Marshal(payload); err == nil {
+	if data, err := messaging.EncodeJSON(payload); err == nil {
 		gs.trySendBroadcast(data, msgType)
 	}
 }

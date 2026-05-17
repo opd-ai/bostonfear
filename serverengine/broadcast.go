@@ -1,12 +1,12 @@
 package serverengine
 
 import (
-	"encoding/json"
 	"net"
 	"sync/atomic"
 	"time"
 
 	"github.com/opd-ai/bostonfear/serverengine/common/logging"
+	"github.com/opd-ai/bostonfear/serverengine/common/messaging"
 )
 
 type connectionTarget struct {
@@ -75,7 +75,7 @@ func (gs *GameServer) broadcastGameState() {
 	gs.mutex.Lock()
 	gs.validateAndRecoverState()
 	gameStateMsg := gs.buildGameStatePayloadLocked()
-	data, err := json.Marshal(gameStateMsg)
+	data, err := messaging.EncodeJSON(gameStateMsg)
 	gs.mutex.Unlock()
 
 	if err != nil {

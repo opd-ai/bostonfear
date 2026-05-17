@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/opd-ai/bostonfear/serverengine/common/logging"
+	commonsession "github.com/opd-ai/bostonfear/serverengine/common/session"
 )
 
 const (
@@ -356,13 +357,20 @@ func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn, displayN
 }
 
 func canRestorePlayer(token string, p *Player, now time.Time) bool {
-	if p == nil || p.ReconnectToken != token || p.Connected {
+	if p == nil {
 		return false
 	}
-	if p.DisconnectedAt.IsZero() {
+	candidate := commonsession.Token(token)
+	if !candidate.Validate() {
 		return false
 	}
-	return now.Sub(p.DisconnectedAt) <= reconnectGracePeriod
+	record := commonsession.Record{
+		PlayerID:       p.ID,
+		Token:          commonsession.Token(p.ReconnectToken),
+		Connected:      p.Connected,
+		DisconnectedAt: p.DisconnectedAt,
+	}
+	return commonsession.Default.CanRestore(record, candidate, now, reconnectGracePeriod)
 }
 
 // cleanupDisconnectedPlayers removes player entries that have been disconnected
@@ -405,7 +413,7 @@ func isStaleDisconnectedPlayer(p *Player, now time.Time) bool {
 	if p == nil || p.Connected || p.DisconnectedAt.IsZero() {
 		return false
 	}
-	return now.Sub(p.DisconnectedAt) > reconnectGracePeriod
+	return commonsession.Default.IsExpired(p.DisconnectedAt, now, reconnectGracePeriod)
 }
 
 func removeFromTurnOrder(turnOrder *[]string, playerID string) {
