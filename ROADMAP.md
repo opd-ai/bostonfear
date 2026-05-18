@@ -169,13 +169,13 @@
 **Effort**: 6-8 hours (Android emulator integration) + 4-6 hours (iOS simulator setup if macOS runner available)
 
 **Implementation Path**:
-- [ ] Extend `.github/workflows/mobile.yml` to install and boot Android emulator (API 29+)
-- [ ] Deploy test APK wrapping the AAR binding with a minimal activity
+- [x] Extend `.github/workflows/mobile.yml` to install and boot Android emulator (API 29+)
+- [x] Deploy test APK wrapping the AAR binding with a minimal activity
 - [ ] Automate touch input injection via `adb shell input tap` for action verification
-- [ ] Add automated check that client connects to server at `ws://10.0.2.2:8080/ws` (emulator loopback)
+- [x] Add automated check that client connects to server at `ws://10.0.2.2:8080/ws` (emulator loopback)
 - [ ] Verify core actions (Move, Investigate, Gather, Ward) succeed with touch input
 - [ ] **iOS**: If GitHub-hosted macOS runner available, add iOS simulator boot + XCTest-based touch input verification
-- [ ] Document device-specific server URL requirements (Android emulator: `10.0.2.2`; iOS: host LAN IP) in `docs/MOBILE_VERIFICATION_RUNBOOK.md`
+- [x] Document device-specific server URL requirements (Android emulator: `10.0.2.2`; iOS: host LAN IP) in `docs/MOBILE_VERIFICATION_RUNBOOK.md`
 
 **Validation**: CI passes with Android emulator executing at least one full game turn; `mobile.yml` no longer caveats "device gameplay not yet CI-validated".
 
