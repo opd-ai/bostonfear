@@ -33,7 +33,7 @@ func runWeb() error {
 	defer game.Close()
 
 	ebiten.SetWindowSize(800, 600)
-	ebiten.SetWindowTitle("Arkham Horror")
+	ebiten.SetWindowTitle("Boston Fear")
 
 	if err := ebiten.RunGame(game); err != nil {
 		return err

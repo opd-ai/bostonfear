@@ -139,7 +139,7 @@ func newConnectViewport() *ui.Viewport {
 func (s *SceneConnect) drawConnectHeader(screen *ebiten.Image, vp *ui.Viewport, connected bool) {
 	titleConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 120, Width: 240, Height: 16}
 	titleBounds := titleConstraint.Bounds(vp)
-	drawUIText(screen, "Boston Fear - Arkham Horror", titleBounds.Min.X, titleBounds.Min.Y, color.White)
+	drawUIText(screen, "Boston Fear", titleBounds.Min.X, titleBounds.Min.Y, color.White)
 
 	statusConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 160, Width: 240, Height: 16}
 	statusBounds := statusConstraint.Bounds(vp)

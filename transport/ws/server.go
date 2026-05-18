@@ -50,7 +50,7 @@ func SetupServerWithContext(ctx context.Context, listener net.Listener, handlers
 	if _, port, err := net.SplitHostPort(addr); err == nil {
 		addr = net.JoinHostPort(displayHost, port)
 	}
-	logging.Info("Arkham Horror server starting", "address", listener.Addr().String())
+	logging.Info("Game server starting", "address", listener.Addr().String())
 	logging.Info("Game client", "url", "http://"+addr+"/")
 	logging.Info("WebSocket endpoint", "url", "ws://"+addr+"/ws")
 	logging.Info("Health check", "url", "http://"+addr+"/health")

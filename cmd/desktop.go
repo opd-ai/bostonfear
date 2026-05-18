@@ -37,7 +37,7 @@ func runDesktop() error {
 	defer game.Close()
 
 	ebiten.SetWindowSize(800, 600)
-	ebiten.SetWindowTitle("Arkham Horror — Ebitengine Client")
+	ebiten.SetWindowTitle("Boston Fear")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	if err := ebiten.RunGame(game); err != nil {
