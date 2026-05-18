@@ -1229,7 +1229,7 @@ func (s *SceneGameOver) Draw(screen *ebiten.Image) {
 	drawUIText(screen, "Buttons are clickable; Enter/Space also starts a new run.", screenWidth/2-174, screenHeight/2+146, color.RGBA{R: 220, G: 224, B: 236, A: 255})
 }
 
-func gameOverSummary(gs ebclient.GameState) (clues int, survivors int, connected int) {
+func gameOverSummary(gs ebclient.GameState) (clues, survivors, connected int) {
 	for _, player := range gs.Players {
 		if !player.Connected {
 			continue

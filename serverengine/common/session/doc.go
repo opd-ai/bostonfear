@@ -32,7 +32,7 @@ type Record struct {
 // Implementations can be in-memory or backed by external storage.
 type Store interface {
 	CanRestore(record Record, candidate Token, now time.Time, gracePeriod time.Duration) bool
-	IsExpired(disconnectedAt time.Time, now time.Time, gracePeriod time.Duration) bool
+	IsExpired(disconnectedAt, now time.Time, gracePeriod time.Duration) bool
 }
 
 // DefaultStore provides stateless lifecycle checks over session records.
@@ -53,7 +53,7 @@ func (DefaultStore) CanRestore(record Record, candidate Token, now time.Time, gr
 }
 
 // IsExpired reports whether a disconnect has exceeded the reconnection grace period.
-func (DefaultStore) IsExpired(disconnectedAt time.Time, now time.Time, gracePeriod time.Duration) bool {
+func (DefaultStore) IsExpired(disconnectedAt, now time.Time, gracePeriod time.Duration) bool {
 	if disconnectedAt.IsZero() {
 		return false
 	}

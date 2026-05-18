@@ -14,9 +14,11 @@ func TestIconRegistry_Defaults(t *testing.T) {
 		t.Fatalf("expected at least 20 icon semantics, got %d", r.Count())
 	}
 
-	ids := []IconID{IconMove, IconGather, IconInvestigate, IconWard, IconFocus, IconResearch, IconTrade, IconComponent,
+	ids := []IconID{
+		IconMove, IconGather, IconInvestigate, IconWard, IconFocus, IconResearch, IconTrade, IconComponent,
 		IconAttack, IconEvade, IconCloseGate, IconEncounter, IconHealth, IconSanity, IconClues, IconDoom,
-		IconDifficulty, IconConnection, IconTurn, IconArrowLeft, IconArrowRight, IconCameraTop, IconCamera3D, IconPlayer}
+		IconDifficulty, IconConnection, IconTurn, IconArrowLeft, IconArrowRight, IconCameraTop, IconCamera3D, IconPlayer,
+	}
 	for _, id := range ids {
 		spec := r.Spec(id)
 		if spec.Glyph == "" {

@@ -32,6 +32,6 @@ func (b ResourceBounds) Clamp(v int) int {
 func (b ResourceBounds) InBounds(v int) bool { return v >= b.Min && v <= b.Max }
 
 // ClampCoreResources applies canonical Arkham investigator bounds to health, sanity, and clues.
-func ClampCoreResources(health int, sanity int, clues int) (int, int, int) {
+func ClampCoreResources(health, sanity, clues int) (int, int, int) {
 	return HealthBounds.Clamp(health), SanityBounds.Clamp(sanity), ClueBounds.Clamp(clues)
 }

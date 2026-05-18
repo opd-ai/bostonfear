@@ -8,7 +8,7 @@ import "fmt"
 type ActionChecker interface {
 	// IsLegal returns nil if the action identified by actionType is permitted,
 	// or a descriptive error explaining why it is not.
-	IsLegal(actionType string, playerID string) error
+	IsLegal(actionType, playerID string) error
 }
 
 // Error is a typed validation error returned when an action or state is invalid.
@@ -35,7 +35,7 @@ type TurnChecker struct {
 }
 
 // IsLegal validates action legality for the given player under current turn state.
-func (c TurnChecker) IsLegal(actionType string, playerID string) error {
+func (c TurnChecker) IsLegal(actionType, playerID string) error {
 	if c.GamePhase != "playing" {
 		return &Error{Field: "gamePhase", Message: "game is not in playing state"}
 	}
