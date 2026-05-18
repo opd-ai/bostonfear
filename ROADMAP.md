@@ -196,12 +196,12 @@
 **Implementation Path**:
 
 1. **Define Elder Sign Rules** (`serverengine/eldersign/rules/`)
-   - [ ] Action types: `PlaceInvestigator`, `RollDice`, `LockDie`, `DiscardItem`, `ClaimAdventure` (different from Arkham's Move/Investigate/Gather/Ward)
-   - [ ] Dice mechanics: Elder Sign uses unique 6-sided dice with red/green/yellow results plus special icons (Terror, Peril, Lore); distinct from Arkham's 3-sided Success/Blank/Tentacle
-   - [ ] Resource economy: No Health/Sanity bounds; instead uses "Stamina" (1-8) and "Sanity" (1-8) with different depletion mechanics
-   - [ ] Adventure cards: Central mechanic (not present in Arkham); define task structure, required dice results, rewards/penalties
-   - [ ] Victory/defeat: Win by sealing museum gates before Ancient One awakens (12 doom); different from Arkham's clue-gathering objective
-   - [ ] Location system: Museum rooms (not city neighborhoods); no adjacency restrictions — all rooms accessible
+   - [x] Action types: `PlaceInvestigator`, `RollDice`, `LockDie`, `DiscardItem`, `ClaimAdventure` (different from Arkham's Move/Investigate/Gather/Ward)
+   - [x] Dice mechanics: Elder Sign uses unique 6-sided dice with red/green/yellow results plus special icons (Terror, Peril, Lore); distinct from Arkham's 3-sided Success/Blank/Tentacle
+   - [x] Resource economy: No Health/Sanity bounds; instead uses "Stamina" (1-8) and "Sanity" (1-8) with different depletion mechanics
+   - [x] Adventure cards: Central mechanic (not present in Arkham); define task structure, required dice results, rewards/penalties
+   - [x] Victory/defeat: Win by sealing museum gates before Ancient One awakens (12 doom); different from Arkham's clue-gathering objective
+   - [x] Location system: Museum rooms (not city neighborhoods); no adjacency restrictions — all rooms accessible
 
 2. **Implement Elder Sign Adapters** (`serverengine/eldersign/adapters/`)
    - [ ] `BroadcastPayloadAdapter`: Shape game state for Elder Sign-specific client UI (dice tower, adventure card display, museum layout)
