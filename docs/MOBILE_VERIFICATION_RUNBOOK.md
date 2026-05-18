@@ -3,6 +3,12 @@
 ## Scope
 This runbook verifies the alpha mobile binding path for BostonFear and records platform constraints.
 
+### CI Validation Boundary
+
+- Current CI validates binding artifact generation and simulator/emulator test harness execution.
+- Current CI does not yet prove end-to-end mobile gameplay runtime on physical hardware.
+- Before labeling mobile as device-tested, CI should assert a `connectionStatus` handshake and one complete two-action turn flow on both Android and iOS runtime targets.
+
 ## Minimum Support Matrix
 
 | Platform | Runtime Target | Minimum OS | Toolchain | Notes |

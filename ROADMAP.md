@@ -162,11 +162,11 @@ This does not block core gameplay — the server, desktop and WASM clients are a
 
 **Option A: Extend CI to use Android emulator with game loop smoke test**
 - [ ] In `mobile.yml`, add a step that launches an Android emulator (API 29), installs the bound AAR as a minimal test app (no Xcode needed), and verifies a WebSocket handshake with a local game server by checking for `connectionStatus` message receipt within 10 seconds.
-- [ ] Add analogous iOS simulator test using `xcrun simctl` on a macOS runner.
+- [x] Add analogous iOS simulator test using `xcrun simctl` on a macOS runner.
 
 **Option B: Downgrade the README claim (low-effort, accurate)**
-- [ ] `README.md` build-targets table: revise Mobile status from "Alpha (touch input parity verified)" to "Alpha (library build verified; device gameplay not yet CI-validated)" to prevent false expectations.
-- [ ] Add a note to `docs/MOBILE_VERIFICATION_RUNBOOK.md` linking to what additional validation is needed before calling the mobile client "device-tested".
+- [x] `README.md` build-targets table: revise Mobile status from "Alpha (touch input parity verified)" to "Alpha (library build verified; device gameplay not yet CI-validated)" to prevent false expectations.
+- [x] Add a note to `docs/MOBILE_VERIFICATION_RUNBOOK.md` linking to what additional validation is needed before calling the mobile client "device-tested".
 
 **Validation** (Option A): Mobile CI job passes without skipping emulator steps. (Option B): The README no longer overstates the validated scope.
 
