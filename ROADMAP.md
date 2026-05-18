@@ -204,7 +204,7 @@
    - [x] Location system: Museum rooms (not city neighborhoods); no adjacency restrictions — all rooms accessible
 
 2. **Implement Elder Sign Adapters** (`serverengine/eldersign/adapters/`)
-   - [ ] `BroadcastPayloadAdapter`: Shape game state for Elder Sign-specific client UI (dice tower, adventure card display, museum layout)
+   - [x] `BroadcastPayloadAdapter`: Shape game state for Elder Sign-specific client UI (dice tower, adventure card display, museum layout)
    - [ ] Override `DispatchAction` to route Elder Sign action types to appropriate handlers
    - [ ] Dice result serialization for 6-sided die with custom icon outcomes
 
