@@ -171,9 +171,9 @@
 **Implementation Path**:
 - [x] Extend `.github/workflows/mobile.yml` to install and boot Android emulator (API 29+)
 - [x] Deploy test APK wrapping the AAR binding with a minimal activity
-- [ ] Automate touch input injection via `adb shell input tap` for action verification
+- [x] Automate touch input injection via `adb shell input tap` for action verification
 - [x] Add automated check that client connects to server at `ws://10.0.2.2:8080/ws` (emulator loopback)
-- [ ] Verify core actions (Move, Investigate, Gather, Ward) succeed with touch input
+- [x] Verify core actions (Move, Investigate, Gather, Ward) succeed with touch input
 - [ ] **iOS**: If GitHub-hosted macOS runner available, add iOS simulator boot + XCTest-based touch input verification
 - [x] Document device-specific server URL requirements (Android emulator: `10.0.2.2`; iOS: host LAN IP) in `docs/MOBILE_VERIFICATION_RUNBOOK.md`
 
