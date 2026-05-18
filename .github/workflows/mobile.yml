@@ -269,6 +269,13 @@ jobs:
         run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
       - name: Initialize ebitenmobile
         run: ebitenmobile init
+      - name: Build iOS XCFramework
+        run: |
+          ebitenmobile bind -target ios -o "$RUNNER_TEMP/BostonFear.xcframework" ./cmd/mobile
+      - name: Validate XCFramework structure
+        run: |
+          chmod +x scripts/ios-simulator-test.sh
+          scripts/ios-simulator-test.sh "$RUNNER_TEMP/BostonFear.xcframework"
       - name: List available simulators
         run: xcrun simctl list devices available
       - name: Boot iOS simulator
@@ -303,3 +310,12 @@ jobs:
       - name: Validate test results
         run: |
           echo "SUCCESS: iOS simulator tests completed"
+          echo ""
+          echo "NOTE: Current iOS validation includes:"
+          echo "  ✓ XCFramework builds successfully"
+          echo "  ✓ Framework structure and binary are valid"
+          echo "  ✓ Simulator boots successfully"
+          echo "  ✓ Go-level mobile binding tests pass"
+          echo ""
+          echo "Full XCTest-based touch input verification requires an Xcode project."
+          echo "See scripts/ios-simulator-test.sh for guidance on XCTest integration."

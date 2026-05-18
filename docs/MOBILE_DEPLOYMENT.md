@@ -343,6 +343,128 @@ Before deploying to production:
 - [Android NDK Guide](https://developer.android.com/ndk/guides)
 - [iOS App Distribution Guide](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases)
 
+## iOS XCTest UI Automation
+
+The CI validates iOS XCFramework structure and simulator boot, but full touch input verification requires an Xcode project with XCTest UI tests. Here's how to set this up for comprehensive testing:
+
+### Step 1: Create Xcode Project
+
+1. Open Xcode and create a new iOS App project:
+   - Product Name: `BostonFearTest`
+   - Organization Identifier: `com.example`
+   - Interface: `Storyboard`
+   - Language: `Swift`
+
+2. Add XCFramework to the project:
+   - Select your project in the navigator
+   - Select the app target
+   - Go to "General" → "Frameworks, Libraries, and Embedded Content"
+   - Click "+" and add `BostonFear.xcframework`
+   - Ensure "Embed & Sign" is selected
+
+### Step 2: Create UI Test Target
+
+1. File → New → Target → iOS UI Testing Bundle
+2. Name it `BostonFearUITests`
+
+### Step 3: Write XCTest UI Tests
+
+Create `BostonFearUITests/TouchInputTests.swift`:
+
+```swift
+import XCTest
+
+class TouchInputTests: XCTestCase {
+    var app: XCUIApplication!
+    
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        app = XCUIApplication()
+        app.launch()
+        
+        // Wait for game to load and connect
+        sleep(3)
+    }
+    
+    func testGatherAction() throws {
+        // Calculate gather button coordinates (adjust based on your UI)
+        let gatherButton = app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.85))
+        gatherButton.tap()
+        
+        // Wait for action to process
+        sleep(1)
+        
+        // Verify action was accepted (check for resource change or state update)
+        // This requires adding accessibility identifiers to your UI elements
+    }
+    
+    func testInvestigateAction() throws {
+        let investigateButton = app.coordinate(withNormalizedOffset: CGVector(dx: 0.50, dy: 0.85))
+        investigateButton.tap()
+        sleep(1)
+    }
+    
+    func testTwoActionTurnLimit() throws {
+        // Perform two actions
+        let gatherButton = app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.85))
+        gatherButton.tap()
+        sleep(1)
+        
+        gatherButton.tap()
+        sleep(2)
+        
+        // Verify turn advances to next player
+        // Check turn indicator or player name changes
+    }
+    
+    func testReconnection() throws {
+        // This test would require simulating network interruption
+        // You can use Network Link Conditioner or XCTest network mocking
+    }
+}
+```
+
+### Step 4: Run UI Tests
+
+```bash
+# List available simulators
+xcrun simctl list devices
+
+# Run tests on specific simulator
+xcodebuild test \
+  -project BostonFearTest.xcodeproj \
+  -scheme BostonFearTest \
+  -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+  -only-testing:BostonFearUITests/TouchInputTests
+```
+
+### Step 5: Integrate with CI
+
+Add to `.github/workflows/mobile.yml`:
+
+```yaml
+- name: Run XCTest UI tests
+  run: |
+    xcodebuild test \
+      -project path/to/BostonFearTest.xcodeproj \
+      -scheme BostonFearTest \
+      -destination 'platform=iOS Simulator,name=iPhone 15' \
+      -resultBundlePath TestResults
+```
+
+### Notes
+
+- XCTest UI tests require coordinates or accessibility identifiers
+- The ebitengine mobile binding may not expose UIKit accessibility hooks directly
+- Alternative: Use `simctl` with coordinate-based tap commands:
+  ```bash
+  xcrun simctl io booted screenshot screenshot.png
+  xcrun simctl io booted tap 200 600  # Tap at x=200, y=600
+  ```
+- Full XCTest integration is recommended for regression testing in production apps
+
+See `scripts/ios-simulator-test.sh` for current CI validation approach.
+
 ## Support
 
 For issues specific to BostonFear mobile deployment:
