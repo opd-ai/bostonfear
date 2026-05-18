@@ -167,6 +167,44 @@ func TestReconnectURL_OmitsTokenWhenEmpty(t *testing.T) {
 	}
 }
 
+func TestDialURL_IncludesReconnectTokenAndDisplayName(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	state := NewLocalState("ws://localhost:8080/ws")
+	state.SetReconnectToken("tok-xyz")
+	state.SetDisplayName("Agent Ada")
+
+	client := NewNetClient(state)
+	dialURL := client.dialURL()
+
+	if !strings.Contains(dialURL, "token=tok-xyz") {
+		t.Fatalf("dial URL %q missing reconnect token", dialURL)
+	}
+	if !strings.Contains(dialURL, "displayName=Agent+Ada") {
+		t.Fatalf("dial URL %q missing encoded display name", dialURL)
+	}
+}
+
+func TestNextBackoff(t *testing.T) {
+	tests := []struct {
+		name    string
+		current time.Duration
+		max     time.Duration
+		want    time.Duration
+	}{
+		{name: "doubles below cap", current: 5 * time.Second, max: 30 * time.Second, want: 10 * time.Second},
+		{name: "caps above max", current: 20 * time.Second, max: 30 * time.Second, want: 30 * time.Second},
+		{name: "stays at cap", current: 30 * time.Second, max: 30 * time.Second, want: 30 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := nextBackoff(tt.current, tt.max); got != tt.want {
+				t.Fatalf("nextBackoff(%s, %s) = %s, want %s", tt.current, tt.max, got, tt.want)
+			}
+		})
+	}
+}
+
 // TestApplyDiceResult_UpdatesState verifies applyDiceResult unmarshals and stores a dice result.
 func TestApplyDiceResult_UpdatesState(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())

@@ -109,160 +109,51 @@ func (s *SceneConnect) Draw(screen *ebiten.Image) {
 	layout := newConnectLayout()
 
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
+	vp := newConnectViewport()
 
-	// Create viewport for anchor-based positioning.
-	vp := &ui.Viewport{
+	s.drawConnectHeader(screen, vp, connected)
+
+	// Server address field.
+	s.drawConnectField(screen, layout.addressField, layout.addressClear, "Server address", address, s.activeField == connectFieldAddress)
+
+	// Display name field.
+	s.drawConnectField(screen, layout.nameField, layout.nameClear, "Display name", displayName, s.activeField == connectFieldName)
+	s.drawConnectButton(screen, layout.connectButton, connected)
+	s.drawConnectSlots(screen, vp, gs)
+	s.drawReconnectCountdown(screen, vp, token, connected)
+	s.drawConnectInstructions(screen, vp)
+	s.drawPlayerID(screen, vp, playerID)
+}
+
+func newConnectViewport() *ui.Viewport {
+	return &ui.Viewport{
 		LogicalWidth:   screenWidth,
 		LogicalHeight:  screenHeight,
-		PhysicalWidth:  screenWidth, // 1:1 scale for now
+		PhysicalWidth:  screenWidth,
 		PhysicalHeight: screenHeight,
 		Scale:          1.0,
 		SafeArea:       ui.SafeArea{},
 	}
+}
 
-	dots := "...."[:s.tick/15%5]
-
-	// Title: centered near top.
-	titleConstraint := ui.Constraint{
-		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 120,
-		Width:   240,
-		Height:  16,
-	}
+func (s *SceneConnect) drawConnectHeader(screen *ebiten.Image, vp *ui.Viewport, connected bool) {
+	titleConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 120, Width: 240, Height: 16}
 	titleBounds := titleConstraint.Bounds(vp)
 	drawUIText(screen, "Boston Fear - Arkham Horror", titleBounds.Min.X, titleBounds.Min.Y, color.White)
 
-	// Status: below title.
-	status := "Connecting" + dots
-	if connected {
-		status = "Connected"
-	}
-	statusConstraint := ui.Constraint{
-		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 160,
-		Width:   240,
-		Height:  16,
-	}
+	statusConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 160, Width: 240, Height: 16}
 	statusBounds := statusConstraint.Bounds(vp)
-	drawUIText(screen, "Status: "+status, statusBounds.Min.X, statusBounds.Min.Y, color.White)
-
-	// Server address field.
-	s.drawConnectField(screen, vp, layout.addressField, layout.addressClear, "Server address", address, s.activeField == connectFieldAddress)
-
-	// Display name field.
-	s.drawConnectField(screen, vp, layout.nameField, layout.nameClear, "Display name", displayName, s.activeField == connectFieldName)
-
-	buttonColor := color.RGBA{R: 85, G: 130, B: 200, A: 255}
-	buttonBorder := color.RGBA{R: 190, G: 220, B: 255, A: 255}
-	buttonLabel := "CONNECT"
-	if connected {
-		buttonLabel = "RECONNECT"
-	}
-	hovered, pressed := pointerState(layout.connectButton)
-	if hovered {
-		buttonColor = color.RGBA{R: 98, G: 146, B: 220, A: 255}
-		buttonBorder = color.RGBA{R: 218, G: 236, B: 255, A: 255}
-	}
-	if pressed {
-		buttonColor = color.RGBA{R: 114, G: 166, B: 240, A: 255}
-		buttonBorder = color.RGBA{R: 238, G: 245, B: 255, A: 255}
-	}
-	if s.activeField == connectFieldAddress || s.activeField == connectFieldName {
-		buttonBorder = color.RGBA{R: 255, G: 220, B: 120, A: 255}
-	}
-	if layout.connectButton.Empty() {
-		return
-	}
-	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Min.Y), float64(layout.connectButton.Dx()), float64(layout.connectButton.Dy()), buttonColor)
-	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Min.Y), float64(layout.connectButton.Dx()), 2, buttonBorder)
-	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Max.Y-2), float64(layout.connectButton.Dx()), 2, buttonBorder)
-	ebitenutil.DrawRect(screen, float64(layout.connectButton.Min.X), float64(layout.connectButton.Min.Y), 2, float64(layout.connectButton.Dy()), buttonBorder)
-	ebitenutil.DrawRect(screen, float64(layout.connectButton.Max.X-2), float64(layout.connectButton.Min.Y), 2, float64(layout.connectButton.Dy()), buttonBorder)
-	labelX := layout.connectButton.Min.X + layout.connectButton.Dx()/2 - textWidth(buttonLabel)/2
-	labelY := layout.connectButton.Min.Y + 10
-	drawUIText(screen, buttonLabel, labelX, labelY, color.White)
-
-	// Player slots indicator.
-	connectedPlayers := countConnectedPlayers(gs)
-	slotsConstraint := ui.Constraint{
-		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 245,
-		Width:   240,
-		Height:  16,
-	}
-	slotsBounds := slotsConstraint.Bounds(vp)
-	drawUIText(screen, "Slots: "+strconv.Itoa(connectedPlayers)+"/6", slotsBounds.Min.X, slotsBounds.Min.Y, color.White)
-
-	if connectedPlayers >= 6 {
-		fullConstraint := ui.Constraint{
-			Anchor:  ui.AnchorTopCenter,
-			OffsetY: 260,
-			Width:   240,
-			Height:  16,
-		}
-		fullBounds := fullConstraint.Bounds(vp)
-		drawUIText(screen, "Game Full (6/6)", fullBounds.Min.X, fullBounds.Min.Y, color.RGBA{R: 255, G: 190, B: 190, A: 255})
-	}
-
-	// Reconnection timer (if saved session exists but not connected).
-	if token != "" && !connected {
-		remaining := 60 - s.reconnectTick/60
-		if remaining < 0 {
-			remaining = 0
-		}
-		reconnectConstraint := ui.Constraint{
-			Anchor:  ui.AnchorTopCenter,
-			OffsetY: 290,
-			Width:   400,
-			Height:  16,
-		}
-		reconnectBounds := reconnectConstraint.Bounds(vp)
-		drawUIText(screen,
-			"Reconnecting with saved session... "+strconv.Itoa(remaining)+"s",
-			reconnectBounds.Min.X, reconnectBounds.Min.Y, color.White)
-	}
-
-	// Field editing instruction.
-	fieldLabel := "address"
-	if s.activeField == connectFieldName {
-		fieldLabel = "display name"
-	}
-	editConstraint := ui.Constraint{
-		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 330,
-		Width:   400,
-		Height:  16,
-	}
-	editBounds := editConstraint.Bounds(vp)
-	drawUIText(screen, "Editing: "+fieldLabel+" (TAB to switch)", editBounds.Min.X, editBounds.Min.Y, color.White)
-
-	// Input instructions.
-	instrConstraint := ui.Constraint{
-		Anchor:  ui.AnchorTopCenter,
-		OffsetY: 366,
-		Width:   400,
-		Height:  16,
-	}
-	instrBounds := instrConstraint.Bounds(vp)
-	drawUIText(screen, "Click fields to edit, then press Connect (or Enter) to join", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
-	if hint := strings.TrimSpace(s.statusHint); hint != "" {
-		drawUIText(screen, trimToWidth(hint, 420), screenWidth/2-190, 396, color.RGBA{R: 255, G: 210, B: 180, A: 255})
-	}
-
-	// Player ID display (if assigned).
-	if playerID != "" {
-		playerIDConstraint := ui.Constraint{
-			Anchor:  ui.AnchorTopCenter,
-			OffsetY: 380,
-			Width:   320,
-			Height:  16,
-		}
-		playerIDBounds := playerIDConstraint.Bounds(vp)
-		drawUIText(screen, trimToWidth("Player ID: "+playerID, 320), playerIDBounds.Min.X, playerIDBounds.Min.Y, color.White)
-	}
+	drawUIText(screen, "Status: "+s.connectStatusText(connected), statusBounds.Min.X, statusBounds.Min.Y, color.White)
 }
 
-func (s *SceneConnect) drawConnectField(screen *ebiten.Image, vp *ui.Viewport, fieldRect, clearRect image.Rectangle, label, value string, active bool) {
+func (s *SceneConnect) connectStatusText(connected bool) string {
+	if connected {
+		return "Connected"
+	}
+	return "Connecting" + "...."[:s.tick/15%5]
+}
+
+func (s *SceneConnect) drawConnectField(screen *ebiten.Image, fieldRect, clearRect image.Rectangle, label, value string, active bool) {
 	border := color.RGBA{R: 110, G: 130, B: 170, A: 255}
 	fill := color.RGBA{R: 18, G: 20, B: 32, A: 235}
 	labelColor := color.RGBA{R: 210, G: 220, B: 240, A: 255}
@@ -312,7 +203,91 @@ func (s *SceneConnect) drawConnectField(screen *ebiten.Image, vp *ui.Viewport, f
 		labelY := clearRect.Min.Y + 4
 		drawUIText(screen, clearLabel, labelX, labelY, color.White)
 	}
-	_ = vp
+}
+
+func (s *SceneConnect) drawConnectButton(screen *ebiten.Image, buttonRect image.Rectangle, connected bool) {
+	if buttonRect.Empty() {
+		return
+	}
+
+	buttonColor := color.RGBA{R: 85, G: 130, B: 200, A: 255}
+	buttonBorder := color.RGBA{R: 190, G: 220, B: 255, A: 255}
+	buttonLabel := "CONNECT"
+	if connected {
+		buttonLabel = "RECONNECT"
+	}
+	hovered, pressed := pointerState(buttonRect)
+	if hovered {
+		buttonColor = color.RGBA{R: 98, G: 146, B: 220, A: 255}
+		buttonBorder = color.RGBA{R: 218, G: 236, B: 255, A: 255}
+	}
+	if pressed {
+		buttonColor = color.RGBA{R: 114, G: 166, B: 240, A: 255}
+		buttonBorder = color.RGBA{R: 238, G: 245, B: 255, A: 255}
+	}
+	if s.activeField == connectFieldAddress || s.activeField == connectFieldName {
+		buttonBorder = color.RGBA{R: 255, G: 220, B: 120, A: 255}
+	}
+	ebitenutil.DrawRect(screen, float64(buttonRect.Min.X), float64(buttonRect.Min.Y), float64(buttonRect.Dx()), float64(buttonRect.Dy()), buttonColor)
+	ebitenutil.DrawRect(screen, float64(buttonRect.Min.X), float64(buttonRect.Min.Y), float64(buttonRect.Dx()), 2, buttonBorder)
+	ebitenutil.DrawRect(screen, float64(buttonRect.Min.X), float64(buttonRect.Max.Y-2), float64(buttonRect.Dx()), 2, buttonBorder)
+	ebitenutil.DrawRect(screen, float64(buttonRect.Min.X), float64(buttonRect.Min.Y), 2, float64(buttonRect.Dy()), buttonBorder)
+	ebitenutil.DrawRect(screen, float64(buttonRect.Max.X-2), float64(buttonRect.Min.Y), 2, float64(buttonRect.Dy()), buttonBorder)
+
+	labelX := buttonRect.Min.X + buttonRect.Dx()/2 - textWidth(buttonLabel)/2
+	drawUIText(screen, buttonLabel, labelX, buttonRect.Min.Y+10, color.White)
+}
+
+func (s *SceneConnect) drawConnectSlots(screen *ebiten.Image, vp *ui.Viewport, gs ebclient.GameState) {
+	connectedPlayers := countConnectedPlayers(gs)
+	slotsConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 245, Width: 240, Height: 16}
+	slotsBounds := slotsConstraint.Bounds(vp)
+	drawUIText(screen, "Slots: "+strconv.Itoa(connectedPlayers)+"/6", slotsBounds.Min.X, slotsBounds.Min.Y, color.White)
+	if connectedPlayers < 6 {
+		return
+	}
+	fullConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 260, Width: 240, Height: 16}
+	fullBounds := fullConstraint.Bounds(vp)
+	drawUIText(screen, "Game Full (6/6)", fullBounds.Min.X, fullBounds.Min.Y, color.RGBA{R: 255, G: 190, B: 190, A: 255})
+}
+
+func (s *SceneConnect) drawReconnectCountdown(screen *ebiten.Image, vp *ui.Viewport, token string, connected bool) {
+	if token == "" || connected {
+		return
+	}
+	remaining := 60 - s.reconnectTick/60
+	if remaining < 0 {
+		remaining = 0
+	}
+	constraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 290, Width: 400, Height: 16}
+	bounds := constraint.Bounds(vp)
+	drawUIText(screen, "Reconnecting with saved session... "+strconv.Itoa(remaining)+"s", bounds.Min.X, bounds.Min.Y, color.White)
+}
+
+func (s *SceneConnect) drawConnectInstructions(screen *ebiten.Image, vp *ui.Viewport) {
+	fieldLabel := "address"
+	if s.activeField == connectFieldName {
+		fieldLabel = "display name"
+	}
+	editConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 330, Width: 400, Height: 16}
+	editBounds := editConstraint.Bounds(vp)
+	drawUIText(screen, "Editing: "+fieldLabel+" (TAB to switch)", editBounds.Min.X, editBounds.Min.Y, color.White)
+
+	instrConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 366, Width: 400, Height: 16}
+	instrBounds := instrConstraint.Bounds(vp)
+	drawUIText(screen, "Click fields to edit, then press Connect (or Enter) to join", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
+	if hint := strings.TrimSpace(s.statusHint); hint != "" {
+		drawUIText(screen, trimToWidth(hint, 420), screenWidth/2-190, 396, color.RGBA{R: 255, G: 210, B: 180, A: 255})
+	}
+}
+
+func (s *SceneConnect) drawPlayerID(screen *ebiten.Image, vp *ui.Viewport, playerID string) {
+	if playerID == "" {
+		return
+	}
+	constraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 380, Width: 320, Height: 16}
+	bounds := constraint.Bounds(vp)
+	drawUIText(screen, trimToWidth("Player ID: "+playerID, 320), bounds.Min.X, bounds.Min.Y, color.White)
 }
 
 func clearButtonColors(clearRect image.Rectangle) (color.RGBA, color.RGBA) {

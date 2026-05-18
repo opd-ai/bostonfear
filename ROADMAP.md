@@ -146,8 +146,8 @@ The risk is real: `DispatchAction` (complexity 19.2, 88 lines) and `RunMythosPha
 
 `SceneConnect.Draw` (complexity 33.5, 157 lines, `client/ebiten/app/scenes.go:105`) is the player's first screen. It has 25 cyclomatic branches — this is the most complex single function in the codebase by a wide margin. `reconnectLoop` (complexity 22.8, 55 lines) is the stated "automatic reconnection with exponential backoff" implementation; its 16 cyclomatic branches make it fragile to extend.
 
-- [ ] **`SceneConnect.Draw`**: Extract the five discrete rendering regions (server-URL input, display-name input, connection status panel, error text, connect button) into separate `drawXxx(screen *ebiten.Image)` methods on `*SceneConnect`. The composite `Draw` becomes a 10-line orchestrator. Complexity target: <10 overall score.
-- [ ] **`reconnectLoop`**: Extract the backoff timer logic into a `nextBackoff(current, max time.Duration) time.Duration` pure function (pure → easy to unit test). Extract the URL-parameter appending into a named helper already partially done as `appendQueryParam`. Complexity target: <12 overall score.
+- [x] **`SceneConnect.Draw`**: Extract the five discrete rendering regions (server-URL input, display-name input, connection status panel, error text, connect button) into separate `drawXxx(screen *ebiten.Image)` methods on `*SceneConnect`. The composite `Draw` becomes a 10-line orchestrator. Complexity target: <10 overall score.
+- [x] **`reconnectLoop`**: Extract the backoff timer logic into a `nextBackoff(current, max time.Duration) time.Duration` pure function (pure → easy to unit test). Extract the URL-parameter appending into a named helper already partially done as `appendQueryParam`. Complexity target: <12 overall score.
 
 **Validation**: `go-stats-generator analyze . --skip-tests` reports `SceneConnect.Draw` and `reconnectLoop` complexity below 12; `go test -race ./client/ebiten/...` passes (no display required for unit tests).
 

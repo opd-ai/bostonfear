@@ -89,43 +89,21 @@ func (c *NetClient) Connect() {
 // Sending on reconnectCh (via Reconnect()) aborts the current backoff and
 // redials immediately with the current ServerURL.
 func (c *NetClient) reconnectLoop() {
-	delay := 5 * time.Second
-	const maxDelay = 30 * time.Second
+	delay := initialReconnectDelay
 
 	for {
-		// Drain any stale reconnect signal before dialing.
-		select {
-		case <-c.reconnectCh:
-		default:
-		}
+		drainReconnectSignal(c.reconnectCh)
 
-		dialURL := c.state.ServerURL
-		if tok := c.state.GetReconnectToken(); tok != "" {
-			dialURL = appendQueryParam(dialURL, "token", tok)
-		}
-		if name := strings.TrimSpace(c.state.DisplayName); name != "" {
-			dialURL = appendQueryParam(dialURL, "displayName", name)
-		}
-
-		conn, err := dialWebSocket(dialURL)
+		conn, err := dialWebSocket(c.dialURL())
 		if err != nil {
 			log.Printf("net: dial %s failed: %v — retrying in %s", c.state.ServerURL, err, delay)
 			c.state.SetConnected(false)
-			// Wait for either the backoff timer or an explicit reconnect signal.
-			select {
-			case <-time.After(delay):
-				delay *= 2
-				if delay > maxDelay {
-					delay = maxDelay
-				}
-			case <-c.reconnectCh:
-				delay = 5 * time.Second // reset on manual reconnect
-			}
+			delay = c.nextReconnectDelay(delay)
 			continue
 		}
 
 		// Reset delay on successful connection.
-		delay = 5 * time.Second
+		delay = initialReconnectDelay
 		c.state.SetConnected(true)
 		log.Printf("net: connected to %s", c.state.ServerURL)
 
@@ -133,17 +111,58 @@ func (c *NetClient) reconnectLoop() {
 
 		c.state.SetConnected(false)
 		log.Printf("net: connection lost — retrying in %s", delay)
-		// Wait for either the backoff timer or an explicit reconnect signal.
-		select {
-		case <-time.After(delay):
-			delay *= 2
-			if delay > maxDelay {
-				delay = maxDelay
-			}
-		case <-c.reconnectCh:
-			delay = 5 * time.Second
-		}
+		delay = c.nextReconnectDelay(delay)
 	}
+}
+
+const (
+	initialReconnectDelay = 5 * time.Second
+	maxReconnectDelay     = 30 * time.Second
+)
+
+func (c *NetClient) dialURL() string {
+	dialURL := c.state.ServerURL
+	if tok := c.state.GetReconnectToken(); tok != "" {
+		dialURL = appendQueryParam(dialURL, "token", tok)
+	}
+	if name := strings.TrimSpace(c.state.DisplayName); name != "" {
+		dialURL = appendQueryParam(dialURL, "displayName", name)
+	}
+	return dialURL
+}
+
+func (c *NetClient) nextReconnectDelay(delay time.Duration) time.Duration {
+	if waitForReconnectSignal(c.reconnectCh, delay) {
+		return initialReconnectDelay
+	}
+	return nextBackoff(delay, maxReconnectDelay)
+}
+
+func drainReconnectSignal(reconnectCh <-chan struct{}) {
+	select {
+	case <-reconnectCh:
+	default:
+	}
+}
+
+func waitForReconnectSignal(reconnectCh <-chan struct{}, delay time.Duration) bool {
+	select {
+	case <-time.After(delay):
+		return false
+	case <-reconnectCh:
+		return true
+	}
+}
+
+func nextBackoff(current, max time.Duration) time.Duration {
+	if current >= max {
+		return max
+	}
+	next := current * 2
+	if next < current || next > max {
+		return max
+	}
+	return next
 }
 
 // runConnection drives read and write loops for an established connection.
