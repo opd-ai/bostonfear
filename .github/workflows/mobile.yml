@@ -65,7 +65,7 @@ jobs:
         run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
       - name: Initialize ebitenmobile
         run: ebitenmobile init
-      - name: Run Android emulator tests
+      - name: Run Android emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
@@ -73,12 +73,141 @@ jobs:
           arch: x86_64
           profile: pixel_2
           script: |
-            echo "Running mobile binding tests on Android emulator..."
-            cd cmd/mobile
-            go test -tags android -v -timeout 5m
-      - name: Validate test results
+            set -euo pipefail
+
+            export SMOKE_ROOT="$RUNNER_TEMP/android-smoke"
+            export SERVER_LOG="$RUNNER_TEMP/bostonfear-server.log"
+            export AAR_PATH="$RUNNER_TEMP/bostonfear.aar"
+            export GRADLE_VERSION="8.7"
+
+            cleanup() {
+              if [ "${SERVER_PID:-}" != "" ] && kill -0 "$SERVER_PID" 2>/dev/null; then
+                kill "$SERVER_PID" || true
+              fi
+            }
+            trap cleanup EXIT
+
+            go run ./cmd/server >"$SERVER_LOG" 2>&1 &
+            SERVER_PID=$!
+
+            for _ in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+                break
+              fi
+              sleep 1
+            done
+            curl -fsS http://127.0.0.1:8080/health >/dev/null
+
+            ebitenmobile bind -target android -o "$AAR_PATH" ./cmd/mobile
+
+            mkdir -p "$SMOKE_ROOT/app/libs" \
+              "$SMOKE_ROOT/app/src/main/java/com/example/bostonfearsmoke"
+
+            cp "$AAR_PATH" "$SMOKE_ROOT/app/libs/bostonfear.aar"
+
+            cat > "$SMOKE_ROOT/settings.gradle" <<'EOF'
+            rootProject.name = "bostonfear-smoke"
+            include(":app")
+            EOF
+
+            cat > "$SMOKE_ROOT/build.gradle" <<'EOF'
+            buildscript {
+              repositories {
+                google()
+                mavenCentral()
+              }
+              dependencies {
+                classpath "com.android.tools.build:gradle:8.3.2"
+              }
+            }
+
+            allprojects {
+              repositories {
+                google()
+                mavenCentral()
+              }
+            }
+            EOF
+
+            cat > "$SMOKE_ROOT/app/build.gradle" <<'EOF'
+            apply plugin: "com.android.application"
+
+            android {
+              namespace "com.example.bostonfearsmoke"
+              compileSdk 34
+
+              defaultConfig {
+                applicationId "com.example.bostonfearsmoke"
+                minSdk 29
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+              }
+
+              compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+              }
+            }
+
+            dependencies {
+              implementation files("libs/bostonfear.aar")
+            }
+            EOF
+
+            mkdir -p "$SMOKE_ROOT/app/src/main"
+            cat > "$SMOKE_ROOT/app/src/main/AndroidManifest.xml" <<'EOF'
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+                package="com.example.bostonfearsmoke">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="false"
+                  android:label="BostonFear Smoke"
+                  android:usesCleartextTraffic="true">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true">
+                  <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                  </intent-filter>
+                </activity>
+              </application>
+            </manifest>
+            EOF
+
+            cat > "$SMOKE_ROOT/app/src/main/java/com/example/bostonfearsmoke/MainActivity.java" <<'EOF'
+            package com.example.bostonfearsmoke;
+
+            import android.app.Activity;
+            import android.os.Bundle;
+
+            import go.Seq;
+            import mobile.Mobile;
+
+            public final class MainActivity extends Activity {
+                @Override
+                protected void onCreate(Bundle savedInstanceState) {
+                    super.onCreate(savedInstanceState);
+                    Seq.setContext(getApplicationContext());
+                    Mobile.run(this);
+                }
+            }
+            EOF
+
+            curl -fsSL -o "$RUNNER_TEMP/gradle.zip" "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+            unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+            "$RUNNER_TEMP/gradle-${GRADLE_VERSION}/bin/gradle" -p "$SMOKE_ROOT" assembleDebug
+
+            adb install -r "$SMOKE_ROOT/app/build/outputs/apk/debug/app-debug.apk"
+            adb logcat -c
+            adb shell am start -n com.example.bostonfearsmoke/.MainActivity >/dev/null
+
+            timeout 10s sh -c 'adb logcat -v brief | grep -m 1 "net: received connectionStatus"'
+
+      - name: Validate smoke test results
         run: |
-          echo "SUCCESS: Android emulator tests completed"
+          echo "SUCCESS: Android emulator smoke test completed"
 
   mobile-bind-ios:
     name: iOS Bind

@@ -29,10 +29,7 @@ func NewLegacyAtlasResolver() AtlasAssetResolver {
 // SpriteSheetPNG returns a procedurally generated PNG using hardcoded coords.
 func (r *LegacyAtlasResolver) SpriteSheetPNG() ([]byte, error) {
 	r.once.Do(r.build)
-	if r.resolveErr != nil {
-		return nil, r.resolveErr
-	}
-	return r.sheetPNG, nil
+	return r.sheetPNG, r.resolveErr
 }
 
 // SpriteCoordinates returns the hardcoded spriteCoords table.

@@ -161,7 +161,7 @@ Mobile is claimed as "Alpha (touch input parity verified; device runtime **not y
 This does not block core gameplay — the server, desktop and WASM clients are all fully functional. However, it means the "mobile support" claim is build-artifact-only.
 
 **Option A: Extend CI to use Android emulator with game loop smoke test**
-- [ ] In `mobile.yml`, add a step that launches an Android emulator (API 29), installs the bound AAR as a minimal test app (no Xcode needed), and verifies a WebSocket handshake with a local game server by checking for `connectionStatus` message receipt within 10 seconds.
+- [x] In `mobile.yml`, add a step that launches an Android emulator (API 29), installs the bound AAR as a minimal test app (no Xcode needed), and verifies a WebSocket handshake with a local game server by checking for `connectionStatus` message receipt within 10 seconds.
 - [x] Add analogous iOS simulator test using `xcrun simctl` on a macOS runner.
 
 **Option B: Downgrade the README claim (low-effort, accurate)**

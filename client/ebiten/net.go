@@ -298,6 +298,7 @@ func (c *NetClient) applyConnectionStatus(data []byte) {
 		c.state.SetReconnectToken(cs.Token)
 	}
 	c.state.UpdateConnectionStatus(cs)
+	log.Printf("net: received connectionStatus for %s", cs.PlayerID)
 }
 
 func appendQueryParam(rawURL, key, value string) string {
