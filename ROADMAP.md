@@ -209,10 +209,10 @@
    - [x] Dice result serialization for 6-sided die with custom icon outcomes
 
 3. **Create Content Pack** (`serverengine/eldersign/content/`)
-   - [ ] Define 3-5 starter scenarios (Ancient Ones: Azathoth, Yig, Cthulhu, Hastur)
-   - [ ] Adventure card deck templates (30+ unique adventures per scenario)
-   - [ ] Investigator roster (overlaps with Arkham but different starting resources/abilities)
-   - [ ] Mythos card effects (museum-specific encounters)
+   - [x] Define 3-5 starter scenarios (Ancient Ones: Azathoth, Yig, Cthulhu, Hastur)
+   - [x] Adventure card deck templates (30+ unique adventures per scenario)
+   - [x] Investigator roster (overlaps with Arkham but different starting resources/abilities)
+   - [x] Mythos card effects (museum-specific encounters)
 
 4. **Define Model Types** (`serverengine/eldersign/model/`)
    - [x] `ElderSignGameState` extends base `GameState` with adventure deck, dice tower state, museum doom tracker
