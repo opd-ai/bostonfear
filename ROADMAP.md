@@ -262,12 +262,12 @@
 **Implementation Path** (mirrors Elder Sign structure):
 
 1. **Define Eldritch Horror Rules** (`serverengine/eldritchhorror/rules/`)
-   - [ ] Action types: `Travel`, `LocalAction`, `ComponentAction`, `RestAction`, `TradeAction` (6 core actions vs. Arkham's 4)
-   - [ ] Global map graph: 18 cities with train/ship routes; travel cost in actions and ticket resources
-   - [ ] Mystery deck: 3-stage multi-investigator objectives (different from Arkham's Act/Agenda deck)
-   - [ ] Ancient One mechanics: Awakening triggers, attack patterns, special abilities per Ancient One
-   - [ ] Monster spawning: Gate locations, surge mechanics, combat resolution (more complex than Arkham)
-   - [ ] Resource economy: Same Health/Sanity bounds as Arkham but different acquisition mechanics
+   - [x] Action types: `Travel`, `LocalAction`, `ComponentAction`, `RestAction`, `TradeAction` (6 core actions vs. Arkham's 4)
+   - [x] Global map graph: 18 cities with train/ship routes; travel cost in actions and ticket resources
+   - [x] Mystery deck: 3-stage multi-investigator objectives (different from Arkham's Act/Agenda deck)
+   - [x] Ancient One mechanics: Awakening triggers, attack patterns, special abilities per Ancient One
+   - [x] Monster spawning: Gate locations, surge mechanics, combat resolution (more complex than Arkham)
+   - [x] Resource economy: Same Health/Sanity bounds as Arkham but different acquisition mechanics
 
 2. **Implement Adapters** (`serverengine/eldritchhorror/adapters/`)
    - [ ] `BroadcastPayloadAdapter`: Serialize global map state, active mysteries, Ancient One status
