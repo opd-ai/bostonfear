@@ -205,8 +205,8 @@
 
 2. **Implement Elder Sign Adapters** (`serverengine/eldersign/adapters/`)
    - [x] `BroadcastPayloadAdapter`: Shape game state for Elder Sign-specific client UI (dice tower, adventure card display, museum layout)
-   - [ ] Override `DispatchAction` to route Elder Sign action types to appropriate handlers
-   - [ ] Dice result serialization for 6-sided die with custom icon outcomes
+   - [x] Override `DispatchAction` to route Elder Sign action types to appropriate handlers
+   - [x] Dice result serialization for 6-sided die with custom icon outcomes
 
 3. **Create Content Pack** (`serverengine/eldersign/content/`)
    - [ ] Define 3-5 starter scenarios (Ancient Ones: Azathoth, Yig, Cthulhu, Hastur)
@@ -215,9 +215,9 @@
    - [ ] Mythos card effects (museum-specific encounters)
 
 4. **Define Model Types** (`serverengine/eldersign/model/`)
-   - [ ] `ElderSignGameState` extends base `GameState` with adventure deck, dice tower state, museum doom tracker
-   - [ ] `AdventureCard` struct (tasks, required dice results, success/failure outcomes)
-   - [ ] `DicePool` struct (tracks locked/unlocked dice during adventure resolution)
+   - [x] `ElderSignGameState` extends base `GameState` with adventure deck, dice tower state, museum doom tracker
+   - [x] `AdventureCard` struct (tasks, required dice results, success/failure outcomes)
+   - [x] `DicePool` struct (tracks locked/unlocked dice during adventure resolution)
 
 5. **Wire Module Engine** (`serverengine/eldersign/module.go`)
    - [ ] Override `NewEngine()` to inject Elder Sign-specific adapters and content loader

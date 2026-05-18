@@ -32,3 +32,19 @@ type AdventureResultPayload struct {
 	Reward            interface{} `json:"reward"`
 	Timestamp         interface{} `json:"timestamp"`
 }
+
+// NewDiceResultPayload creates a properly formatted Elder Sign dice result payload
+// from the dice mechanics state. This is the canonical wire format for Elder Sign
+// dice outcomes, including locked/active dice, terror counts, and success status.
+func NewDiceResultPayload(playerID, action string, lockedResults, activeResults []interface{}, terrorCount int, success bool, doomIncrease int) *DiceResultPayload {
+	return &DiceResultPayload{
+		Type:          "diceResult",
+		PlayerID:      playerID,
+		Action:        action,
+		LockedResults: lockedResults,
+		ActiveResults: activeResults,
+		TerrorCount:   terrorCount,
+		Success:       success,
+		DoomIncrease:  doomIncrease,
+	}
+}

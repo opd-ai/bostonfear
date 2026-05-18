@@ -102,4 +102,47 @@ func TestShapeDiceResultPayload(t *testing.T) {
 	if payload != mockDiceResult {
 		t.Error("expected dice result to be returned directly")
 	}
+
+	// Test map input
+	mapResult := map[string]interface{}{
+		"type":     "diceResult",
+		"playerId": "player2",
+	}
+	payload2 := adapter.ShapeDiceResultPayload(mapResult)
+	if payload2 == nil {
+		t.Error("expected map result to be returned")
+	}
+}
+
+// TestNewDiceResultPayload verifies the helper function creates valid payloads.
+func TestNewDiceResultPayload(t *testing.T) {
+	locked := []interface{}{"red", "green"}
+	active := []interface{}{"terror", "lore"}
+
+	payload := NewDiceResultPayload("player1", "rollDice", locked, active, 1, true, 0)
+
+	if payload.Type != "diceResult" {
+		t.Errorf("expected type=diceResult, got %s", payload.Type)
+	}
+	if payload.PlayerID != "player1" {
+		t.Errorf("expected playerID=player1, got %s", payload.PlayerID)
+	}
+	if payload.Action != "rollDice" {
+		t.Errorf("expected action=rollDice, got %s", payload.Action)
+	}
+	if len(payload.LockedResults) != 2 {
+		t.Errorf("expected 2 locked results, got %d", len(payload.LockedResults))
+	}
+	if len(payload.ActiveResults) != 2 {
+		t.Errorf("expected 2 active results, got %d", len(payload.ActiveResults))
+	}
+	if payload.TerrorCount != 1 {
+		t.Errorf("expected terrorCount=1, got %d", payload.TerrorCount)
+	}
+	if !payload.Success {
+		t.Error("expected success=true")
+	}
+	if payload.DoomIncrease != 0 {
+		t.Errorf("expected doomIncrease=0, got %d", payload.DoomIncrease)
+	}
 }

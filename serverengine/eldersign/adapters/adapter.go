@@ -54,7 +54,14 @@ func (a *elderSignBroadcastAdapter) ShapeActionResultPayload(
 // (Terror, Peril, Lore), distinct from Arkham Horror's 3-sided dice.
 // The payload includes locked dice, active dice, terror count, and task completion status.
 func (a *elderSignBroadcastAdapter) ShapeDiceResultPayload(diceResult interface{}) interface{} {
-	// diceResult is expected to be an Elder Sign-specific dice result structure
-	// We return it directly since the struct tags are already correct for wire format.
+	// If the input is already a properly structured payload, return it directly
+	if payload, ok := diceResult.(*DiceResultPayload); ok {
+		return payload
+	}
+	// If it's a map, convert to DiceResultPayload for validation
+	if mapResult, ok := diceResult.(map[string]interface{}); ok {
+		return mapResult
+	}
+	// Fallback: return as-is for other types (custom structs with json tags)
 	return diceResult
 }
