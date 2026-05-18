@@ -12,18 +12,18 @@ This document satisfies Phase 1 item "Complete component inventory with owner an
 
 | Component ID | Current Visual Source | Owner | Priority | Notes |
 |---|---|---|---|---|
-| `board.background` | `SpriteBackground` in embedded `assets/sprites.png` | Client Rendering (`client/ebiten/render`) | P0 | Core playfield backdrop.
-| `location.downtown` | `SpriteLocationDowntown` atlas tile | Client Rendering (`client/ebiten/render`) | P0 | Must remain visually distinct for movement clarity.
-| `location.university` | `SpriteLocationUniversity` atlas tile | Client Rendering (`client/ebiten/render`) | P0 | Same requirements as other location tiles.
-| `location.rivertown` | `SpriteLocationRivertown` atlas tile | Client Rendering (`client/ebiten/render`) | P0 | Same requirements as other location tiles.
-| `location.northside` | `SpriteLocationNorthside` atlas tile | Client Rendering (`client/ebiten/render`) | P0 | Same requirements as other location tiles.
-| `token.investigator.default` | `SpritePlayerToken` with tinting in draw path | Client Rendering (`client/ebiten/render`) | P0 | Supports multiple players via tint.
-| `hud.doom.marker` | `SpriteDoomMarker` atlas tile | Client Rendering (`client/ebiten/render`) | P0 | Needed for doom bar readability.
+| `board.background` | Procedural board fill with atlas fallback tile | Client Rendering (`client/ebiten/render`) | P0 | Core playfield backdrop.
+| `location.downtown` | Procedural district background + atlas fallback tile | Client Rendering (`client/ebiten/render`) | P0 | Must remain visually distinct for movement clarity.
+| `location.university` | Procedural district background + atlas fallback tile | Client Rendering (`client/ebiten/render`) | P0 | Same requirements as other location tiles.
+| `location.rivertown` | Procedural district background + atlas fallback tile | Client Rendering (`client/ebiten/render`) | P0 | Same requirements as other location tiles.
+| `location.northside` | Procedural district background + atlas fallback tile | Client Rendering (`client/ebiten/render`) | P0 | Same requirements as other location tiles.
+| `token.investigator.default` | Procedural circular token badge with initials | Client Rendering (`client/ebiten/app`) | P0 | Supports multiple players via tint.
+| `hud.doom.marker` | Programmatic 12-step doom track | Client Rendering (`client/ebiten/app`) | P0 | Needed for doom bar readability.
 | `hud.action.overlay` | `SpriteActionOverlay` atlas tile | Client Rendering (`client/ebiten/render`) | P1 | Overlay treatment can be themed later.
 | `hud.turn.indicator` | Text/UI draw path in app layer | Client UI (`client/ebiten/app`) | P0 | Move to explicit icon + text asset pair.
-| `hud.resource.health` | Text + tokenized panel in app/UI layer | Client UI (`client/ebiten/app`, `client/ebiten/ui`) | P0 | Requires icon asset and numeric legibility checks.
-| `hud.resource.sanity` | Text + tokenized panel in app/UI layer | Client UI (`client/ebiten/app`, `client/ebiten/ui`) | P0 | Requires icon asset and numeric legibility checks.
-| `hud.resource.clues` | Text + tokenized panel in app/UI layer | Client UI (`client/ebiten/app`, `client/ebiten/ui`) | P0 | Requires icon asset and numeric legibility checks.
+| `hud.resource.health` | Programmatic segmented track in app layer | Client UI (`client/ebiten/app`) | P0 | Requires icon label and numeric legibility checks.
+| `hud.resource.sanity` | Programmatic segmented track in app layer | Client UI (`client/ebiten/app`) | P0 | Requires icon label and numeric legibility checks.
+| `hud.resource.clues` | Programmatic segmented track in app layer | Client UI (`client/ebiten/app`) | P0 | Requires icon label and numeric legibility checks.
 | `ui.results.panel` | Programmatic panel draw in UI layer | Client UI (`client/ebiten/ui`) | P1 | Candidate for themed 9-slice panel PNG.
 | `ui.onboarding.panel` | Programmatic overlay in onboarding UI | Client UI (`client/ebiten/ui`) | P1 | Should support wrapped text and icon callouts.
 | `ui.action.button.*` | Programmatic/touch action strip in app input scene | Client UI + Input (`client/ebiten/app`) | P0 | Needs state variants: default/hover/pressed/disabled.

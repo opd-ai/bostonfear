@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	ebclient "github.com/opd-ai/bostonfear/client/ebiten"
 	"github.com/opd-ai/bostonfear/client/ebiten/render"
 	"github.com/opd-ai/bostonfear/client/ebiten/ui"
@@ -1004,12 +1005,12 @@ func (g *Game) drawInvestigatorTokens(screen *ebiten.Image, gs ebclient.GameStat
 		if pid == myID {
 			size += 2 * scale
 		}
-		g.drawInvestigatorTokenBadge(screen, px+size/2, py+bob, size, base, investigatorSymbol(p), colourIdx, isCurrent, isGone)
+		g.drawInvestigatorTokenBadge(screen, px+size/2, py+bob, size, base, investigatorInitials(p), colourIdx, isCurrent, isGone)
 	}
 }
 
 func (g *Game) drawInvestigatorTokenBadge(screen *ebiten.Image, cx, cy, size float64, base color.RGBA, symbol string, pattern int, isCurrent, isGone bool) {
-	radius := size / 2
+	radius := float32(size / 2)
 	alpha := uint8(245)
 	if isGone {
 		alpha = 118
@@ -1020,18 +1021,18 @@ func (g *Game) drawInvestigatorTokenBadge(screen *ebiten.Image, cx, cy, size flo
 	if isCurrent {
 		pulse := 0.45 + 0.55*math.Sin(float64(g.frameCount)/7.0)
 		glow := color.RGBA{R: 255, G: uint8(180 + int(50*pulse)), B: 98, A: uint8(120 + int(65*pulse))}
-		ebitenutil.DrawRect(screen, cx-radius-4, cy-radius-4, size+8, size+8, glow)
+		vector.DrawFilledCircle(screen, float32(cx), float32(cy), radius+4, glow, true)
 	}
 
-	ebitenutil.DrawRect(screen, cx-radius, cy-radius, size, size, base)
-	drawTileBorder(screen, cx-radius, cy-radius, size, size, border)
-	g.drawTokenPattern(screen, cx, cy, radius, pattern, isGone)
+	vector.DrawFilledCircle(screen, float32(cx), float32(cy), radius, base, true)
+	vector.StrokeCircle(screen, float32(cx), float32(cy), radius, 2, border, true)
+	g.drawTokenPattern(screen, cx, cy, float64(radius)-2, pattern, isGone)
 
 	textColor := color.RGBA{R: 246, G: 246, B: 240, A: 255}
 	if isGone {
 		textColor = color.RGBA{R: 192, G: 192, B: 188, A: 220}
 	}
-	drawUIText(screen, symbol, int(cx-4), int(cy+4), textColor)
+	drawUIText(screen, symbol, int(cx)-textWidth(symbol)/2, int(cy)+4, textColor)
 }
 
 func (g *Game) drawTokenPattern(screen *ebiten.Image, cx, cy, radius float64, pattern int, isGone bool) {
@@ -1069,17 +1070,50 @@ func (g *Game) drawTokenPattern(screen *ebiten.Image, cx, cy, radius float64, pa
 	}
 }
 
-func investigatorSymbol(p *ebclient.Player) string {
+func investigatorInitials(p *ebclient.Player) string {
 	if p == nil {
 		return "?"
 	}
+	if initials := initialsFromString(p.DisplayName); initials != "" {
+		return initials
+	}
 	if name := strings.TrimSpace(string(p.InvestigatorType)); name != "" {
-		r := []rune(strings.ToUpper(name))
-		if len(r) > 0 {
-			return string(r[0])
+		runes := []rune(strings.ToUpper(name))
+		if len(runes) > 0 {
+			return string(runes[0]) + "."
 		}
 	}
 	return "I"
+}
+
+func initialsFromString(input string) string {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return ""
+	}
+	parts := strings.Fields(trimmed)
+	letters := make([]string, 0, 2)
+	for _, part := range parts {
+		runes := []rune(strings.ToUpper(part))
+		if len(runes) == 0 {
+			continue
+		}
+		letters = append(letters, string(runes[0]))
+		if len(letters) == 2 {
+			break
+		}
+	}
+	if len(letters) == 1 {
+		runes := []rune(strings.ToUpper(trimmed))
+		if len(runes) >= 2 {
+			return string(runes[0]) + "." + string(runes[1]) + "."
+		}
+		return letters[0] + "."
+	}
+	if len(letters) >= 2 {
+		return letters[0] + "." + letters[1] + "."
+	}
+	return ""
 }
 
 func (g *Game) playerBaseColour(index int) color.RGBA {
@@ -1256,11 +1290,63 @@ func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *eb
 	drawUITextScaled(screen, turnGlyph+" "+name, rightPanelX(), y+5, color.White, textScaleHeader)
 
 	pillX := rightPanelX() + 162
-	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconHealth, "HP"), p.Resources.Health, color.RGBA{R: 200, G: 82, B: 82, A: 255}, g.resourceFlashLevel(pid, "health"))
-	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, color.RGBA{R: 90, G: 160, B: 232, A: 255}, g.resourceFlashLevel(pid, "sanity"))
-	pillX = g.drawResourcePill(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, color.RGBA{R: 86, G: 194, B: 122, A: 255}, g.resourceFlashLevel(pid, "clues"))
+	pillX = g.drawResourceTrack(screen, pillX, y+4, g.iconLabel(ui.IconHealth, "HP"), p.Resources.Health, 10, color.RGBA{R: 200, G: 82, B: 82, A: 255}, g.resourceFlashLevel(pid, "health"))
+	pillX = g.drawResourceTrack(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, 10, color.RGBA{R: 90, G: 160, B: 232, A: 255}, g.resourceFlashLevel(pid, "sanity"))
+	pillX = g.drawResourceTrack(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, 5, color.RGBA{R: 86, G: 194, B: 122, A: 255}, g.resourceFlashLevel(pid, "clues"))
 	g.drawResourcePill(screen, pillX, y+4, "ACT", p.ActionsRemaining, color.RGBA{R: 228, G: 197, B: 102, A: 255}, g.resourceFlashLevel(pid, "actions"))
 	return cardH + 5
+}
+
+func (g *Game) drawResourceTrack(screen *ebiten.Image, x, y int, icon string, value, max int, accent color.RGBA, flash int) int {
+	if max < 1 {
+		max = 1
+	}
+	if value < 0 {
+		value = 0
+	}
+	if value > max {
+		value = max
+	}
+
+	labelW := textWidth(icon) + 10
+	drawUIText(screen, icon, x, y+3, color.RGBA{R: 245, G: 247, B: 252, A: 255})
+
+	barX := x + labelW
+	segmentW := 8
+	segmentH := 12
+	segmentGap := 2
+	barW := max*segmentW + (max-1)*segmentGap
+	bg := color.RGBA{R: 12, G: 14, B: 20, A: 220}
+	if flash > 0 {
+		boost := uint8(min(72, flash*4))
+		bg = color.RGBA{R: uint8(min(255, int(bg.R)+int(boost/8))), G: uint8(min(255, int(bg.G)+int(boost/8))), B: uint8(min(255, int(bg.B)+int(boost/6))), A: bg.A}
+		accent = color.RGBA{R: uint8(min(255, int(accent.R)+int(boost/4))), G: uint8(min(255, int(accent.G)+int(boost/4))), B: uint8(min(255, int(accent.B)+int(boost/4))), A: 255}
+	}
+	ebitenutil.DrawRect(screen, float64(barX), float64(y+2), float64(barW), float64(segmentH+2), bg)
+	for i := 0; i < max; i++ {
+		segX := barX + i*(segmentW+segmentGap)
+		segFill := color.RGBA{R: 34, G: 40, B: 52, A: 255}
+		if i < value {
+			segFill = accent
+		}
+		ebitenutil.DrawRect(screen, float64(segX), float64(y+3), float64(segmentW), float64(segmentH), segFill)
+		ebitenutil.DrawRect(screen, float64(segX), float64(y+3), float64(segmentW), 1, brightenSegmentBorder(segFill))
+		ebitenutil.DrawRect(screen, float64(segX), float64(y+3+segmentH-1), float64(segmentW), 1, brightenSegmentBorder(segFill))
+	}
+
+	valueText := strconv.Itoa(value) + "/" + strconv.Itoa(max)
+	valueX := barX + barW + 6
+	drawUIText(screen, valueText, valueX, y+3, color.RGBA{R: 236, G: 240, B: 248, A: 255})
+	return valueX + textWidth(valueText) + 8
+}
+
+func brightenSegmentBorder(col color.RGBA) color.RGBA {
+	return color.RGBA{
+		R: uint8(min(255, int(col.R)+30)),
+		G: uint8(min(255, int(col.G)+30)),
+		B: uint8(min(255, int(col.B)+30)),
+		A: 255,
+	}
 }
 
 func playerRowStyle(isCurrent bool, pulse int) (color.RGBA, color.RGBA) {
