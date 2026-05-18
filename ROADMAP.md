@@ -270,9 +270,9 @@
    - [x] Resource economy: Same Health/Sanity bounds as Arkham but different acquisition mechanics
 
 2. **Implement Adapters** (`serverengine/eldritchhorror/adapters/`)
-   - [ ] `BroadcastPayloadAdapter`: Serialize global map state, active mysteries, Ancient One status
-   - [ ] Action dispatcher for Eldritch-specific action set
-   - [ ] Monster movement phase handler (happens between player turns)
+   - [x] `BroadcastPayloadAdapter`: Serialize global map state, active mysteries, Ancient One status
+   - [x] Action dispatcher for Eldritch-specific action set
+   - [x] Monster movement phase handler (happens between player turns)
 
 3. **Create Content Pack** (`serverengine/eldritchhorror/content/`)
    - [ ] 3-5 Ancient Ones (Azathoth, Cthulhu, Shub-Niggurath, Yog-Sothoth, Nyarlathotep) with unique mechanics
@@ -282,10 +282,10 @@
    - [ ] Investigator roster (shares some with Arkham but with different starting cities)
 
 4. **Define Model Types** (`serverengine/eldritchhorror/model/`)
-   - [ ] `EldritchGameState`: Global map state, active mysteries, gates, monsters, Ancient One awakening progress
-   - [ ] `GlobalMap` struct: City nodes, routes, current monster/gate positions
-   - [ ] `Mystery` struct: Multi-step objectives with progress tracking
-   - [ ] `AncientOne` struct: Abilities, awakening conditions, combat stats
+   - [x] `EldritchGameState`: Global map state, active mysteries, gates, monsters, Ancient One awakening progress
+   - [x] `GlobalMap` struct: City nodes, routes, current monster/gate positions
+   - [x] `Mystery` struct: Multi-step objectives with progress tracking
+   - [x] `AncientOne` struct: Abilities, awakening conditions, combat stats
 
 5. **Wire Module Engine** (`serverengine/eldritchhorror/module.go`)
    - [ ] Inject Eldritch-specific adapters, validators, content loader
