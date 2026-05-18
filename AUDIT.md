@@ -120,7 +120,7 @@ None. The project fulfills all stated core functional goals. No critical blocker
   - **Dependencies**: None.
   - **Effort**: Minimal (comment clarification, 10 minutes).
 
-- [ ] **Module Registry NewRegistry() Exported but Limited Registration** — [serverengine/common/runtime/registry.go](serverengine/common/runtime/registry.go) — Public NewRegistry() function creates an empty registry; modules are pre-registered via init() in each module package. Flexibility is minimal: registry is internal to cmd/server, not a public-facing configuration point.
+- [x] **Module Registry NewRegistry() Exported but Limited Registration** — [serverengine/common/runtime/registry.go](serverengine/common/runtime/registry.go) — Public NewRegistry() function creates an empty registry; modules are pre-registered via init() in each module package. Flexibility is minimal: registry is internal to cmd/server, not a public-facing configuration point.
   - **Current State**: Works correctly for current single-server model; tests use NewRegistry() for unit-level isolation.
   - **Blocked Goal**: None; intended architecture.
   - **Remediation**: Document in package doc that NewRegistry is for testing; production use is via cmd/server's hard-wired registry. No change needed.
@@ -133,7 +133,7 @@ None. The project fulfills all stated core functional goals. No critical blocker
   - **Dependencies**: None.
   - **Effort**: Small (20 minutes refactoring + tests).
 
-- [ ] **common/monitoring Package Duplicates HTTP monitoring Handlers** — [serverengine/common/monitoring/doc.go](serverengine/common/monitoring/doc.go) provides BuildHealthPayload() helper, while root [monitoring/handlers.go](monitoring/handlers.go) defines HTTP handler wiring. Separation is correct but the package name "monitoring" is used at both levels, risking import confusion.
+- [x] **common/monitoring Package Duplicates HTTP monitoring Handlers** — [serverengine/common/monitoring/doc.go](serverengine/common/monitoring/doc.go) provides BuildHealthPayload() helper, while root [monitoring/handlers.go](monitoring/handlers.go) defines HTTP handler wiring. Separation is correct but the package name "monitoring" is used at both levels, risking import confusion.
   - **Current State**: Works correctly; godoc clearly distinguishes `serverengine/common/monitoring` (DTO helpers) from `monitoring` (HTTP handlers).
   - **Blocked Goal**: None; intended separation.
   - **Remediation**: Document naming convention in [monitoring/doc.go](monitoring/doc.go) or add comment in [serverengine/common/monitoring/doc.go](serverengine/common/monitoring/doc.go) clarifying that serverengine/common/monitoring owns DTOs, root monitoring owns HTTP transport. No refactoring needed.
@@ -146,8 +146,8 @@ None. The project fulfills all stated core functional goals. No critical blocker
   - **Dependencies**: None.
   - **Effort**: Small (2-3 hours for action/doom instrumentation; latency requires more design).
 
-- [ ] **Legacy Scenario Content Reference (PLAN.md, GAPS.md)** — These files were referenced in session notes but do not exist in repository. The rm command likely deleted them. New GAPS.md is being generated as part of this audit.
-  - **Current State**: User requested deletion; AUDIT.md and GAPS.md are fresh outputs of this audit tool, not legacy references.
+- [x] **Legacy Scenario Content Reference (PLAN.md, GAPS.md)** — Prior notes referenced removed planning files. In the current repository, PLAN.md is absent while GAPS.md exists as an active backlog artifact.
+  - **Current State**: AUDIT.md and GAPS.md are the current audit/backlog sources in this workspace snapshot; no legacy PLAN.md file is present.
   - **Blocked Goal**: None; scope was to generate new audit reports.
   - **Remediation**: This audit is the new source of truth for gaps. Archive or ignore prior files.
   - **Effort**: N/A.

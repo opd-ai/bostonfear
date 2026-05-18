@@ -1,5 +1,13 @@
 // Package monitoring provides HTTP handlers that expose game server health and performance metrics.
 //
+// Naming convention:
+//   - monitoring (this package) owns HTTP transport handlers and route-facing
+//     concerns for /health and /metrics.
+//   - serverengine/common/monitoring owns shared DTO builders and pure helper
+//     logic used by handlers and tests.
+//
+// Keep imports explicit to avoid ambiguity between the two packages.
+//
 // Endpoints:
 //
 // - GET /health: JSON snapshot of game health, state corruption history, and alerts

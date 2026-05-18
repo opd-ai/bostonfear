@@ -16,6 +16,11 @@ type Registry struct {
 }
 
 // NewRegistry returns an empty module registry.
+//
+// Intended usage:
+//   - Tests and local tooling can compose a custom registry explicitly.
+//   - Production startup wires a registry in cmd/server via module init-time
+//     registration, then resolves the selected module key from configuration.
 func NewRegistry() *Registry {
 	return &Registry{modules: make(map[string]contracts.GameModule)}
 }
