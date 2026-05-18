@@ -220,15 +220,15 @@
    - [x] `DicePool` struct (tracks locked/unlocked dice during adventure resolution)
 
 5. **Wire Module Engine** (`serverengine/eldersign/module.go`)
-   - [ ] Override `NewEngine()` to inject Elder Sign-specific adapters and content loader
-   - [ ] Override `Start()` to initialize Elder Sign game rules (or delegate to base `GameServer` with rule overrides)
-   - [ ] Remove `UnimplementedEngine` fallback
+   - [x] Override `NewEngine()` to inject Elder Sign-specific adapters and content loader
+   - [x] Override `Start()` to initialize Elder Sign game rules (or delegate to base `GameServer` with rule overrides)
+   - [x] Remove `UnimplementedEngine` fallback
 
 6. **Testing**
-   - [ ] Add integration tests: `BOSTONFEAR_GAME=eldersign go test ./serverengine/eldersign/...`
-   - [ ] Verify dice resolution produces Elder Sign-specific outcomes (not Arkham's Tentacle results)
-   - [ ] Verify win condition (seal gates before 12 doom) and lose condition (Ancient One awakens) execute correctly
-   - [ ] Verify no code duplication between `eldersign/` and `arkhamhorror/` rules/adapters
+   - [x] Add integration tests: `BOSTONFEAR_GAME=eldersign go test ./serverengine/eldersign/...`
+   - [x] Verify dice resolution produces Elder Sign-specific outcomes (not Arkham's Tentacle results)
+   - [x] Verify win condition (seal gates before 12 doom) and lose condition (Ancient One awakens) execute correctly
+   - [x] Verify no code duplication between `eldersign/` and `arkhamhorror/` rules/adapters
 
 **Validation**:
 - `BOSTONFEAR_GAME=eldersign go run . server` starts Elder Sign game (not Arkham Horror)

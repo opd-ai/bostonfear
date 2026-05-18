@@ -1,11 +1,10 @@
 package eldersign
 
 import (
-	"strings"
 	"testing"
 )
 
-func TestModuleNewEngineReturnsElderSignPlaceholder(t *testing.T) {
+func TestModuleNewEngineReturnsElderSignEngine(t *testing.T) {
 	module := NewModule()
 	if module == nil {
 		t.Fatal("expected module instance")
@@ -19,11 +18,19 @@ func TestModuleNewEngineReturnsElderSignPlaceholder(t *testing.T) {
 		t.Fatal("expected non-nil engine")
 	}
 
-	startErr := engine.Start()
-	if startErr == nil {
-		t.Fatal("expected Start to return not-implemented error")
+	// Verify engine is properly configured with Elder Sign-specific components
+	esEngine, ok := engine.(*Engine)
+	if !ok {
+		t.Fatal("expected Engine type from NewEngine")
 	}
-	if !strings.Contains(startErr.Error(), "not implemented") {
-		t.Fatalf("expected not-implemented error, got %v", startErr)
+	if esEngine.GameServer == nil {
+		t.Fatal("expected GameServer to be initialized")
 	}
+
+	// Verify the engine can be configured with allowed origins
+	engine.SetAllowedOrigins([]string{"localhost:3000"})
+
+	// Note: We don't call Start() here as it would start a full game server
+	// which requires port binding and connection handling. Integration tests
+	// will verify end-to-end functionality.
 }
