@@ -143,10 +143,10 @@
 **Effort**: 30 minutes (Option A: update docs) or 4-6 hours (Option B: update code to 1280×720)
 
 **Recommended Approach** (Option A — align docs to implementation):
-- [ ] Update `README.md:200` from "Logical 1280×720 resolution" to "Logical 800×600 resolution"
-- [ ] Update `docs/CLIENT_SPEC.md` to reflect 800×600 as the canonical logical resolution
-- [ ] Update `client/ebiten/app/doc.go:20` documentation comment to match
-- [ ] Verify all UI coordinate calculations remain consistent with 800×600 baseline
+- [x] Update `README.md:200` from "Logical 1280×720 resolution" to "Logical 800×600 resolution" — Already accurate
+- [x] Update `docs/CLIENT_SPEC.md` to reflect 800×600 as the canonical logical resolution — Already accurate
+- [x] Update `client/ebiten/app/doc.go:20` documentation comment to match — Already accurate
+- [x] Verify all UI coordinate calculations remain consistent with 800×600 baseline — Verified
 
 **Alternative Approach** (Option B — align code to docs; **not recommended**):
 - Change `screenWidth` → 1280, `screenHeight` → 720 in `client/ebiten/app/game.go:30-33`
@@ -421,40 +421,25 @@
 
 **Effort**: 3-4 hours (action/doom counters) + 2-3 hours (latency percentile infrastructure)
 
-**Current State**: `serverengine/metrics.go` defines `GameMetrics` struct with:
-- `ActionTypeCounters map[string]int64` (initialized but never incremented)
-- `DoomHistogram map[int]int64` (initialized but never updated)
-- `LatencyPercentiles map[string]float64` (not computed)
+**Current State**: `serverengine/metrics.go` defines metrics tracking functions and they are already fully instrumented:
+- `ActionTypeCounters` — tracked via `trackActionType()` called in `game_server.go:442` after each action
+- `DoomHistogram` — tracked via `trackDoomLevel()` called in 5 locations in `mythos.go`
+- `LatencyPercentiles` — computed via `BroadcastLatencyPercentiles()` from ring buffer samples
 
 **Implementation Path**:
 
 1. **Action Counter Instrumentation**
-   - [ ] In `serverengine/game_server.go:processActionCore()` (line 344), after action type validation, add:
-     ```go
-     gs.actionCounterMutex.Lock()
-     gs.actionTypeCounters[action.Action]++
-     gs.actionCounterMutex.Unlock()
-     ```
-   - [ ] Verify thread-safety (mutex already present in `GameServer` struct)
+   - [x] Already implemented in `serverengine/game_server.go:442` — calls `gs.trackActionType(action.Action)`
+   - [x] Thread-safety verified — uses `actionCounterMutex`
 
 2. **Doom Histogram Tracking**
-   - [ ] In `serverengine/mythos.go:RunMythosPhase()` or wherever doom is incremented, add:
-     ```go
-     gs.doomHistogramLock.Lock()
-     gs.doomHistogram[newDoomValue]++
-     gs.doomHistogramLock.Unlock()
-     ```
+   - [x] Already implemented in `serverengine/mythos.go` — calls `gs.trackDoomLevel()` at lines 148, 174, 196, 207, 224
+   - [x] Thread-safety verified — uses `doomHistogramLock`
 
-3. **Latency Percentile Computation** (optional; more complex)
-   - [ ] Wrap action dispatch with `time.Now()` start/stop timing
-   - [ ] Maintain rolling percentile histogram using ring buffer (already present: `latencySamples [100]int64`)
-   - [ ] Compute p50, p95, p99 on-demand in `monitoring/handlers.go:MetricsHandler`
-   - [ ] Export percentiles in Prometheus format:
-     ```
-     arkham_horror_action_latency_p50_ms 12.3
-     arkham_horror_action_latency_p95_ms 45.6
-     arkham_horror_action_latency_p99_ms 89.2
-     ```
+3. **Latency Percentile Computation**
+   - [x] Already implemented — `BroadcastLatencyPercentiles()` in `metrics.go:253-291`
+   - [x] Ring buffer tracking in place — `recordBroadcastLatency()` stores samples
+   - [x] Exposed via monitoring adapter — `monitoring/handlers.go` exports p50, p95, p99
 
 **Validation**:
 - Start server, play 10 actions (mix of Move/Investigate/Ward/Gather)
@@ -476,19 +461,11 @@
 
 **Effort**: 20 minutes
 
-**Current State**: `BroadcastPayloadAdapter` defined twice:
-1. `serverengine/interfaces.go:24-27` (exported, canonical contract)
-2. `serverengine/arkhamhorror/adapters/broadcast.go:7` (unexported, redundant)
+**Current State**: Both `serverengine/interfaces.go:28` and `serverengine/arkhamhorror/adapters/broadcast.go:10` already use type aliases to the canonical `contracts.BroadcastPayloadAdapter`. No duplication exists.
 
 **Implementation Path**:
-- [ ] Delete interface definition in `serverengine/arkhamhorror/adapters/broadcast.go:7`
-- [ ] Update `serverengine/arkhamhorror/adapters/adapter.go` to reference `serverengine.BroadcastPayloadAdapter` directly:
-  ```go
-  func NewBroadcastAdapter() serverengine.BroadcastPayloadAdapter {
-      return &arkhamBroadcastAdapter{}
-  }
-  ```
-- [ ] Run `go test ./...` to verify no regressions
+- [x] Interface aliased to canonical definition in both locations — Already implemented
+- [x] Tests pass — Verified
 
 **Validation**: Tests pass; single interface definition in `serverengine/interfaces.go`; Arkham adapter compiles and implements canonical interface.
 
@@ -511,21 +488,8 @@
 - `SetAllowedOrigins()`, health/metrics methods succeed silently (return empty maps/snapshots)
 
 **Implementation Path**:
-- [ ] Add explanatory comment to `SetAllowedOrigins()` in `unimplemented_engine.go`:
-  ```go
-  // SetAllowedOrigins stores allowed origins but has no filtering semantics
-  // since Start() always fails. This method exists to satisfy the Engine interface
-  // but does not alter the fact that the engine is non-functional.
-  func (e *UnimplementedEngine) SetAllowedOrigins(origins []string) {
-  ```
-- [ ] Add package-level doc comment explaining intent:
-  ```go
-  // Package runtime provides the module registry and UnimplementedEngine placeholder.
-  // UnimplementedEngine satisfies the Engine interface but returns "not implemented"
-  // errors for Start() and HandleConnection(). Other methods (SetAllowedOrigins,
-  // health checks) succeed silently to allow CLI initialization but do not enable
-  // gameplay.
-  ```
+- [x] Add explanatory comment to `SetAllowedOrigins()` in `unimplemented_engine.go` — Already present at lines 38-41
+- [x] Add package-level doc comment explaining intent — Added in `serverengine/common/runtime/doc.go`
 
 **Validation**: Comment explains intent; code behavior unchanged.
 
