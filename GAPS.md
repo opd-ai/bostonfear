@@ -1,343 +1,284 @@
-# Implementation Gaps — Detailed Roadmap — 2026-05-17
+# Implementation Gaps — 2026-05-18
+
+## Gap 1: Elder Sign Game Module — Scaffolded, Rules Not Implemented
+
+- **Intended Behavior**: Server should support Elder Sign gameplay with museum-room-based movement, 6-sided dice with Terror/Peril/Lore icons, adventure card deck system, dice tower placement mechanic, and victory condition based on sealing museum gates before 12 doom. Configuration via `BOSTONFEAR_GAME=eldersign` should start an Elder Sign server accepting 1-6 players.
+
+- **Current State**: Module scaffolding exists in `serverengine/eldersign/` with subdirectories `adapters/`, `rules/`, `scenarios/`, `model/`. The `module.go:NewEngine()` method returns `UnimplementedEngine` which always fails `Start()` with error "eldersign engine not implemented". Baseline types like `TurnBudget` and payload adapters are defined but not wired. No adventure card logic, no Elder Sign-specific dice resolution, no museum room graph, and no game loop implementation.
+
+- **Blocked Goal**: ROADMAP.md Goal 25 (multi-game-family support) marked ⚠️ Partial. Phase 2 implementation of Elder Sign module is documented but not executed.
+
+- **Implementation Path**:
+  1. **Define Elder Sign Action Types** (`serverengine/eldersign/actions/`):
+     - `PlaceInvestigator` (assign investigator to museum room)
+     - `RollDice` (roll 6-sided Elder Sign dice)
+     - `LockDie` (lock a die result for multi-turn tasks)
+     - `DiscardItem` (spend item for reroll)
+     - `ClaimAdventure` (complete adventure card after meeting requirements)
+  
+  2. **Implement 6-Sided Dice Mechanics** (`serverengine/eldersign/rules/dice.go`):
+     - Dice results: `Terror`, `Peril`, `Lore`, `Investigation`, `Scroll`, `Tentacle`
+     - Distinct from Arkham's 3-sided Success/Blank/Tentacle system
+     - Adventure cards define required die result patterns (e.g., "3 Lore + 2 Investigation")
+  
+  3. **Build Adventure Card System** (`serverengine/eldersign/model/adventure.go`):
+     - `AdventureCard` struct with multi-stage tasks, required dice results, and success/failure outcomes
+     - Adventure deck management (draw, discard, reshuffle)
+     - Museum room assignment per adventure
+  
+  4. **Museum Room Graph** (`serverengine/eldersign/rules/locations.go`):
+     - Define 8-10 museum rooms (e.g., Library, Curator's Office, Exhibit Hall)
+     - No adjacency restrictions (all rooms accessible from any starting point; distinct from Arkham's neighborhood adjacency)
+  
+  5. **Resource Economy** (`serverengine/eldersign/model/investigator.go`):
+     - Stamina (1-8) and Sanity (1-8) — different bounds from Arkham's 1-10
+     - Clue tokens (0-5) — shared with Arkham but acquired differently
+     - Item/Spell cards specific to Elder Sign
+  
+  6. **Victory/Defeat Conditions** (`serverengine/eldersign/rules/win_conditions.go`):
+     - **Win**: Seal N elder signs before doom reaches 12 (N = scenario-dependent, typically 12)
+     - **Lose**: Doom reaches 12 OR all investigators defeated
+     - Distinct from Arkham's clue-gathering objective
+  
+  7. **Wire Module Engine** (`serverengine/eldersign/module.go:NewEngine()`):
+     - Replace `return commonruntime.NewUnimplementedEngine("eldersign"), nil` with functional engine initialization
+     - Inject Elder Sign-specific adapters, validators, and content loader
+     - Override game loop to handle dice tower mechanic and adventure resolution phases
+  
+  8. **Content Pack** (`serverengine/eldersign/content/`):
+     - 3-5 Ancient One scenarios (e.g., Azathoth, Yig, Cthulhu with Elder Sign-specific mechanics)
+     - 30+ adventure card templates per scenario
+     - Investigator roster (overlaps with Arkham but with different starting resources)
+     - Mythos event deck specific to museum setting
+  
+  9. **Testing**:
+     - Add integration tests: `BOSTONFEAR_GAME=eldersign go test ./serverengine/eldersign/...`
+     - Verify dice resolution produces Elder Sign-specific outcomes (not Arkham Tentacle results)
+     - Verify win condition (seal elder signs) and lose condition (doom=12 or all investigators defeated)
+     - Verify no Arkham-specific mechanics (neighborhood adjacency, 3-sided dice, clue-per-investigator win condition) leak into Elder Sign gameplay
+
+- **Dependencies**: Arkham Horror implementation complete (✅); modular architecture in place (✅); `serverengine/common/contracts/` defines `Engine` interface (✅).
+
+- **Effort**: 4-6 weeks (single developer)
+
+- **Validation**:
+  - `BOSTONFEAR_GAME=eldersign go run . server` starts Elder Sign game successfully
+  - 3 players connect and complete a full Elder Sign game using museum rooms, 6-sided dice, and adventure cards
+  - No Arkham-specific mechanics appear in gameplay
+  - CI tests pass with >75% coverage in `serverengine/eldersign/`
+  - `go test -race ./...` passes with Elder Sign module active
 
 ---
 
-## Gap 1: Missing ROADMAP.md File
+## Gap 2: Eldritch Horror Game Module — Scaffolded, Rules Not Implemented
 
-**Severity**: HIGH
+- **Intended Behavior**: Server should support Eldritch Horror gameplay with global map (18+ cities), multi-step mystery deck progression, Ancient One active antagonist mechanics, monster surge system, and regional encounter decks. Configuration via `BOSTONFEAR_GAME=eldritchhorror` should start an Eldritch Horror server.
 
-**Intended Behavior**: Repository README.md explicitly references `ROADMAP.md` as the authoritative source for development phases, module implementation timelines, and planned features. ADR 003 describes phased Elder Sign (4-6 weeks), Eldritch Horror (8-10 weeks), and Final Hour implementation. No centralized roadmap document exists.
+- **Current State**: Module scaffolding exists in `serverengine/eldritchhorror/` with subdirectories mirroring Elder Sign. `module.go:NewEngine()` returns `UnimplementedEngine` which always fails `Start()` with error "eldritchhorror engine not implemented". No global map implementation, no mystery deck logic, no Ancient One mechanics, and no game loop.
 
-**Current State**: File is completely absent. References in README.md (lines 13, 288) point to a missing resource.
+- **Blocked Goal**: ROADMAP.md Goal 25 (multi-game-family support) marked ⚠️ Partial. Phase 3 implementation documented but not executed.
 
-**Blocked Goal**: Project planning and contributor visibility into module implementation sequence and timeline.
+- **Implementation Path**:
+  1. **Define Eldritch Horror Action Types** (`serverengine/eldritchhorror/actions/`):
+     - `Travel` (move between cities with train/ship routes)
+     - `LocalAction` (city-specific actions)
+     - `ComponentAction` (interact with scenario-specific components)
+     - `RestAction` (recover health/sanity; distinct from Arkham's Gather)
+     - `TradeAction` (exchange items with other investigators)
+  
+  2. **Global Map Graph** (`serverengine/eldritchhorror/rules/map.go`):
+     - Define 18+ cities across 6 continents (Americas, Europe, Asia, Africa, Pacific, Antarctica)
+     - Train/ship routes with travel cost in actions and ticket resources
+     - Complex travel system distinct from Arkham's 4-neighborhood adjacency
+  
+  3. **Mystery Deck System** (`serverengine/eldritchhorror/model/mystery.go`):
+     - Multi-step objectives requiring worldwide coordination (e.g., "Solve clues in 3 different continents")
+     - 3 mysteries must be solved to win (distinct from Arkham's clue-per-investigator threshold)
+     - Mystery progression tracked per scenario
+  
+  4. **Ancient One Mechanics** (`serverengine/eldritchhorror/model/ancient_one.go`):
+     - Active antagonist with unique abilities, attack patterns, and awakening conditions
+     - Ancient One combat phase when awakened (distinct from Arkham's doom-only loss)
+     - Per-Ancient-One ruleset (e.g., Azathoth vs. Cthulhu have different mechanics)
+  
+  5. **Monster Surge System** (`serverengine/eldritchhorror/rules/monsters.go`):
+     - Global monster spawning across cities (not localized neighborhoods)
+     - Monster movement phase between player turns
+     - Combat resolution system
+  
+  6. **Regional Encounter Decks** (`serverengine/eldritchhorror/content/encounters/`):
+     - Unique encounter decks per region (Americas, Europe, Asia, Africa, Pacific, General)
+     - 50-100 encounter cards per deck
+     - Region-specific narrative and mechanical outcomes
+  
+  7. **Resource Economy**:
+     - Same Health/Sanity bounds as Arkham (1-10) but different acquisition mechanics
+     - Focus tokens (unique to Eldritch)
+     - Improvement tokens (persistent character upgrades)
+  
+  8. **Wire Module Engine** (`serverengine/eldritchhorror/module.go:NewEngine()`):
+     - Replace `UnimplementedEngine` with functional engine
+     - Inject Eldritch-specific adapters, validators, content loader
+     - Override game loop to include monster phase between player turns
+  
+  9. **Content Pack** (`serverengine/eldritchhorror/content/`):
+     - 3-5 Ancient Ones (Azathoth, Cthulhu, Shub-Niggurath, Yog-Sothoth, Nyarlathotep) with unique mechanics
+     - 9-12 mystery templates per Ancient One
+     - Regional encounter decks (200+ cards total)
+     - Mythos event deck (100+ cards)
+     - Investigator roster with starting cities
+  
+  10. **Testing**:
+      - Integration tests: `BOSTONFEAR_GAME=eldritchhorror go test ./serverengine/eldritchhorror/...`
+      - Verify global travel, mystery progression, Ancient One awakening
+      - Verify win condition (solve 3 mysteries) and lose conditions (Ancient One defeats all OR doom threshold OR investigator count drops below minimum)
+      - Verify no Arkham-specific mechanics (4-location map, clue-per-investigator win) appear
 
-**Implementation Path**:
-1. Create `ROADMAP.md` at repository root.
-2. Document phased implementation:
-   - **Phase 1 (Complete)**: Arkham Horror 3rd Edition fully playable; 5 core mechanics implemented; 1-6 player support with late-join.
-   - **Phase 2 (Planned)**: Elder Sign module (4-6 weeks). Dice tower mechanic, unique encounter system, scenario templates.
-   - **Phase 3 (Planned)**: Eldritch Horror module (8-10 weeks). Global map, monster encounters, Ancient One system.
-   - **Phase 4 (Planned)**: Final Hour module (6-8 weeks). Real-time mechanics, countdown tokens, objective progressions.
-   - **Phase 5 (Future)**: Content expansion packs, alternate scenario sets, investigator balancing.
-3. For each phase, list:
-   - Blocking dependencies (e.g., Phase 2 depends on module architecture, which is complete)
-   - Estimated team effort (weeks)
-   - Key deliverables (rules/, adapters/, scenarios/, model/ per module)
-   - Integration points with existing codebase
-4. Add tracking for Arkham content roadmap (new investigator cards, scenarios, encounter types).
+- **Dependencies**: Arkham Horror implementation complete (✅); Elder Sign started or complete (establishes multi-module testing patterns).
 
-**Dependencies**: None. Module architecture is complete and supports immediate implementation.
+- **Effort**: 8-10 weeks (single developer; longer than Elder Sign due to global map complexity)
 
-**Effort**: 2-3 hours to draft phased timeline and expand with implementation checklists.
-
-**Validation**: ROADMAP.md exists and is up-to-date; all hyperlinked references in README.md resolve.
-
----
-
-## Gap 2: Client Rendering Resolution Mismatch (Design Document ↔ Implementation)
-
-**Severity**: HIGH
-
-**Intended Behavior**: README.md section "Multi-Resolution Support" and [docs/CLIENT_SPEC.md](docs/CLIENT_SPEC.md) state "Logical 1280×720 resolution scaled to any display."
-
-**Current State**: 
-- [client/ebiten/app/game.go:30-33](client/ebiten/app/game.go#L30-L33) defines `screenWidth = 800`, `screenHeight = 600`
-- [Game.Layout()](client/ebiten/app/game.go#L242-243) returns (800, 600)
-- [cmd/desktop.go:39](cmd/desktop.go#L39) and [cmd/web_wasm.go:35](cmd/web_wasm.go#L35) both call `ebiten.SetWindowSize(800, 600)`
-- All UI coordinate calculations (location rects, action grid, panels) hard-coded to 800×600
-
-**Blocked Goal**: Accurate specification of client display contract; developers and users cannot rely on documented resolution.
-
-**Implementation Path** (Option A: Update documentation — PREFERRED):
-1. Update [README.md](README.md#L200) line 200 from "1280×720" to "800×600 logical"
-2. Update [docs/CLIENT_SPEC.md](docs/CLIENT_SPEC.md) to accurately reflect 800×600 as minimum logical resolution
-3. Update [client/ebiten/app/doc.go](client/ebiten/app/doc.go) line 20 documentation comment from "1280x720 logical" to "800x600 logical"
-4. Verify all scaling/inset math is correctly documented
-
-**Implementation Path** (Option B: Update code to match documentation — NOT RECOMMENDED):
-1. Change screenWidth → 1280, screenHeight → 720
-2. Recalculate all location rectangles, panels, and action grid positions (line 35-630 in game.go)
-3. Re-test UI scaling on mobile with safe-area insets
-4. Regression test to ensure action hit-boxes remain accessible
-
-**Dependencies**: None (Option A); Option B requires comprehensive UI layout review.
-
-**Effort**: 30 minutes (Option A); 4-6 hours (Option B design verification).
-
-**Validation**: README.md and CLIENT_SPEC.md accurately describe 800×600; or code upgraded to 1280×720 with all tests passing.
-
----
-
-## Gap 3: Arkham Horror Scenarios Package Incorrectly Marked as Scaffolded
-
-**Severity**: HIGH
-
-**Intended Behavior**: Documentation should clarify ownership of scenario content and rules.
-
-**Current State**: 
-- [serverengine/arkhamhorror/scenarios/doc.go:7](serverengine/arkhamhorror/scenarios/doc.go#L7) declares "NOTE: This package is a scaffold. Implementation is deferred."
-- However, scenario loading works correctly: server loads scenarios from `serverengine/arkhamhorror/content/nightglass/scenarios/`
-- The scenarios/ package is doc-only with no actual code/types.
-
-**Blocked Goal**: Clear ownership model; contributors are confused about where scenario definitions belong.
-
-**Implementation Path**:
-1. **Approach A (Recommended)**: Update [serverengine/arkhamhorror/scenarios/doc.go](serverengine/arkhamhorror/scenarios/doc.go) to clarify:
-   ```
-   // Package scenarios defines Arkham Horror scenario content traits and structure.
-   // As of 2026-05-17, scenario content is defined in serverengine/arkhamhorror/content/nightglass/
-   // and loaded at server startup. This package is reserved for future game-family-specific
-   // scenario type systems (e.g., Elder Sign scenario types differ from AH3e Agenda/Act structure).
-   // For current Arkham scenario definitions, see serverengine/arkhamhorror/content/.
-   ```
-2. **Approach B**: Move scenario-type definitions (if any exist in future) into serverengine/arkhamhorror/content/scenarios/ subdirectory for clarity.
-
-**Dependencies**: None (documentation only).
-
-**Effort**: 20 minutes.
-
-**Validation**: [serverengine/arkhamhorror/scenarios/doc.go](serverengine/arkhamhorror/scenarios/doc.go) accurately describes current and future use; developers understand content ownership.
+- **Validation**:
+  - `BOSTONFEAR_GAME=eldritchhorror go run . server` starts Eldritch Horror with global map
+  - 4 players travel between cities, progress mysteries across continents, and defeat an Ancient One
+  - No Arkham-specific mechanics appear
+  - Tests pass with >75% coverage
 
 ---
 
-## Gap 4: Three Game-Family Modules Completely Scaffolded (No Game-Specific Rules)
+## Gap 3: Final Hour Game Module — Scaffolded, Rules Not Implemented
 
-**Severity**: MEDIUM
+- **Intended Behavior**: Server should support Final Hour gameplay with real-time simultaneous action programming, countdown token mechanics, priority bidding system, and time-sensitive objectives. Configuration via `BOSTONFEAR_GAME=finalhour` should start a Final Hour server.
 
-**Intended Behavior**: `eldersign`, `eldritchhorror`, and `finalhour` modules should implement game-family-specific rules (actions, dice mechanics, resources, scenarios) by extending the shared serverengine.GameServer.
+- **Current State**: Module scaffolding exists in `serverengine/finalhour/` with same subdirectory structure. `module.go:NewEngine()` returns `UnimplementedEngine` which always fails `Start()` with error "finalhour engine not implemented". No real-time action handling, no countdown mechanics, no priority system.
 
-**Current State**: 
-- [serverengine/eldersign/module.go:43](serverengine/eldersign/module.go#L43), [eldritchhorror/module.go:44](serverengine/eldritchhorror/module.go#L44), [finalhour/module.go:44](serverengine/finalhour/module.go#L44)
-- Each NewEngine() returns `&Engine{GameServer: serverengine.NewGameServer()}` with NO overrides
-- Running `BOSTONFEAR_GAME=eldersign go run . server` launches Arkham Horror rules, not Elder Sign rules
-- All three modules are feature-identical copies of each other
+- **Blocked Goal**: ROADMAP.md Goal 25 (multi-game-family support) marked ⚠️ Partial. Phase 4 implementation documented but not executed.
 
-**Blocked Goal**: Playable Elder Sign, Eldritch Horror, and Final Hour implementations; true modular game architecture.
+- **Implementation Path**:
+  1. **Define Final Hour Action Types** (`serverengine/finalhour/actions/`):
+     - `PlaceInvestigator` (move to room during planning phase)
+     - `ResolveAction` (execute action after priority resolution)
+     - `BidPriority` (simultaneous priority bidding)
+     - `SpendFocus` (spend focus tokens for action efficiency)
+  
+  2. **Real-Time Action Programming** (`serverengine/finalhour/phases/planning.go`):
+     - All players act simultaneously within time windows (not sequential turns)
+     - 60-second action planning phase per round
+     - Action buffer collects all player submissions before resolution
+  
+  3. **Countdown Token Mechanics** (`serverengine/finalhour/rules/countdown.go`):
+     - Countdown represents time until Ancient One victory (not doom)
+     - Decrements at end of each round (not on failed dice rolls)
+     - Reaching 0 = automatic loss
+  
+  4. **Priority Bidding System** (`serverengine/finalhour/rules/priority.go`):
+     - Players bid priority values (1-10) simultaneously
+     - Highest priority acts first when multiple investigators target same space/card
+     - Conflict resolution engine applies priority order
+  
+  5. **Objective Progression** (`serverengine/finalhour/model/objective.go`):
+     - Time-sensitive objectives with hard deadlines (in countdown tokens)
+     - Multiple concurrent objectives
+     - Failure consequences (countdown acceleration, resource loss)
+  
+  6. **Resource Economy**:
+     - Focus tokens (0-5) — primary resource for action efficiency
+     - Health/Sanity (simplified from Arkham; 1-8 bounds)
+     - No clues or items
+  
+  7. **Wire Module Engine** (`serverengine/finalhour/module.go:NewEngine()`):
+     - Replace turn-based loop with phase-based simultaneous action collection
+     - Implement time window enforcement (e.g., 60-second planning deadline)
+     - Override state broadcast to include real-time countdown and planning state
+  
+  8. **Content Pack** (`serverengine/finalhour/content/`):
+     - 3-5 Ancient One scenarios with Final Hour-specific mechanics
+     - 15-20 objective card templates per scenario
+     - Omen card deck (real-time event triggers)
+     - Investigator roster (simplified abilities focused on priority and focus)
+  
+  9. **Testing**:
+      - Integration tests: `BOSTONFEAR_GAME=finalhour go test ./serverengine/finalhour/...`
+      - Verify simultaneous action submission and priority resolution
+      - Verify win condition (complete objectives before countdown=0) and lose condition (countdown=0 OR all investigators defeated)
+      - Test conflict resolution when 2+ players act on same target
+      - Verify time window enforcement (actions submitted after deadline are rejected)
 
-**Implementation Path** (per module):
-1. **Define Game-Family Rules** in `serverengine/{module}/rules/`:
-   - Action type definitions (Elder Sign has "spell tower placement", not "move/gather/investigate")
-   - Dice mechanics (Elder Sign: special die with tokens, not 3-sided success/blank/tentacle)
-   - Resource economy (different min/max for health/sanity, unique tokens if applicable)
-   - Victory/defeat conditions (different from Arkham's doom-based loss)
-   
-2. **Implement Rules in Adapters** (`serverengine/{module}/adapters/`):
-   - Extend BroadcastPayloadAdapter to shape game-specific state messages
-   - Implement DispatchAction override if family uses different action resolution logic
-   - Shape dice results for family-specific die types
+- **Dependencies**: Arkham Horror implementation complete (✅); Phases 2 and 3 started (establishes testing patterns for multi-module architecture).
 
-3. **Define Scenario Content** (`serverengine/{module}/content/`):
-   - Load scenario YAML/JSON with family-specific victory/defeat conditions
-   - Register 3-5 playable scenarios for each family
-   - Include investigator definitions (may differ per family)
+- **Effort**: 6-8 weeks (single developer; complex due to real-time coordination requirements)
 
-4. **Implement Model Types** (`serverengine/{module}/model/`):
-   - Create Game-specific game state struct extending base GameState
-   - Define resource types, action types, location graph per family
-
-5. **Wire Module Engine** to own variants:
-   - Override NewEngine() to inject custom adapters, load family-specific content
-   - Override Start() to initialize family-specific game rules if needed
-
-6. **Testing**: Create module-specific integration tests verifying actions, dice, and win/lose conditions.
-
-**Dependencies**: 
-- Module architecture is complete (no blocking changes needed)
-- ROADMAP.md should document phased timeline
-- Arkham Horror implementation serves as reference pattern
-
-**Effort**: 
-- **Elder Sign**: 4-6 weeks (simpler than Arkham; fewer action types)
-- **Eldritch Horror**: 8-10 weeks (global map adds complexity)
-- **Final Hour**: 6-8 weeks (real-time mechanics require different turn structure)
-
-**Validation**: 
-- `BOSTONFEAR_GAME=eldersign go run . server` + 3 players → plays Elder Sign rules (not Arkham)
-- Each family's dice, actions, scenarios, and win conditions match official rules
-- Integration tests pass for each family
-- No code duplication between families in rules/ or adapters/
-
----
-
-## Gap 5: Six Scaffolded Subpackages Under Non-Arkham Modules (rules, adapters, scenarios, model)
-
-**Severity**: MEDIUM
-
-**Intended Behavior**: Each game-family module should define complete rules/, adapters/, scenarios/, and model/ subpackages with game-family-specific implementations.
-
-**Current State**: 
-- [serverengine/eldersign/rules/doc.go:4](serverengine/eldersign/rules/doc.go#L4) "NOTE: This package is a scaffold. Implementation is deferred."
-- [serverengine/eldersign/adapters/doc.go:4-5](serverengine/eldersign/adapters/doc.go#L4-L5) "NOTE: This package is a scaffold."
-- [serverengine/eldersign/scenarios/doc.go:3](serverengine/eldersign/scenarios/doc.go#L3) "NOTE: This package is a scaffold."
-- Same pattern for eldritchhorror/ and finalhour/ (18 doc-only packages total)
-- Zero implementation in any of these directories
-
-**Blocked Goal**: Game-family-specific rule implementations; content loading; state shaping.
-
-**Implementation Path** (performed in each module in parallel):
-1. **rules/**: Implement action types, dice rules, location/zone system, resource constraints
-2. **adapters/**: Implement BroadcastPayloadAdapter and game-specific message shaping
-3. **scenarios/**: Implement scenario loader and scenario type definitions
-4. **model/**: Define game-state extensions and action result types
-
-See Gap 4 for detailed implementation path per module.
-
-**Dependencies**: Gap 4 (module rules architectecture) must be started first.
-
-**Effort**: Inherits effort from Gap 4 (4-6 weeks per module).
-
-**Validation**: All 18 packages have substantive implementation (not doc-only); modules pass integration tests.
+- **Validation**:
+  - `BOSTONFEAR_GAME=finalhour go run . server` starts Final Hour with real-time mechanics
+  - 4 players simultaneously submit actions within time window and observe priority-based resolution
+  - Countdown decrements correctly; game ends at countdown=0 or objectives completed
+  - Tests pass with >75% coverage
 
 ---
 
-## Gap 6: Metrics Collection Instrumentation Missing
+## Gap 4: Client Resolution Documentation Mismatch
 
-**Severity**: LOW
+- **Intended Behavior**: Documentation should accurately describe the logical resolution used by the Ebitengine client for coordinate calculations, UI layout, and rendering.
 
-**Intended Behavior**: [serverengine/metrics.go](serverengine/metrics.go) defines GameMetrics with ActionTypeCounters (map[string]int64), DoomHistogram (map[int]int64), LatencyPercentiles (map[string]float64) that should be updated during action processing.
+- **Current State**: `README.md:200` states "Logical 1280×720 resolution"; `docs/CLIENT_SPEC.md` repeats this claim. Actual implementation uses 800×600 in `client/ebiten/app/game.go:30-33`:
+  ```go
+  const (
+      screenWidth  = 800
+      screenHeight = 600
+  )
+  ```
+  All location rectangles (lines 35-82), action grid positions (lines 84-160), HUD panels (lines 162-630), and mobile safe-area insets are calibrated for 800×600.
 
-**Current State**: 
-- Metrics are exported by HTTP /metrics endpoint (Prometheus format)
-- Counters are initialized to zero and never incremented
-- Latency percentiles not computed
-- Doom histogram not updated
+- **Blocked Goal**: ROADMAP.md Goal 23 (multi-resolution support) marked ⚠️ Partial due to documentation-vs-implementation mismatch.
 
-**Blocked Goal**: Operational observability into action distribution and doom progression; latency SLO tracking.
+- **Implementation Path (Option A — Recommended)**:
+  1. Update `README.md:200` from "Logical 1280×720 resolution" to "Logical 800×600 resolution"
+  2. Update `docs/CLIENT_SPEC.md` sections referencing 1280×720 to 800×600
+  3. Update `client/ebiten/app/doc.go:20` package documentation comment to match
+  4. Verify all UI coordinate calculations remain consistent with 800×600 baseline
+  5. No code changes required
 
-**Implementation Path**:
-1. **Action Counter Instrumentation**:
-   - In [serverengine/game_server.go:processActionCore()](serverengine/game_server.go#L538), after action type validation, increment `gs.metrics.ActionTypeCounters[actionType]++`
-   - Thread-safe update (use mutex or atomic if counter is uint64)
+- **Implementation Path (Option B — Not Recommended)**:
+  1. Change `screenWidth` → 1280, `screenHeight` → 720 in `client/ebiten/app/game.go:30-33`
+  2. Recalculate all location rectangle coordinates (lines 35-82) for 1280×720 canvas
+  3. Recalculate action grid positions (lines 84-160)
+  4. Recalculate HUD panel layouts (lines 162-630)
+  5. Re-test mobile safe-area insets and touch action hit-boxes
+  6. Run display tests: `DISPLAY=:99 go test -race -tags=requires_display ./client/ebiten/app/... ./client/ebiten/render/...`
+  7. Regression test all rendering paths
 
-2. **Doom Histogram**:
-   - In [serverengine/mythos.go:RunMythosPhase()](serverengine/arkhamhorror/phases/mythos.go) or game_server doom increment, track `gs.metrics.DoomHistogram[newDoomValue]++`
+- **Dependencies**: None.
 
-3. **Latency Percentiles** (optional, more complex):
-   - Wrap action dispatch with time.Now() start/stop
-   - Maintain rolling percentile histogram (e.g., using golang.org/x/exp/slices or custom quantile tracker)
-   - Compute p50, p95, p99 on-demand or via background goroutine
+- **Effort**: 30 minutes (Option A) or 4-6 hours (Option B)
 
-**Dependencies**: None.
+- **Validation**:
+  - **Option A**: README.md and CLIENT_SPEC.md accurately describe 800×600; no code changes; no test failures
+  - **Option B**: Code implements 1280×720; all location/action/HUD coordinates correct; all tests passing
 
-**Effort**: 3-4 hours for action/doom counters + percentile infrastructure.
-
-**Validation**: Run game with logging, verify /metrics endpoint includes non-zero ActionTypeCounters and DoomHistogram; latency percentiles present.
-
----
-
-## Gap 7: Duplicate BroadcastPayloadAdapter Interface Definition
-
-**Severity**: LOW
-
-**Intended Behavior**: BroadcastPayloadAdapter contract should be defined once in serverengine and implemented by game modules.
-
-**Current State**: 
-- [serverengine/interfaces.go:24-27](serverengine/interfaces.go#L24-L27) defines BroadcastPayloadAdapter interface (exported)
-- [serverengine/arkhamhorror/adapters/broadcast.go:7](serverengine/arkhamhorror/adapters/broadcast.go#L7) redefines identical BroadcastPayloadAdapter interface (unexported)
-- Arkham module creates arkhamhorror.adapters.BroadcastPayloadAdapter and casts to serverengine.BroadcastPayloadAdapter (works because signatures match)
-
-**Blocked Goal**: Clarity of contract ownership; code duplication.
-
-**Implementation Path**:
-1. Delete [serverengine/arkhamhorror/adapters/broadcast.go:7](serverengine/arkhamhorror/adapters/broadcast.go#L7) interface definition
-2. Update [serverengine/arkhamhorror/adapters/adapter.go](serverengine/arkhamhorror/adapters/adapter.go) to reference serverengine.BroadcastPayloadAdapter directly:
-   ```go
-   // NewBroadcastAdapter creates a broadcast adapter for Arkham Horror.
-   func NewBroadcastAdapter() serverengine.BroadcastPayloadAdapter {
-       return &arkhamBroadcastAdapter{}
-   }
-   ```
-3. Run `go test ./...` to verify no regressions
-
-**Dependencies**: None.
-
-**Effort**: 20 minutes.
-
-**Validation**: Tests pass; no duplicate interface definitions; adapter contract is uniform across all modules.
+- **Recommendation**: Option A (update documentation to match implementation). The 800×600 resolution is functional and well-tested. Changing to 1280×720 provides no functional benefit and risks introducing coordinate calculation bugs.
 
 ---
 
-## Gap 8: UnimplementedEngine Silent Method Failures
+## Summary
 
-**Severity**: LOW
+**Total Gaps**: 4 (3 placeholder modules + 1 documentation mismatch)
 
-**Intended Behavior**: UnimplementedEngine methods should consistently signal "not yet implemented" state via error returns or clear no-op behavior.
+**Severity Distribution**:
+- Critical: 0
+- High: 0
+- Medium: 4
+- Low: 0
 
-**Current State**: 
-- [serverengine/common/runtime/unimplemented_engine.go:27-32](serverengine/common/runtime/unimplemented_engine.go#L27-L32) Start() and HandleConnection() return errors ("game not implemented")
-- [serverengine/common/runtime/unimplemented_engine.go:39-65](serverengine/common/runtime/unimplemented_engine.go#L39-L65) SetAllowedOrigins(), health/metrics methods succeed silently (return empty maps/snapshots)
-- Inconsistency: some methods fail loudly, others fail silently
+**Implementation Priority**:
+1. **Gap 4** (Documentation mismatch) — 30 minutes; unblocks specification accuracy
+2. **Gap 1** (Elder Sign module) — 4-6 weeks; demonstrates modular architecture in production
+3. **Gap 2** (Eldritch Horror module) — 8-10 weeks; adds global-scale gameplay
+4. **Gap 3** (Final Hour module) — 6-8 weeks; introduces real-time mechanics
 
-**Blocked Goal**: Clarity on which methods are safe to call on placeholder engines.
+**Key Observations**:
+- All gaps are **intentional architectural scaffolding** documented in ROADMAP.md
+- No unexpected stubs, dead code, or missing functionality discovered
+- Arkham Horror implementation is complete and production-ready
+- Modular architecture is sound and ready for Phase 2-4 implementations
 
-**Implementation Path**:
-1. Verify behavior is intentional in design (SetAllowedOrigins must succeed to satisfy Engine interface even though Start always fails)
-2. Add explanatory comment in [serverengine/common/runtime/unimplemented_engine.go](serverengine/common/runtime/unimplemented_engine.go) doc.go or method doc:
-   ```go
-   // SetAllowedOrigins stores allowed origins but has no filtering semantics
-   // since Start() always fails. This method exists to satisfy the Engine interface
-   // but does not alter the fact that the engine is non-functional.
-   func (e *UnimplementedEngine) SetAllowedOrigins(origins []string) {
-   ```
-
-**Dependencies**: None (documentation only).
-
-**Effort**: 10 minutes.
-
-**Validation**: Comment explains intent; code behavior is documented.
-
----
-
-## Gap 9: Client Resolution Update — Summary
-
-**Summary**: The 800×600 vs. 1280×720 discrepancy (Gap 2) should be resolved by updating documentation to match implementation (Option A), as the current implementation is stable and tested. Only pursue Option B (code upgrade) if a design decision mandates higher resolution for improved usability.
-
----
-
-## Implementation Priority & Sequencing
-
-**Week 1** (documentation catching-up):
-1. Create ROADMAP.md (2-3 hours) → unblocks contributor visibility
-2. Update client resolution docs (30 min) → fixes specification accuracy
-3. Clarify Arkham scenarios ownership (20 min) → removes confusion
-
-**Week 2-3** (observability):
-1. Instrument metrics collection (3-4 hours) → improves operational visibility
-
-**Week 4+** (module development, in parallel):
-1. Implement Elder Sign (4-6 weeks)
-2. Implement Eldritch Horror (8-10 weeks, can start after Elder Sign rules pattern is established)
-3. Implement Final Hour (6-8 weeks, parallel with Eldritch Horror)
-
-**Ongoing** (low-priority cleanup):
-1. Remove duplicate BroadcastPayloadAdapter (20 min, low risk)
-2. Document UnimplementedEngine behavior (10 min)
-
----
-
-## Estimation Summary
-
-| Gap | Effort | Risk | ROI |
-|---|---|---|---|
-| ROADMAP.md | 2-3 hours | Low | High (unblocks planning) |
-| Client resolution docs | 30 min | Low | High (fixes spec accuracy) |
-| Arkham scenarios docs | 20 min | Low | Medium (clarifies ownership) |
-| Metrics instrumentation | 3-4 hours | Low | Medium (observability) |
-| **Elder Sign module** | **4-6 weeks** | **Medium** | **High** |
-| **Eldritch Horror module** | **8-10 weeks** | **Medium** | **High** |
-| **Final Hour module** | **6-8 weeks** | **Medium** | **High** |
-| Duplicate adapter cleanup | 20 min | Low | Low (code quality) |
-| UnimplementedEngine docs | 10 min | Low | Low (clarity) |
-
----
-
-## Success Criteria
-
-✅ All HIGH-severity gaps remediated (ROADMAP.md, client resolution, scenarios clarity)  
-✅ Documentation accuracy verified against implementation  
-✅ ROADMAP.md exists and is referenced successfully  
-✅ Elder Sign, Eldritch Horror, Final Hour modules each have playable implementations  
-✅ Metrics collection working for action counters and doom histogram  
-✅ Tests pass for all modules with no regressions  
-✅ New contrib can follow ROADMAP.md to implement a game family end-to-end
+**Next Steps**: Fix documentation mismatch (Gap 4) immediately, then proceed with Elder Sign implementation (Gap 1) per ROADMAP.md Phase 2 roadmap.
