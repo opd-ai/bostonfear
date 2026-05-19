@@ -19,37 +19,87 @@ assets:
     steps: 40
     
     metadata:
-      style: "1920s investigator portrait, Arkham Horror style, detailed character art, professional quality"
+      style: "1920s investigator portrait, gothic horror style, detailed character art, professional quality"
       era: "1920s period clothing and styling"
       mood: "serious and determined, facing supernatural threats"
       quality: "high detail, sharp focus, professional character art"
       negative: "blurry, low quality, deformed, bad anatomy, modern clothing, text, watermark"
     
     assets:
-      - id: inv_roland_banks
-        name: roland-banks
+      - id: inv_001
+        name: "Marcus Stone (Detective)"
         prompt: "male federal agent, stern expression, dark suit and tie, short dark hair, square jaw, 1920s detective"
-        filename: "roland_banks.png"
+        filename: "marcus_stone_detective.png"
       
-      - id: inv_daisy_walker
-        name: daisy-walker
+      - id: inv_002
+        name: "Eliza Morgan (Librarian)"
         prompt: "female librarian, intelligent gaze, round glasses, brown hair in bun, cardigan and modest dress, bookish"
-        filename: "daisy_walker.png"
+        filename: "eliza_morgan_librarian.png"
       
-      - id: inv_skids_otoole
-        name: skids-otoole
+      - id: inv_003
+        name: "Jack Sullivan (Rogue)"
         prompt: "male ex-convict, rugged appearance, leather jacket, stubble, street-smart expression, tough guy"
-        filename: "skids_otoole.png"
+        filename: "jack_sullivan_rogue.png"
       
-      - id: inv_agnes_baker
-        name: agnes-baker
-        prompt: "elderly female waitress, kind but weary face, gray hair, simple work dress, mystical aura"
-        filename: "agnes_baker.png"
+      - id: inv_004
+        name: "Vera Cross (Mystic)"
+        prompt: "elderly female mystic, kind but weary face, gray hair, simple work dress, mystical aura"
+        filename: "vera_cross_mystic.png"
       
-      - id: inv_wendy_adams
-        name: wendy-adams
-        prompt: "young female urchin, street kid, tattered but clean clothes, blonde hair, innocent but tough expression"
-        filename: "wendy_adams.png"
+      - id: inv_005
+        name: "Lily Bennett (Survivor)"
+        prompt: "young female survivor, street kid, tattered but clean clothes, blonde hair, innocent but tough expression"
+        filename: "lily_bennett_survivor.png"
+      
+      - id: inv_006
+        name: "Samuel Ward (Scholar)"
+        prompt: "middle-aged male academic, reading glasses, tweed suit, contemplative expression, intellectual bearing"
+        filename: "samuel_ward_scholar.png"
+      
+      - id: inv_007
+        name: "Catherine Blake (Nurse)"
+        prompt: "female medical professional, nurse uniform, brown hair pinned up, caring but weary expression, competent demeanor"
+        filename: "catherine_blake_nurse.png"
+      
+      - id: inv_008
+        name: "Thomas Hart (Reporter)"
+        prompt: "male journalist, trench coat, fedora hat, notepad in hand, determined investigative expression"
+        filename: "thomas_hart_reporter.png"
+      
+      - id: inv_009
+        name: "Rose Chen (Medium)"
+        prompt: "female spiritual medium, Asian features, elegant dress with mystical jewelry, serene but intense gaze"
+        filename: "rose_chen_medium.png"
+      
+      - id: inv_010
+        name: "Daniel Murphy (Drifter)"
+        prompt: "male vagrant, worn traveling clothes, weathered face, world-weary but resilient expression"
+        filename: "daniel_murphy_drifter.png"
+      
+      - id: inv_011
+        name: "Helena Frost (Heiress)"
+        prompt: "wealthy female socialite, expensive evening dress, pearls, sophisticated but haunted expression"
+        filename: "helena_frost_heiress.png"
+      
+      - id: inv_012
+        name: "Raymond Cole (Boxer)"
+        prompt: "male prizefighter, athletic build, casual working clothes, scarred knuckles, tough but honorable expression"
+        filename: "raymond_cole_boxer.png"
+      
+      - id: inv_013
+        name: "Margaret Ellis (Teacher)"
+        prompt: "female schoolteacher, modest professional dress, warm but firm expression, kind eyes"
+        filename: "margaret_ellis_teacher.png"
+      
+      - id: inv_014
+        name: "Victor Raines (Artist)"
+        prompt: "male painter, bohemian clothing, paint-stained fingers, creative passionate expression, tortured artist look"
+        filename: "victor_raines_artist.png"
+      
+      - id: inv_015
+        name: "Isabel Santos (Immigrant)"
+        prompt: "female immigrant worker, simple working dress, strong determined expression, hopeful but wary"
+        filename: "isabel_santos_immigrant.png"
 
   # Elder Sign Investigators
   - name: Elder Sign - Museum Investigators
@@ -60,22 +110,37 @@ assets:
     steps: 40
     
     metadata:
-      style: "1920s investigator portrait, Elder Sign museum setting, detailed character art"
+      style: "1920s investigator portrait, museum setting, detailed character art"
       era: "1920s period clothing"
       setting: "museum investigator, scholarly appearance"
       quality: "high detail, sharp focus, professional character art"
       negative: "blurry, low quality, deformed, bad anatomy, modern clothing, text, watermark"
     
     assets:
-      - id: inv_harvey_walters
-        name: harvey-walters
+      - id: inv_016
+        name: "Walter Grimm (Professor)"
         prompt: "elderly male professor, white beard, tweed jacket, wise and scholarly, reading glasses"
-        filename: "harvey_walters.png"
+        filename: "walter_grimm_professor.png"
       
-      - id: inv_monterey_jack
-        name: monterey-jack
+      - id: inv_017
+        name: "Drake Mitchell (Archaeologist)"
         prompt: "male archaeologist adventurer, leather jacket, fedora hat, rugged explorer, confident smile"
-        filename: "monterey_jack.png"
+        filename: "drake_mitchell_archaeologist.png"
+      
+      - id: inv_018
+        name: "Sophia Reeves (Curator)"
+        prompt: "female museum curator, professional dress, intelligent expression, handling ancient artifacts"
+        filename: "sophia_reeves_curator.png"
+      
+      - id: inv_019
+        name: "Howard Fischer (Antiquarian)"
+        prompt: "elderly male antiquities dealer, vest and bow tie, magnifying glass, appraising rare objects"
+        filename: "howard_fischer_antiquarian.png"
+      
+      - id: inv_020
+        name: "Naomi Green (Anthropologist)"
+        prompt: "female field researcher, practical expedition clothes, field notebook, studying ancient cultures"
+        filename: "naomi_green_anthropologist.png"
 
   # Eldritch Horror Investigators  
   - name: Eldritch Horror - Global Investigators
@@ -86,22 +151,37 @@ assets:
     steps: 40
     
     metadata:
-      style: "1920s investigator portrait, world traveler, Eldritch Horror style, detailed character art"
+      style: "1920s investigator portrait, world traveler, gothic horror style, detailed character art"
       era: "1920s period clothing and global styling"
       setting: "international investigator, ready for global adventure"
       quality: "high detail, sharp focus, professional character art"
       negative: "blurry, low quality, deformed, bad anatomy, modern clothing, text, watermark"
     
     assets:
-      - id: inv_charlie_kane
-        name: charlie-kane
+      - id: inv_021
+        name: "Richard Ashford (Politician)"
         prompt: "wealthy male politician, expensive suit, distinguished appearance, silver hair, charismatic"
-        filename: "charlie_kane.png"
+        filename: "richard_ashford_politician.png"
       
-      - id: inv_diana_stanley
-        name: diana-stanley
-        prompt: "female cultist redeemed, dark dramatic clothing, intense gaze, mysterious aura, occult jewelry"
-        filename: "diana_stanley.png"
+      - id: inv_022
+        name: "Celeste Noir (Occultist)"
+        prompt: "female reformed occultist, dark dramatic clothing, intense gaze, mysterious aura, occult jewelry"
+        filename: "celeste_noir_occultist.png"
+      
+      - id: inv_023
+        name: "James Crawford (Diplomat)"
+        prompt: "male international diplomat, formal attire, multilingual bearing, worldly sophisticated expression"
+        filename: "james_crawford_diplomat.png"
+      
+      - id: inv_024
+        name: "Amara Singh (Aviator)"
+        prompt: "female pilot, leather flight jacket, goggles on forehead, adventurous confident expression"
+        filename: "amara_singh_aviator.png"
+      
+      - id: inv_025
+        name: "Erik Volkov (Sailor)"
+        prompt: "male merchant marine, navy peacoat, weathered seafaring face, stories of distant ports in his eyes"
+        filename: "erik_volkov_sailor.png"
 
   # Final Hour Investigators
   - name: Final Hour - Countdown Investigators
@@ -112,14 +192,34 @@ assets:
     steps: 40
     
     metadata:
-      style: "modern investigator portrait, urgent atmosphere, Final Hour style, detailed character art"
+      style: "modern investigator portrait, urgent atmosphere, gothic horror style, detailed character art"
       era: "contemporary modern clothing"
       mood: "urgency and desperation, racing against time"
       quality: "high detail, sharp focus, professional character art"
       negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
     
     assets:
-      - id: inv_final_survivor
-        name: final-survivor
+      - id: inv_026
+        name: "Alex Reyes (Tactical Expert)"
         prompt: "determined survivor, tactical gear, intense focused expression, modern urban explorer"
-        filename: "final_survivor.png"
+        filename: "alex_reyes_tactical.png"
+      
+      - id: inv_027
+        name: "Maya Torres (Scientist)"
+        prompt: "female researcher, lab coat over tactical clothing, analytical expression, emergency research mode"
+        filename: "maya_torres_scientist.png"
+      
+      - id: inv_028
+        name: "Kai Wong (Engineer)"
+        prompt: "male technical specialist, utility vest with tools, problem-solving expression, improvising solutions"
+        filename: "kai_wong_engineer.png"
+      
+      - id: inv_029
+        name: "Sarah Knox (Medic)"
+        prompt: "female emergency medical technician, practical medical gear, steady hands, life-saving determination"
+        filename: "sarah_knox_medic.png"
+      
+      - id: inv_030
+        name: "Marcus Flynn (Veteran)"
+        prompt: "male ex-military, combat-ready posture, experienced warrior expression, protecting others"
+        filename: "marcus_flynn_veteran.png"

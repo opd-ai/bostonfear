@@ -29,17 +29,17 @@ assets:
     assets:
       - id: loc_downtown
         name: downtown
-        prompt: "1920s downtown business district, brick buildings, streetlamps, foggy evening atmosphere, Arkham Massachusetts"
+        prompt: "1920s downtown business district, brick buildings, streetlamps, foggy evening atmosphere, New England town"
         filename: "downtown.png"
       
       - id: loc_university
         name: university
-        prompt: "Miskatonic University campus, ivy-covered academic buildings, gothic architecture, library tower, autumn evening"
+        prompt: "old university campus, ivy-covered academic buildings, gothic architecture, library tower, autumn evening"
         filename: "university.png"
       
       - id: loc_rivertown
         name: rivertown
-        prompt: "riverside dock district, old warehouses, Miskatonic River, wooden piers, misty waterfront, industrial area"
+        prompt: "riverside dock district, old warehouses, river waterfront, wooden piers, misty docks, industrial area"
         filename: "rivertown.png"
       
       - id: loc_northside

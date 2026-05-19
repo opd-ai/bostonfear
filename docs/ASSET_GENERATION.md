@@ -174,11 +174,11 @@ Edit the pipeline files to customize prompts:
 assets:
   - name: Arkham Horror - Core Investigators
     assets:
-      - id: inv_roland_banks
-        name: roland-banks
+      - id: inv_detective_001
+        name: detective
         # Customize this prompt
         prompt: "your custom description here"
-        filename: "roland_banks.png"
+        filename: "detective.png"
 ```
 
 Regenerate after changes:
@@ -371,18 +371,18 @@ Regenerate specific assets by ID:
 
 ```bash
 # Find asset by ID in pipeline file
-grep -n "inv_roland_banks" assets/investigators.yaml
+grep -n "inv_detective_001" assets/investigators.yaml
 
 # Regenerate with same parameters
 asset-generator generate image \
-  --prompt "male federal agent, stern expression..." \
+  --prompt "male federal agent, stern expression, dark suit..." \
   --seed 1000 \
   --width 512 \
   --length 512 \
   --steps 40 \
   --save-images \
   --output-dir output/investigators/arkhamhorror/core \
-  --filename roland_banks.png
+  --filename detective.png
 ```
 
 ## Troubleshooting
