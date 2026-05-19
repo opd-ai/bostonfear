@@ -1,0 +1,114 @@
+schemaVersion: "1.0.0"
+contentPackId: "eldritch-base.core"
+language: "en-US"
+generatedAt: "2026-05-18T00:00:00Z"
+records:
+  - id: "ao.azathoth"
+    name: "Azathoth"
+    summary: "The Daemon Sultan, Blind Idiot God at the center of the universe"
+    enabled: true
+    version: 1
+    doomTrack: 12
+    combatRating: 5
+    horror: 3
+    damage: 3
+    abilities:
+      - abilityId: "abl.ao.endless-night"
+        name: "Endless Night"
+        description: "Investigators cannot regain Sanity"
+        trigger: "passive"
+        effect: "sanity_regen_disabled"
+    awakeningConditions:
+      doomReachesMax: true
+      tooManyGates: 0
+      tooFewInvestigators: 0
+      customCondition: ""
+
+  - id: "ao.cthulhu"
+    name: "Cthulhu"
+    summary: "The Great Dreamer in R'lyeh"
+    enabled: true
+    version: 1
+    doomTrack: 12
+    combatRating: 4
+    horror: 3
+    damage: 2
+    abilities:
+      - abilityId: "abl.ao.dreams-of-madness"
+        name: "Dreams of Madness"
+        description: "All investigators lose 1 Sanity during Mythos phase"
+        trigger: "eachMythos"
+        effect: "all_lose_sanity_1"
+    awakeningConditions:
+      doomReachesMax: true
+      tooManyGates: 0
+      tooFewInvestigators: 0
+      customCondition: ""
+
+  - id: "ao.shub-niggurath"
+    name: "Shub-Niggurath"
+    summary: "The Black Goat of the Woods with a Thousand Young"
+    enabled: true
+    version: 1
+    doomTrack: 12
+    combatRating: 4
+    horror: 2
+    damage: 3
+    abilities:
+      - abilityId: "abl.ao.spawn-corruption"
+        name: "Spawn of Corruption"
+        description: "When a gate opens, place an additional monster"
+        trigger: "whenGateOpens"
+        effect: "spawn_extra_monster"
+    awakeningConditions:
+      doomReachesMax: true
+      tooManyGates: 8
+      tooFewInvestigators: 0
+      customCondition: ""
+
+  - id: "ao.yog-sothoth"
+    name: "Yog-Sothoth"
+    summary: "The Gate and the Key"
+    enabled: true
+    version: 1
+    doomTrack: 12
+    combatRating: 5
+    horror: 2
+    damage: 3
+    abilities:
+      - abilityId: "abl.ao.beyond-time"
+        name: "Beyond Time"
+        description: "Gates cannot be closed except by spending Elder Signs"
+        trigger: "passive"
+        effect: "gates_require_elder_signs"
+    awakeningConditions:
+      doomReachesMax: true
+      tooManyGates: 0
+      tooFewInvestigators: 0
+      customCondition: ""
+
+  - id: "ao.nyarlathotep"
+    name: "Nyarlathotep"
+    summary: "The Crawling Chaos, Messenger of the Outer Gods"
+    enabled: true
+    version: 1
+    doomTrack: 10
+    combatRating: 5
+    horror: 3
+    damage: 2
+    abilities:
+      - abilityId: "abl.ao.masks-chaos"
+        name: "Masks of Chaos"
+        description: "Investigators must pass a Horror check during each Mythos phase"
+        trigger: "eachMythos"
+        effect: "all_horror_check"
+      - abilityId: "abl.ao.shapeshifter"
+        name: "Shapeshifter"
+        description: "Gains +1 combat difficulty for each defeated investigator"
+        trigger: "inCombat"
+        effect: "combat_scaling"
+    awakeningConditions:
+      doomReachesMax: true
+      tooManyGates: 0
+      tooFewInvestigators: 1
+      customCondition: ""

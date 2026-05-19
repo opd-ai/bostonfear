@@ -1,0 +1,318 @@
+schemaVersion: "1.0.0"
+contentPackId: "eldritch-base.investigators"
+language: "en-US"
+generatedAt: "2026-05-18T00:00:00Z"
+# Investigators for Eldritch Horror share some names with Arkham Horror
+# but have different starting cities reflecting the global nature of the game
+records:
+  - id: "inv.eldritch.harvey-walters"
+    name: "Harvey Walters"
+    title: "The Professor"
+    summary: "Scholar specializing in ancient texts and occult lore"
+    enabled: true
+    version: 1
+    startingLocationId: "London"
+    stats:
+      healthMax: 6
+      sanityMax: 10
+      lore: 4
+      influence: 2
+      observation: 3
+      will: 4
+      strength: 2
+    startingResources:
+      health: 6
+      sanity: 10
+      clues: 2
+      money: 3
+      tickets: 1
+    abilities:
+      - abilityId: "abl.research-expert"
+        name: "Research Expert"
+        description: "Gain +1 to Lore tests when resolving encounters"
+
+  - id: "inv.eldritch.jenny-barnes"
+    name: "Jenny Barnes"
+    title: "The Dilettante"
+    summary: "Wealthy socialite with resources and connections"
+    enabled: true
+    version: 1
+    startingLocationId: "San Francisco"
+    stats:
+      healthMax: 7
+      sanityMax: 7
+      lore: 2
+      influence: 4
+      observation: 3
+      will: 3
+      strength: 3
+    startingResources:
+      health: 7
+      sanity: 7
+      clues: 1
+      money: 6
+      tickets: 2
+    abilities:
+      - abilityId: "abl.trust-fund"
+        name: "Trust Fund"
+        description: "Start each game with extra money and tickets"
+
+  - id: "inv.eldritch.leo-anderson"
+    name: "Leo Anderson"
+    title: "The Expedition Leader"
+    summary: "Experienced explorer and survivalist"
+    enabled: true
+    version: 1
+    startingLocationId: "Buenos Aires"
+    stats:
+      healthMax: 8
+      sanityMax: 6
+      lore: 2
+      influence: 3
+      observation: 4
+      will: 3
+      strength: 4
+    startingResources:
+      health: 8
+      sanity: 6
+      clues: 1
+      money: 4
+      tickets: 2
+    abilities:
+      - abilityId: "abl.expedition-leader"
+        name: "Expedition Leader"
+        description: "+1 to Strength tests during encounters"
+
+  - id: "inv.eldritch.trish-scarborough"
+    name: "Trish Scarborough"
+    title: "The Spy"
+    summary: "Government agent investigating supernatural threats"
+    enabled: true
+    version: 1
+    startingLocationId: "Rome"
+    stats:
+      healthMax: 6
+      sanityMax: 8
+      lore: 3
+      influence: 3
+      observation: 5
+      will: 3
+      strength: 2
+    startingResources:
+      health: 6
+      sanity: 8
+      clues: 2
+      money: 3
+      tickets: 2
+    abilities:
+      - abilityId: "abl.intelligence-network"
+        name: "Intelligence Network"
+        description: "+1 to Observation tests when gathering clues"
+
+  - id: "inv.eldritch.charlie-kane"
+    name: "Charlie Kane"
+    title: "The Politician"
+    summary: "Charismatic leader with persuasive abilities"
+    enabled: true
+    version: 1
+    startingLocationId: "Shanghai"
+    stats:
+      healthMax: 7
+      sanityMax: 7
+      lore: 2
+      influence: 5
+      observation: 3
+      will: 3
+      strength: 2
+    startingResources:
+      health: 7
+      sanity: 7
+      clues: 1
+      money: 4
+      tickets: 2
+    abilities:
+      - abilityId: "abl.political-leverage"
+        name: "Political Leverage"
+        description: "+2 to Influence tests"
+
+  - id: "inv.eldritch.norman-withers"
+    name: "Norman Withers"
+    title: "The Astronomer"
+    summary: "Scientist who understands cosmic patterns"
+    enabled: true
+    version: 1
+    startingLocationId: "Tokyo"
+    stats:
+      healthMax: 5
+      sanityMax: 9
+      lore: 5
+      influence: 2
+      observation: 4
+      will: 4
+      strength: 1
+    startingResources:
+      health: 5
+      sanity: 9
+      clues: 2
+      money: 3
+      tickets: 1
+    abilities:
+      - abilityId: "abl.astronomical-knowledge"
+        name: "Astronomical Knowledge"
+        description: "Once per game, predict and avoid a Mythos card effect"
+
+  - id: "inv.eldritch.silas-marsh"
+    name: "Silas Marsh"
+    title: "The Sailor"
+    summary: "Weathered seaman with uncanny survival instincts"
+    enabled: true
+    version: 1
+    startingLocationId: "Sydney"
+    stats:
+      healthMax: 9
+      sanityMax: 5
+      lore: 1
+      influence: 2
+      observation: 3
+      will: 3
+      strength: 5
+    startingResources:
+      health: 9
+      sanity: 5
+      clues: 0
+      money: 2
+      tickets: 2
+    abilities:
+      - abilityId: "abl.sea-legs"
+        name: "Sea Legs"
+        description: "Ship travel costs no tickets"
+
+  - id: "inv.eldritch.lily-chen"
+    name: "Lily Chen"
+    title: "The Martial Artist"
+    summary: "Disciplined fighter with spiritual training"
+    enabled: true
+    version: 1
+    startingLocationId: "Istanbul"
+    stats:
+      healthMax: 8
+      sanityMax: 7
+      lore: 2
+      influence: 2
+      observation: 3
+      will: 4
+      strength: 5
+    startingResources:
+      health: 8
+      sanity: 7
+      clues: 1
+      money: 3
+      tickets: 1
+    abilities:
+      - abilityId: "abl.martial-discipline"
+        name: "Martial Discipline"
+        description: "+1 to Strength and Will tests during combat"
+
+  - id: "inv.eldritch.diana-stanley"
+    name: "Diana Stanley"
+    title: "The Redeemed Cultist"
+    summary: "Former cultist seeking redemption"
+    enabled: true
+    version: 1
+    startingLocationId: "Cairo"
+    stats:
+      healthMax: 6
+      sanityMax: 8
+      lore: 4
+      influence: 3
+      observation: 3
+      will: 5
+      strength: 2
+    startingResources:
+      health: 6
+      sanity: 8
+      clues: 1
+      money: 3
+      tickets: 1
+    abilities:
+      - abilityId: "abl.dark-insight"
+        name: "Dark Insight"
+        description: "Can spend Sanity instead of Clues to advance mysteries"
+
+  - id: "inv.eldritch.kate-winthrop"
+    name: "Kate Winthrop"
+    title: "The Scientist"
+    summary: "Brilliant researcher applying logic to the illogical"
+    enabled: true
+    version: 1
+    startingLocationId: "London"
+    stats:
+      healthMax: 6
+      sanityMax: 8
+      lore: 4
+      influence: 2
+      observation: 4
+      will: 3
+      strength: 2
+    startingResources:
+      health: 6
+      sanity: 8
+      clues: 2
+      money: 3
+      tickets: 1
+    abilities:
+      - abilityId: "abl.scientific-method"
+        name: "Scientific Method"
+        description: "Reroll one die during Lore or Observation tests"
+
+  - id: "inv.eldritch.mark-harrigan"
+    name: "Mark Harrigan"
+    title: "The Soldier"
+    summary: "Combat veteran hardened by war"
+    enabled: true
+    version: 1
+    startingLocationId: "Rome"
+    stats:
+      healthMax: 10
+      sanityMax: 4
+      lore: 1
+      influence: 2
+      observation: 3
+      will: 2
+      strength: 5
+    startingResources:
+      health: 10
+      sanity: 4
+      clues: 0
+      money: 3
+      tickets: 1
+    abilities:
+      - abilityId: "abl.combat-veteran"
+        name: "Combat Veteran"
+        description: "Gain +2 to Strength tests against monsters"
+
+  - id: "inv.eldritch.amanda-sharpe"
+    name: "Amanda Sharpe"
+    title: "The Student"
+    summary: "Young academic eager to prove herself"
+    enabled: true
+    version: 1
+    startingLocationId: "Tokyo"
+    stats:
+      healthMax: 5
+      sanityMax: 9
+      lore: 4
+      influence: 3
+      observation: 4
+      will: 3
+      strength: 1
+    startingResources:
+      health: 5
+      sanity: 9
+      clues: 2
+      money: 2
+      tickets: 1
+    abilities:
+      - abilityId: "abl.quick-learner"
+        name: "Quick Learner"
+        description: "After failing a test, gain +1 to that skill until end of turn"

@@ -1,0 +1,610 @@
+schemaVersion: "1.0.0"
+contentPackId: "eldritch-base.encounters"
+language: "en-US"
+generatedAt: "2026-05-18T00:00:00Z"
+records:
+  # Americas Encounters (10 encounters)
+  - id: "enc.americas.shipwreck"
+    name: "Shipwreck Discovery"
+    region: "Americas"
+    description: "You discover wreckage with strange cargo"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.americas.jungle-temple"
+    name: "Jungle Temple"
+    region: "Americas"
+    description: "Ancient ruins whisper forgotten secrets"
+    enabled: true
+    test: {stat: "lore", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseHealth", amount: 2}]
+
+  - id: "enc.americas.mountain-guide"
+    name: "Mountain Guide"
+    region: "Americas"
+    description: "A local offers guidance through treacherous peaks"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  - id: "enc.americas.arctic-winds"
+    name: "Arctic Winds"
+    region: "Americas"
+    description: "Freezing winds test your endurance"
+    enabled: true
+    test: {stat: "strength", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 2}]
+
+  - id: "enc.americas.tribal-wisdom"
+    name: "Tribal Wisdom"
+    region: "Americas"
+    description: "Elders share ancient protective knowledge"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSpell", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.americas.canyon-echo"
+    name: "Canyon Echo"
+    region: "Americas"
+    description: "Strange sounds reverberate through the gorge"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.americas.swamp-fog"
+    name: "Swamp Fog"
+    region: "Americas"
+    description: "Dense mist obscures the path forward"
+    enabled: true
+    test: {stat: "observation", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 1}]
+      fail: [{effectType: "delayed", turns: 1}]
+
+  - id: "enc.americas.gold-rush-camp"
+    name: "Gold Rush Camp"
+    region: "Americas"
+    description: "Desperate miners share disturbing tales"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainMoney", amount: 2}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  - id: "enc.americas.railway-junction"
+    name: "Railway Junction"
+    region: "Americas"
+    description: "A crucial transportation hub"
+    enabled: true
+    test: {stat: "observation", difficulty: 1}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 2}]
+      fail: [{effectType: "loseMoney", amount: 1}]
+
+  - id: "enc.americas.border-checkpoint"
+    name: "Border Checkpoint"
+    region: "Americas"
+    description: "Officials scrutinize your documents"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainMoney", amount: 1}]
+      fail: [{effectType: "delayed", turns: 1}]
+
+  # Europe Encounters (10 encounters)
+  - id: "enc.europe.ancient-library"
+    name: "Ancient Library"
+    region: "Europe"
+    description: "Dusty tomes contain forbidden knowledge"
+    enabled: true
+    test: {stat: "lore", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.europe.gothic-cathedral"
+    name: "Gothic Cathedral"
+    region: "Europe"
+    description: "Sacred ground offers spiritual protection"
+    enabled: true
+    test: {stat: "will", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSanity", amount: 2}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.europe.underground-catacombs"
+    name: "Underground Catacombs"
+    region: "Europe"
+    description: "Ancient tunnels hide dark secrets"
+    enabled: true
+    test: {stat: "strength", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 2}]
+
+  - id: "enc.europe.occult-bookshop"
+    name: "Occult Bookshop"
+    region: "Europe"
+    description: "A mysterious dealer offers rare items"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSpell", amount: 1}]
+      fail: [{effectType: "loseMoney", amount: 2}]
+
+  - id: "enc.europe.museum-curator"
+    name: "Museum Curator"
+    region: "Europe"
+    description: "An expert shares archaeological insights"
+    enabled: true
+    test: {stat: "lore", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.europe.alpine-refuge"
+    name: "Alpine Refuge"
+    region: "Europe"
+    description: "Mountain shelter provides rest"
+    enabled: true
+    test: {stat: "strength", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 2}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  - id: "enc.europe.fog-shrouded-moor"
+    name: "Fog-Shrouded Moor"
+    region: "Europe"
+    description: "Eerie lights dance in the distance"
+    enabled: true
+    test: {stat: "will", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 2}]
+
+  - id: "enc.europe.royal-archives"
+    name: "Royal Archives"
+    region: "Europe"
+    description: "Historic records reveal patterns"
+    enabled: true
+    test: {stat: "lore", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "delayed", turns: 1}]
+
+  - id: "enc.europe.sea-port"
+    name: "Sea Port"
+    region: "Europe"
+    description: "Bustling harbor with global connections"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 2}]
+      fail: [{effectType: "loseMoney", amount: 1}]
+
+  - id: "enc.europe.ruined-castle"
+    name: "Ruined Castle"
+    region: "Europe"
+    description: "Crumbling fortifications echo with the past"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  # Asia Encounters (10 encounters)
+  - id: "enc.asia.monastery-meditation"
+    name: "Mountain Monastery"
+    region: "Asia"
+    description: "Monks teach mental discipline"
+    enabled: true
+    test: {stat: "will", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSanity", amount: 2}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.asia.silk-road-caravan"
+    name: "Silk Road Caravan"
+    region: "Asia"
+    description: "Traders carry news from distant lands"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}, {effectType: "gainMoney", amount: 1}]
+      fail: [{effectType: "loseMoney", amount: 2}]
+
+  - id: "enc.asia.forbidden-temple"
+    name: "Forbidden Temple"
+    region: "Asia"
+    description: "Sacred site guards ancient secrets"
+    enabled: true
+    test: {stat: "lore", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 2}]
+
+  - id: "enc.asia.bamboo-forest"
+    name: "Bamboo Forest"
+    region: "Asia"
+    description: "Dense groves hide mysterious paths"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "delayed", turns: 1}]
+
+  - id: "enc.asia.opium-den"
+    name: "Opium Den"
+    region: "Asia"
+    description: "Hazy visions reveal hidden truths"
+    enabled: true
+    test: {stat: "will", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 2}, {effectType: "loseHealth", amount: 1}]
+
+  - id: "enc.asia.rice-terraces"
+    name: "Rice Terraces"
+    region: "Asia"
+    description: "Farmers speak of strange omens"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.asia.tea-ceremony"
+    name: "Tea Ceremony"
+    region: "Asia"
+    description: "Ritual brings mental clarity"
+    enabled: true
+    test: {stat: "will", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSanity", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.asia.martial-arts-dojo"
+    name: "Martial Arts Dojo"
+    region: "Asia"
+    description: "Training strengthens body and mind"
+    enabled: true
+    test: {stat: "strength", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 2}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  - id: "enc.asia.spice-market"
+    name: "Spice Market"
+    region: "Asia"
+    description: "Bustling bazaar full of opportunity"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainMoney", amount: 2}]
+      fail: [{effectType: "loseMoney", amount: 1}]
+
+  - id: "enc.asia.ancient-bridge"
+    name: "Ancient Bridge"
+    region: "Asia"
+    description: "Stone crossing shows signs of ritual use"
+    enabled: true
+    test: {stat: "lore", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  # Africa Encounters (10 encounters)
+  - id: "enc.africa.desert-oasis"
+    name: "Desert Oasis"
+    region: "Africa"
+    description: "Life-giving water in endless sands"
+    enabled: true
+    test: {stat: "strength", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 2}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  - id: "enc.africa.pyramid-interior"
+    name: "Pyramid Interior"
+    region: "Africa"
+    description: "Ancient tombs hold deadly traps"
+    enabled: true
+    test: {stat: "observation", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseHealth", amount: 2}]
+
+  - id: "enc.africa.tribal-elder"
+    name: "Tribal Elder"
+    region: "Africa"
+    description: "Wisdom keeper shares protective rituals"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSpell", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.africa.savanna-sunset"
+    name: "Savanna Sunset"
+    region: "Africa"
+    description: "Vast plains inspire awe"
+    enabled: true
+    test: {stat: "will", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSanity", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.africa.jungle-expedition"
+    name: "Jungle Expedition"
+    region: "Africa"
+    description: "Dense vegetation hides dangers"
+    enabled: true
+    test: {stat: "strength", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 2}]
+
+  - id: "enc.africa.archaeological-dig"
+    name: "Archaeological Dig"
+    region: "Africa"
+    description: "Excavation uncovers artifacts"
+    enabled: true
+    test: {stat: "lore", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "delayed", turns: 1}]
+
+  - id: "enc.africa.trading-post"
+    name: "Trading Post"
+    region: "Africa"
+    description: "Remote outpost connects distant regions"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 1}, {effectType: "gainMoney", amount: 1}]
+      fail: [{effectType: "loseMoney", amount: 2}]
+
+  - id: "enc.africa.sandstorm"
+    name: "Sandstorm"
+    region: "Africa"
+    description: "Blinding winds test your resolve"
+    enabled: true
+    test: {stat: "strength", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 2}, {effectType: "delayed", turns: 1}]
+
+  - id: "enc.africa.sacred-grove"
+    name: "Sacred Grove"
+    region: "Africa"
+    description: "Spiritual site offers protection"
+    enabled: true
+    test: {stat: "will", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSanity", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.africa.river-crossing"
+    name: "River Crossing"
+    region: "Africa"
+    description: "Treacherous waters block your path"
+    enabled: true
+    test: {stat: "strength", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  # Pacific Encounters (10 encounters)
+  - id: "enc.pacific.volcanic-island"
+    name: "Volcanic Island"
+    region: "Pacific"
+    description: "Steaming vents release toxic fumes"
+    enabled: true
+    test: {stat: "strength", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 2}]
+
+  - id: "enc.pacific.coral-reef"
+    name: "Coral Reef"
+    region: "Pacific"
+    description: "Underwater structures hide mysteries"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.pacific.island-shaman"
+    name: "Island Shaman"
+    region: "Pacific"
+    description: "Spiritual leader shares island lore"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSpell", amount: 1}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.pacific.typhoon-warning"
+    name: "Typhoon Warning"
+    region: "Pacific"
+    description: "Dangerous storm approaches"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 1}, {effectType: "delayed", turns: 1}]
+
+  - id: "enc.pacific.pearl-diver"
+    name: "Pearl Diver"
+    region: "Pacific"
+    description: "Local shares tales of deep sea horrors"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}, {effectType: "gainMoney", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.pacific.ancient-moai"
+    name: "Ancient Moai"
+    region: "Pacific"
+    description: "Stone guardians watch the horizon"
+    enabled: true
+    test: {stat: "lore", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.pacific.lagoon-paradise"
+    name: "Lagoon Paradise"
+    region: "Pacific"
+    description: "Tranquil waters restore the spirit"
+    enabled: true
+    test: {stat: "will", difficulty: 1}
+    outcomes:
+      pass: [{effectType: "gainSanity", amount: 2}]
+      fail: [{effectType: "gainSanity", amount: 1}]
+
+  - id: "enc.pacific.fishing-village"
+    name: "Fishing Village"
+    region: "Pacific"
+    description: "Coastal community offers hospitality"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 1}, {effectType: "gainMoney", amount: 1}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.pacific.tidal-cave"
+    name: "Tidal Cave"
+    region: "Pacific"
+    description: "Hidden grotto accessible at low tide"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseHealth", amount: 1}]
+
+  - id: "enc.pacific.cargo-steamer"
+    name: "Cargo Steamer"
+    region: "Pacific"
+    description: "Ship offers passage between islands"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainTicket", amount: 2}]
+      fail: [{effectType: "loseMoney", amount: 1}]
+
+  # General Encounters (10 encounters - usable in any region)
+  - id: "enc.general.nightmare"
+    name: "Terrible Nightmare"
+    region: "General"
+    description: "Dark dreams plague your sleep"
+    enabled: true
+    test: {stat: "will", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseSanity", amount: 2}]
+
+  - id: "enc.general.ally-assistance"
+    name: "Unexpected Ally"
+    region: "General"
+    description: "Someone offers timely help"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainMoney", amount: 2}]
+      fail: [{effectType: "noEffect"}]
+
+  - id: "enc.general.strange-omen"
+    name: "Strange Omen"
+    region: "General"
+    description: "Unsettling signs appear"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 1}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.general.medical-attention"
+    name: "Medical Attention"
+    region: "General"
+    description: "Find treatment for injuries"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 2}]
+      fail: [{effectType: "loseMoney", amount: 1}]
+
+  - id: "enc.general.mysterious-benefactor"
+    name: "Mysterious Benefactor"
+    region: "General"
+    description: "A stranger provides resources"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainMoney", amount: 2}, {effectType: "gainTicket", amount: 1}]
+      fail: [{effectType: "loseSanity", amount: 1}]
+
+  - id: "enc.general.psychic-vision"
+    name: "Psychic Vision"
+    region: "General"
+    description: "Glimpse future events"
+    enabled: true
+    test: {stat: "will", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 2}]
+
+  - id: "enc.general.black-market"
+    name: "Black Market"
+    region: "General"
+    description: "Illicit goods available for purchase"
+    enabled: true
+    test: {stat: "influence", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainSpell", amount: 1}]
+      fail: [{effectType: "loseMoney", amount: 2}]
+
+  - id: "enc.general.narrow-escape"
+    name: "Narrow Escape"
+    region: "General"
+    description: "Barely avoid danger"
+    enabled: true
+    test: {stat: "strength", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainHealth", amount: 1}]
+      fail: [{effectType: "loseHealth", amount: 2}]
+
+  - id: "enc.general.research-breakthrough"
+    name: "Research Breakthrough"
+    region: "General"
+    description: "Pieces of the puzzle come together"
+    enabled: true
+    test: {stat: "lore", difficulty: 3}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "gainClue", amount: 1}]
+
+  - id: "enc.general.cult-activity"
+    name: "Cult Activity"
+    region: "General"
+    description: "Uncover sinister gatherings"
+    enabled: true
+    test: {stat: "observation", difficulty: 2}
+    outcomes:
+      pass: [{effectType: "gainClue", amount: 2}]
+      fail: [{effectType: "loseSanity", amount: 1}, {effectType: "loseHealth", amount: 1}]

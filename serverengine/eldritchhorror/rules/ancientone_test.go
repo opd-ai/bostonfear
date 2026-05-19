@@ -223,8 +223,17 @@ func TestAncientOneString(t *testing.T) {
 
 func TestPredefinedAncientOnes(t *testing.T) {
 	ancientOnes := PredefinedAncientOnes()
-	if len(ancientOnes) < 3 {
-		t.Errorf("expected at least 3 predefined Ancient Ones, got %d", len(ancientOnes))
+	if len(ancientOnes) != 5 {
+		t.Errorf("expected exactly 5 predefined Ancient Ones (Azathoth, Cthulhu, Shub-Niggurath, Yog-Sothoth, Nyarlathotep), got %d", len(ancientOnes))
+	}
+
+	// Verify specific Ancient Ones exist
+	expectedIDs := map[string]bool{
+		"azathoth":       false,
+		"cthulhu":        false,
+		"shub-niggurath": false,
+		"yog-sothoth":    false,
+		"nyarlathotep":   false,
 	}
 
 	// Verify each has required fields
@@ -241,6 +250,81 @@ func TestPredefinedAncientOnes(t *testing.T) {
 		if ao.CombatRating <= 0 {
 			t.Errorf("Ancient One %s has invalid combat rating: %d", ao.Name, ao.CombatRating)
 		}
+		if _, exists := expectedIDs[ao.ID]; exists {
+			expectedIDs[ao.ID] = true
+		}
+	}
+
+	// Check all expected Ancient Ones are present
+	for id, found := range expectedIDs {
+		if !found {
+			t.Errorf("expected Ancient One %s not found in predefined list", id)
+		}
+	}
+}
+
+func TestShubNiggurathAbilities(t *testing.T) {
+	ancientOnes := PredefinedAncientOnes()
+	var shub AncientOne
+	for _, ao := range ancientOnes {
+		if ao.ID == "shub-niggurath" {
+			shub = ao
+			break
+		}
+	}
+
+	if shub.ID == "" {
+		t.Fatal("Shub-Niggurath not found in predefined Ancient Ones")
+	}
+
+	if len(shub.Abilities) != 1 {
+		t.Errorf("expected Shub-Niggurath to have 1 ability, got %d", len(shub.Abilities))
+	}
+
+	if shub.Abilities[0].Trigger != TriggerWhenGateOpens {
+		t.Errorf("expected Shub-Niggurath ability trigger 'whenGateOpens', got '%s'", shub.Abilities[0].Trigger)
+	}
+}
+
+func TestNyarlathotepAbilities(t *testing.T) {
+	ancientOnes := PredefinedAncientOnes()
+	var nyar AncientOne
+	for _, ao := range ancientOnes {
+		if ao.ID == "nyarlathotep" {
+			nyar = ao
+			break
+		}
+	}
+
+	if nyar.ID == "" {
+		t.Fatal("Nyarlathotep not found in predefined Ancient Ones")
+	}
+
+	if len(nyar.Abilities) != 2 {
+		t.Errorf("expected Nyarlathotep to have 2 abilities, got %d", len(nyar.Abilities))
+	}
+
+	if nyar.DoomTrack != 10 {
+		t.Errorf("expected Nyarlathotep to have doom track of 10, got %d", nyar.DoomTrack)
+	}
+
+	// Verify ability triggers
+	hasEachMythos := false
+	hasInCombat := false
+	for _, ability := range nyar.Abilities {
+		if ability.Trigger == TriggerEachMythos {
+			hasEachMythos = true
+		}
+		if ability.Trigger == TriggerInCombat {
+			hasInCombat = true
+		}
+	}
+
+	if !hasEachMythos {
+		t.Error("expected Nyarlathotep to have an eachMythos trigger ability")
+	}
+	if !hasInCombat {
+		t.Error("expected Nyarlathotep to have an inCombat trigger ability")
 	}
 }
 

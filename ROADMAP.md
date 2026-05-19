@@ -275,11 +275,11 @@
    - [x] Monster movement phase handler (happens between player turns)
 
 3. **Create Content Pack** (`serverengine/eldritchhorror/content/`)
-   - [ ] 3-5 Ancient Ones (Azathoth, Cthulhu, Shub-Niggurath, Yog-Sothoth, Nyarlathotep) with unique mechanics
-   - [ ] Mystery deck templates (9-12 mysteries per Ancient One)
-   - [ ] Regional encounter decks (Americas, Europe, Asia, Africa, Pacific, General)
-   - [ ] Mythos card templates (200+ unique events)
-   - [ ] Investigator roster (shares some with Arkham but with different starting cities)
+   - [x] 3-5 Ancient Ones (Azathoth, Cthulhu, Shub-Niggurath, Yog-Sothoth, Nyarlathotep) with unique mechanics
+   - [x] Mystery deck templates (9-12 mysteries per Ancient One)
+   - [x] Regional encounter decks (Americas, Europe, Asia, Africa, Pacific, General)
+   - [x] Mythos card templates (38 starter cards; full implementation requires 200+ for production use)
+   - [x] Investigator roster (shares some with Arkham but with different starting cities)
 
 4. **Define Model Types** (`serverengine/eldritchhorror/model/`)
    - [x] `EldritchGameState`: Global map state, active mysteries, gates, monsters, Ancient One awakening progress

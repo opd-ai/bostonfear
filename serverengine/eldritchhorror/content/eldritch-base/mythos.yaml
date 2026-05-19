@@ -1,0 +1,410 @@
+schemaVersion: "1.0.0"
+contentPackId: "eldritch-base.mythos"
+language: "en-US"
+generatedAt: "2026-05-18T00:00:00Z"
+# Mythos cards represent global events that affect all players
+# This is a starter set; full implementation requires 200+ unique cards
+records:
+  # Gate Opening Events (8 cards)
+  - id: "mythos.gate-rome"
+    name: "Roman Catacombs Breach"
+    type: "gateOpening"
+    description: "A gate opens in Rome's ancient tunnels"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "Rome"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.gate-tokyo"
+    name: "Shibuya Crossing Anomaly"
+    type: "gateOpening"
+    description: "Reality tears open in crowded Tokyo"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "Tokyo"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.gate-cairo"
+    name: "Pyramid Portal"
+    type: "gateOpening"
+    description: "Ancient forces awaken beneath the pyramids"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "Cairo"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.gate-sanfrancisco"
+    name: "Bay Area Rupture"
+    type: "gateOpening"
+    description: "A dimensional rift appears near the Golden Gate"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "San Francisco"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.gate-london"
+    name: "Thames Fog Gate"
+    type: "gateOpening"
+    description: "Unnatural mist conceals a gateway"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "London"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.gate-shanghai"
+    name: "Bund District Portal"
+    type: "gateOpening"
+    description: "Commercial center becomes supernatural nexus"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "Shanghai"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.gate-sydney"
+    name: "Harbor Bridge Vortex"
+    type: "gateOpening"
+    description: "Gateway manifests over the water"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "Sydney"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.gate-istanbul"
+    name: "Bosphorus Convergence"
+    type: "gateOpening"
+    description: "East meets west in supernatural alignment"
+    enabled: true
+    effects:
+      - effectType: "openGate"
+        params: {location: "Istanbul"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  # Monster Surge Events (6 cards)
+  - id: "mythos.surge-global"
+    name: "Worldwide Manifestation"
+    type: "monsterSurge"
+    description: "Creatures appear across all open gates"
+    enabled: true
+    effects:
+      - effectType: "monsterSurge"
+        params: {scope: "all"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.surge-americas"
+    name: "New World Invasion"
+    type: "monsterSurge"
+    description: "Monsters swarm American cities"
+    enabled: true
+    effects:
+      - effectType: "monsterSurge"
+        params: {region: "Americas"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.surge-europe"
+    name: "Old World Horror"
+    type: "monsterSurge"
+    description: "European gates spawn additional creatures"
+    enabled: true
+    effects:
+      - effectType: "monsterSurge"
+        params: {region: "Europe"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.surge-asia"
+    name: "Eastern Awakening"
+    type: "monsterSurge"
+    description: "Asian gates overflow with entities"
+    enabled: true
+    effects:
+      - effectType: "monsterSurge"
+        params: {region: "Asia"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.surge-pacific"
+    name: "Ocean Rising"
+    type: "monsterSurge"
+    description: "Pacific islands see increased activity"
+    enabled: true
+    effects:
+      - effectType: "monsterSurge"
+        params: {region: "Pacific"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.surge-africa"
+    name: "Dark Continent Emergence"
+    type: "monsterSurge"
+    description: "African gates spawn reinforcements"
+    enabled: true
+    effects:
+      - effectType: "monsterSurge"
+        params: {region: "Africa"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  # Rumor Events (8 cards)
+  - id: "mythos.rumor-cult-gathering"
+    name: "Cult Gathering Detected"
+    type: "rumor"
+    description: "Cultists organize a major ritual"
+    enabled: true
+    location: "Rome"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.cult-meeting"}
+
+  - id: "mythos.rumor-artifact-discovered"
+    name: "Dangerous Artifact Found"
+    type: "rumor"
+    description: "A powerful relic surfaces"
+    enabled: true
+    location: "Cairo"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.artifact-hunt"}
+
+  - id: "mythos.rumor-expedition-missing"
+    name: "Lost Expedition"
+    type: "rumor"
+    description: "Research team vanishes without trace"
+    enabled: true
+    location: "Buenos Aires"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.rescue-mission"}
+
+  - id: "mythos.rumor-plague-outbreak"
+    name: "Strange Illness Spreads"
+    type: "rumor"
+    description: "Unnatural disease affects the population"
+    enabled: true
+    location: "Shanghai"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.plague-cure"}
+
+  - id: "mythos.rumor-star-alignment"
+    name: "Astronomical Alignment"
+    type: "rumor"
+    description: "Stars come into foreboding position"
+    enabled: true
+    location: "London"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.cosmic-event"}
+
+  - id: "mythos.rumor-mass-hysteria"
+    name: "City-Wide Panic"
+    type: "rumor"
+    description: "Population gripped by collective fear"
+    enabled: true
+    location: "Tokyo"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.restore-calm"}
+
+  - id: "mythos.rumor-ancient-text"
+    name: "Forbidden Text Surfaces"
+    type: "rumor"
+    description: "Dangerous book emerges from obscurity"
+    enabled: true
+    location: "Istanbul"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.seal-book"}
+
+  - id: "mythos.rumor-prophet-warning"
+    name: "Mad Prophet's Warning"
+    type: "rumor"
+    description: "Visionary speaks of coming doom"
+    enabled: true
+    location: "San Francisco"
+    effects:
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.decode-prophecy"}
+
+  # Global Effects (8 cards)
+  - id: "mythos.effect-sanity-drain"
+    name: "Worldwide Nightmares"
+    type: "globalEffect"
+    description: "All investigators suffer disturbing dreams"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "loseSanity", amount: 1}
+
+  - id: "mythos.effect-health-drain"
+    name: "Plague of Weakness"
+    type: "globalEffect"
+    description: "Exhaustion afflicts the investigators"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "loseHealth", amount: 1}
+
+  - id: "mythos.effect-resource-loss"
+    name: "Market Collapse"
+    type: "globalEffect"
+    description: "Economic turmoil drains resources"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "loseMoney", amount: 2}
+
+  - id: "mythos.effect-travel-disruption"
+    name: "Transportation Chaos"
+    type: "globalEffect"
+    description: "Travel routes become unreliable"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "loseTickets", amount: 1}
+
+  - id: "mythos.effect-clue-loss"
+    name: "Memory Fog"
+    type: "globalEffect"
+    description: "Investigators forget crucial details"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "loseClues", amount: 1}
+
+  - id: "mythos.effect-doom-acceleration"
+    name: "Ominous Signs Multiply"
+    type: "globalEffect"
+    description: "Doom approaches faster"
+    enabled: true
+    effects:
+      - effectType: "addDoom"
+        params: {amount: 2}
+
+  - id: "mythos.effect-blessing"
+    name: "Moment of Hope"
+    type: "globalEffect"
+    description: "Brief respite from the darkness"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "gainSanity", amount: 1}
+
+  - id: "mythos.effect-elder-sign-granted"
+    name: "Divine Intervention"
+    type: "globalEffect"
+    description: "Protective symbols appear"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "gainElderSign", amount: 1}
+
+  # Ancient One Specific Events (Azathoth - 4 cards)
+  - id: "mythos.azathoth-void-call"
+    name: "Call of the Void"
+    ancientOneId: "ao.azathoth"
+    type: "ancientOneSpecific"
+    description: "Azathoth's presence warps reality"
+    enabled: true
+    effects:
+      - effectType: "addDoom"
+        params: {amount: 2}
+      - effectType: "allInvestigators"
+        params: {effect: "loseSanity", amount: 2}
+
+  - id: "mythos.azathoth-stars-wrong"
+    name: "Stars Are Right"
+    ancientOneId: "ao.azathoth"
+    type: "ancientOneSpecific"
+    description: "Cosmic alignment favors Azathoth"
+    enabled: true
+    effects:
+      - effectType: "addDoom"
+        params: {amount: 1}
+      - effectType: "openGate"
+        params: {location: "random"}
+
+  - id: "mythos.azathoth-nuclear-chaos"
+    name: "Nuclear Chaos"
+    ancientOneId: "ao.azathoth"
+    type: "ancientOneSpecific"
+    description: "The daemon sultan stirs"
+    enabled: true
+    effects:
+      - effectType: "addDoom"
+        params: {amount: 1}
+      - effectType: "monsterSurge"
+        params: {scope: "all"}
+
+  - id: "mythos.azathoth-sanity-block"
+    name: "Endless Night Descends"
+    ancientOneId: "ao.azathoth"
+    type: "ancientOneSpecific"
+    description: "Investigators cannot restore sanity this turn"
+    enabled: true
+    effects:
+      - effectType: "blockEffect"
+        params: {effectType: "gainSanity", duration: 1}
+
+  # Cthulhu Specific Events (4 cards)
+  - id: "mythos.cthulhu-rlyleh-stir"
+    name: "R'lyeh Stirs"
+    ancientOneId: "ao.cthulhu"
+    type: "ancientOneSpecific"
+    description: "The sunken city rises briefly"
+    enabled: true
+    effects:
+      - effectType: "addDoom"
+        params: {amount: 1}
+      - effectType: "openGate"
+        params: {location: "Sydney"}
+
+  - id: "mythos.cthulhu-dreaming"
+    name: "Dreams of the Deep"
+    ancientOneId: "ao.cthulhu"
+    type: "ancientOneSpecific"
+    description: "Cthulhu's dreams infect the world"
+    enabled: true
+    effects:
+      - effectType: "allInvestigators"
+        params: {effect: "loseSanity", amount: 2}
+
+  - id: "mythos.cthulhu-deep-ones"
+    name: "Deep Ones Surface"
+    ancientOneId: "ao.cthulhu"
+    type: "ancientOneSpecific"
+    description: "Aquatic horrors emerge from oceans"
+    enabled: true
+    effects:
+      - effectType: "monsterSurge"
+        params: {region: "Pacific"}
+      - effectType: "addDoom"
+        params: {amount: 1}
+
+  - id: "mythos.cthulhu-ocean-call"
+    name: "Call from the Depths"
+    ancientOneId: "ao.cthulhu"
+    type: "ancientOneSpecific"
+    description: "Investigators drawn toward the sea"
+    enabled: true
+    effects:
+      - effectType: "addDoom"
+        params: {amount: 1}
+      - effectType: "startRumor"
+        params: {rumorId: "rumor.ocean-expedition"}

@@ -1,0 +1,459 @@
+schemaVersion: "1.0.0"
+contentPackId: "eldritch-base.mysteries"
+language: "en-US"
+generatedAt: "2026-05-18T00:00:00Z"
+records:
+  # Azathoth Mysteries (3 mysteries)
+  - id: "mys.azathoth.cosmic-alignment"
+    name: "Cosmic Alignment"
+    ancientOneId: "ao.azathoth"
+    description: "Prevent the alignment that would awaken the Daemon Sultan"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Gather astronomical data from observatories worldwide"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 0
+      - stageNumber: 2
+        description: "Decode the star patterns at ancient sites"
+        cluesRequired: 3
+        locationRequired: "Rome"
+        investigatorsRequired: 2
+        encountersRequired: 1
+      - stageNumber: 3
+        description: "Disrupt the cosmic convergence"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 2
+    reward:
+      description: "Delay the awakening and gain protective knowledge"
+      elderSigns: 1
+      gatesClosed: 2
+
+  - id: "mys.azathoth.pipers-cacophony"
+    name: "The Piper's Cacophony"
+    ancientOneId: "ao.azathoth"
+    description: "Silence the maddening music that heralds Azathoth"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Locate the source of the otherworldly sounds"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Confront the servitor musicians"
+        cluesRequired: 3
+        locationRequired: "Istanbul"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Shatter the resonance chambers"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 2
+        encountersRequired: 1
+    reward:
+      description: "Restore sanity to the afflicted"
+      elderSigns: 1
+      gatesClosed: 1
+
+  - id: "mys.azathoth.void-breach"
+    name: "Breach in the Void"
+    ancientOneId: "ao.azathoth"
+    description: "Seal the tears in reality leading to Azathoth's court"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Map the location of dimensional rifts"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 0
+      - stageNumber: 2
+        description: "Gather sealing materials from forbidden sites"
+        cluesRequired: 3
+        locationRequired: "Tokyo"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Perform the binding ritual"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 1
+    reward:
+      description: "Stabilize reality and gain elder knowledge"
+      elderSigns: 2
+      gatesClosed: 2
+
+  # Cthulhu Mysteries (3 mysteries)
+  - id: "mys.cthulhu.rlyleh-rising"
+    name: "R'lyeh Rising"
+    ancientOneId: "ao.cthulhu"
+    description: "Prevent the sunken city from surfacing"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Investigate seismic activity in the Pacific"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Locate R'lyeh's coordinates"
+        cluesRequired: 3
+        locationRequired: "Sydney"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Sink the city back into the abyss"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 2
+        encountersRequired: 2
+    reward:
+      description: "Delay Cthulhu's awakening"
+      elderSigns: 1
+      gatesClosed: 3
+
+  - id: "mys.cthulhu.deep-ones-pact"
+    name: "The Deep Ones' Pact"
+    ancientOneId: "ao.cthulhu"
+    description: "Break the alliance between coastal cultists and Deep Ones"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Infiltrate coastal cult meetings"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Expose the cult leaders"
+        cluesRequired: 3
+        locationRequired: "San Francisco"
+        investigatorsRequired: 2
+        encountersRequired: 1
+      - stageNumber: 3
+        description: "Destroy the ritual sites"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 2
+    reward:
+      description: "Weaken Cthulhu's influence on the surface world"
+      elderSigns: 1
+      gatesClosed: 1
+
+  - id: "mys.cthulhu.dreaming-plague"
+    name: "The Dreaming Plague"
+    ancientOneId: "ao.cthulhu"
+    description: "Cure the epidemic of nightmares spreading worldwide"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Study the dream patterns"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 0
+      - stageNumber: 2
+        description: "Find the source of the psychic infection"
+        cluesRequired: 3
+        locationRequired: "Buenos Aires"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Sever Cthulhu's dream connection"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 2
+        encountersRequired: 1
+    reward:
+      description: "Restore mental clarity to humanity"
+      elderSigns: 2
+      gatesClosed: 2
+
+  # Shub-Niggurath Mysteries (3 mysteries)
+  - id: "mys.shub.forest-corruption"
+    name: "Corruption of the Forests"
+    ancientOneId: "ao.shub-niggurath"
+    description: "Stop the spread of the Black Goat's tainted offspring"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Investigate reports of mutated wildlife"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Locate the spawning grounds"
+        cluesRequired: 3
+        locationRequired: "London"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Purge the dark young nests"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 2
+    reward:
+      description: "Cleanse the corrupted wilderness"
+      elderSigns: 1
+      gatesClosed: 2
+
+  - id: "mys.shub.harvest-ritual"
+    name: "The Harvest Ritual"
+    ancientOneId: "ao.shub-niggurath"
+    description: "Disrupt the cult's massive sacrifice ceremony"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Infiltrate the cult"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Sabotage ritual preparations"
+        cluesRequired: 3
+        locationRequired: "Cairo"
+        investigatorsRequired: 2
+        encountersRequired: 1
+      - stageNumber: 3
+        description: "Prevent the final sacrifice"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 2
+    reward:
+      description: "Save the intended victims and weaken the cult"
+      elderSigns: 1
+      gatesClosed: 1
+
+  - id: "mys.shub.thousand-young"
+    name: "The Thousand Young"
+    ancientOneId: "ao.shub-niggurath"
+    description: "Hunt down the scattered spawn before they multiply"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Track the spawn migration patterns"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 0
+      - stageNumber: 2
+        description: "Destroy the spawn breeding grounds"
+        cluesRequired: 3
+        locationRequired: "Shanghai"
+        investigatorsRequired: 2
+        encountersRequired: 3
+      - stageNumber: 3
+        description: "Eliminate the alpha spawn"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 2
+        encountersRequired: 2
+    reward:
+      description: "Halt the spawn proliferation"
+      elderSigns: 2
+      gatesClosed: 2
+
+  # Yog-Sothoth Mysteries (3 mysteries)
+  - id: "mys.yog.gate-nexus"
+    name: "The Gate Nexus"
+    ancientOneId: "ao.yog-sothoth"
+    description: "Seal the master gate that opens all others"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Locate the nexus gate"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Gather sealing components"
+        cluesRequired: 3
+        locationRequired: "Rome"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Perform the master seal"
+        cluesRequired: 5
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 2
+    reward:
+      description: "Lock the gate network"
+      elderSigns: 3
+      gatesClosed: 3
+
+  - id: "mys.yog.time-fracture"
+    name: "Fractures in Time"
+    ancientOneId: "ao.yog-sothoth"
+    description: "Repair temporal anomalies threatening reality"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Document temporal distortions"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 0
+      - stageNumber: 2
+        description: "Stabilize causality at key sites"
+        cluesRequired: 3
+        locationRequired: "Istanbul"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Restore the timestream"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 2
+        encountersRequired: 1
+    reward:
+      description: "Repair the fabric of reality"
+      elderSigns: 2
+      gatesClosed: 2
+
+  - id: "mys.yog.key-bearer"
+    name: "The Key Bearer"
+    ancientOneId: "ao.yog-sothoth"
+    description: "Stop the summoner who would unlock all gates"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Identify the key bearer"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Confront their followers"
+        cluesRequired: 3
+        locationRequired: "Tokyo"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Defeat the key bearer"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 3
+    reward:
+      description: "Secure the cosmic keys"
+      elderSigns: 2
+      gatesClosed: 3
+
+  # Nyarlathotep Mysteries (3 mysteries)
+  - id: "mys.nyar.masks-thousand"
+    name: "The Thousand Masks"
+    ancientOneId: "ao.nyarlathotep"
+    description: "Expose Nyarlathotep's avatars before they sow chaos"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Identify the avatars"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Disrupt their machinations"
+        cluesRequired: 3
+        locationRequired: "London"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Banish the avatars"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 2
+    reward:
+      description: "Temporarily limit the Crawling Chaos"
+      elderSigns: 1
+      gatesClosed: 2
+
+  - id: "mys.nyar.chaos-cult"
+    name: "Cult of Chaos"
+    ancientOneId: "ao.nyarlathotep"
+    description: "Dismantle the worldwide chaos cult network"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Infiltrate cult cells"
+        cluesRequired: 2
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 1
+      - stageNumber: 2
+        description: "Capture cult leadership"
+        cluesRequired: 3
+        locationRequired: "Cairo"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Destroy the cult's power base"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 2
+        encountersRequired: 1
+    reward:
+      description: "Scatter the cult remnants"
+      elderSigns: 1
+      gatesClosed: 1
+
+  - id: "mys.nyar.messenger-signal"
+    name: "The Messenger's Signal"
+    ancientOneId: "ao.nyarlathotep"
+    description: "Block Nyarlathotep's call to the other Outer Gods"
+    enabled: true
+    version: 1
+    stages:
+      - stageNumber: 1
+        description: "Decode the alien transmissions"
+        cluesRequired: 3
+        locationRequired: ""
+        investigatorsRequired: 1
+        encountersRequired: 0
+      - stageNumber: 2
+        description: "Locate the broadcasting site"
+        cluesRequired: 3
+        locationRequired: "San Francisco"
+        investigatorsRequired: 2
+        encountersRequired: 2
+      - stageNumber: 3
+        description: "Jam the signal permanently"
+        cluesRequired: 4
+        locationRequired: ""
+        investigatorsRequired: 3
+        encountersRequired: 2
+    reward:
+      description: "Isolate Earth from cosmic communication"
+      elderSigns: 2
+      gatesClosed: 2
