@@ -171,6 +171,7 @@ func (fq *FeedbackQueue) Prune(now time.Time) {
 }
 
 // Toast is a simple notification that appears briefly and auto-dismisses.
+// Reserved for future UI notifications feature (Phase 5 visual polish).
 type Toast struct {
 	Message  string
 	Duration time.Duration
