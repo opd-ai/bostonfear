@@ -811,7 +811,6 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 		bannerY := actionDockTop() - 28
 		ebitenutil.DrawRect(screen, 32, float64(bannerY), 320, 22, color.RGBA{R: 8, G: 10, B: 18, A: 200})
 		drawUIText(screen, trimToWidth(movesText, 300), 40, bannerY+4, color.RGBA{R: 220, G: 240, B: 255, A: 255})
-		drawUIText(screen, trimToWidth(movesText, 300), 40, 544, color.RGBA{R: 220, G: 240, B: 255, A: 255})
 	}
 }
 
