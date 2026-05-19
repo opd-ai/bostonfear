@@ -28,11 +28,15 @@ import (
 	"github.com/opd-ai/bostonfear/client/ebiten/ui/onboarding"
 )
 
-// screenWidth and screenHeight define the logical resolution (800×600 minimum).
-const (
-	screenWidth  = 800
-	screenHeight = 600
-)
+// screenWidth is the current logical canvas width. It starts at the 800-pixel
+// minimum and is updated each frame by LayoutF to match the window's aspect
+// ratio, giving widescreen landscape displays more horizontal space without
+// letterboxing. screenHeight stays fixed at 600 so vertical layout is stable.
+var screenWidth = 800
+
+// screenHeight is the fixed logical canvas height. All vertical positions are
+// computed relative to this value; only screenWidth grows on wide displays.
+const screenHeight = 600
 
 // locationRects maps each location name to its board rectangle (x, y, w, h).
 // The layout places four neighbourhoods in a 2×2 grid with gutters.
@@ -239,9 +243,30 @@ func (g *Game) Update() error {
 	return nil
 }
 
-// Layout returns the logical screen dimensions regardless of the window size.
+// Layout returns the logical screen dimensions. It is the fallback required
+// by ebiten.Game; on widescreen windows LayoutF is used instead and sets a
+// wider screenWidth, so Layout may return a value > 800 after the first frame.
 func (g *Game) Layout(_, _ int) (int, int) {
 	return screenWidth, screenHeight
+}
+
+// LayoutF implements ebiten.LayoutFer. Ebitengine calls this instead of Layout
+// when the interface is satisfied. It keeps the screen height fixed at 600 and
+// widens the logical canvas proportionally for displays with an aspect ratio
+// wider than 4:3 (e.g. 16:9, 21:9), eliminating letterboxing on landscape
+// widescreen windows and allowing the board to breathe in the extra space.
+func (g *Game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
+	const minWidth = 800
+	w := minWidth
+	if outsideWidth > 0 && outsideHeight > 0 {
+		// Compute the logical width that exactly fills the window at height=600.
+		scaled := int(outsideWidth * float64(screenHeight) / outsideHeight)
+		if scaled > w {
+			w = scaled
+		}
+	}
+	screenWidth = w
+	return float64(screenWidth), float64(screenHeight)
 }
 
 // Draw renders the full game board each frame using the five-layer pipeline.
@@ -259,6 +284,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 // drawGameContent renders the in-game view. Called from SceneGame.Draw and
 // from the Draw fallback path when no active scene is set.
 func (g *Game) drawGameContent(screen *ebiten.Image) {
+	// Keep the board centred in the area left of the right panel. On the base
+	// 800-pixel canvas the board area is 410 px; any additional width gained on
+	// wider screens is split equally as left/right gutters so the tiles don't
+	// crowd the left edge on 16:9 or wider displays.
+	g.syncBoardOffset()
 	g.frameCount++
 	g.ensureShaders()
 
@@ -331,7 +361,7 @@ func (g *Game) drawSceneFade(screen *ebiten.Image) {
 		return
 	}
 	alpha := uint8(float64(g.sceneFade) / 12.0 * 210.0)
-	ebitenutil.DrawRect(screen, 0, 0, screenWidth, screenHeight, color.RGBA{R: 8, G: 10, B: 16, A: alpha})
+	ebitenutil.DrawRect(screen, 0, 0, float64(screenWidth), float64(screenHeight), color.RGBA{R: 8, G: 10, B: 16, A: alpha})
 }
 
 func (g *Game) applyPostProcess(screen *ebiten.Image, doom int) {
@@ -349,7 +379,7 @@ func (g *Game) applyPostProcess(screen *ebiten.Image, doom int) {
 	if g.animState.doomFlashFrames > 0 {
 		flicker := 0.45 + 0.55*math.Sin(float64(g.frameCount)/2.7)
 		alpha := uint8(min(72, int(float64(g.animState.doomFlashFrames)*3.0*flicker)))
-		ebitenutil.DrawRect(screen, 0, 0, screenWidth, screenHeight, color.RGBA{R: 92, G: 12, B: 12, A: alpha})
+		ebitenutil.DrawRect(screen, 0, 0, float64(screenWidth), float64(screenHeight), color.RGBA{R: 92, G: 12, B: 12, A: alpha})
 	}
 }
 
@@ -482,7 +512,7 @@ func (g *Game) drawStateBanner(screen *ebiten.Image) {
 	if g.stateBanner == nil || !g.stateBanner.BannerVisible() {
 		return
 	}
-	ebitenutil.DrawRect(screen, 0, 0, screenWidth, 20, color.RGBA{R: 10, G: 25, B: 40, A: 220})
+	ebitenutil.DrawRect(screen, 0, 0, float64(screenWidth), 20, color.RGBA{R: 10, G: 25, B: 40, A: 220})
 	drawUIText(screen, g.stateBanner.BannerText(), 8, 6, color.White)
 }
 
@@ -2601,6 +2631,24 @@ func (g *Game) drawEndBanner(screen *ebiten.Image, gs ebclient.GameState) {
 
 func rightPanelX() int {
 	return screenWidth - 380
+}
+
+// syncBoardOffset keeps the board centred in the horizontal space available to
+// the left of the right panel. On the 800-pixel base canvas the board area is
+// 410 px and the tiles fill it snugly; on wider logical canvases (set by
+// LayoutF for widescreen displays) the extra pixels are split equally as equal
+// gutters so the board doesn't drift to the extreme left edge.
+func (g *Game) syncBoardOffset() {
+	if g.boardView == nil {
+		return
+	}
+	const baseBoardArea = 410 // board area width at screenWidth=800
+	available := rightPanelX() - 10
+	extra := available - baseBoardArea
+	if extra < 0 {
+		extra = 0
+	}
+	g.boardView.SetScreenOffsetX(float64(extra) / 2)
 }
 
 func bottomPanelY() int {

@@ -32,12 +32,46 @@ func newTestGame(t *testing.T) *Game {
 	}
 }
 
-// TestLayout verifies that Layout always returns the fixed 800×600 logical resolution.
+// TestLayout verifies that Layout returns the current logical canvas dimensions.
+// On the first run screenWidth is at its 800-pixel default and screenHeight is
+// always 600; on widescreen windows LayoutF drives screenWidth wider, and
+// Layout reflects whatever value LayoutF last set.
 func TestLayout(t *testing.T) {
 	g := &Game{}
 	w, h := g.Layout(0, 0)
 	if w != screenWidth || h != screenHeight {
 		t.Errorf("Layout() = (%d, %d), want (%d, %d)", w, h, screenWidth, screenHeight)
+	}
+}
+
+// TestLayoutF verifies that LayoutF widens the logical canvas for landscape
+// windows and clamps to the 800-pixel minimum for narrow or portrait windows.
+func TestLayoutF(t *testing.T) {
+	orig := screenWidth
+	defer func() { screenWidth = orig }()
+
+	g := &Game{}
+
+	// 16:9 window (1280×720) → logical width = 1280*600/720 ≈ 1066
+	w, h := g.LayoutF(1280, 720)
+	if int(h) != screenHeight {
+		t.Errorf("LayoutF height = %v, want %d", h, screenHeight)
+	}
+	want := int(1280 * float64(screenHeight) / 720)
+	if int(w) != want {
+		t.Errorf("LayoutF(1280,720) width = %v, want %d", w, want)
+	}
+	if screenWidth != want {
+		t.Errorf("screenWidth after LayoutF(1280,720) = %d, want %d", screenWidth, want)
+	}
+
+	// Portrait window (600×800) → clamped to minimum 800
+	w, h = g.LayoutF(600, 800)
+	if int(w) != 800 || int(h) != screenHeight {
+		t.Errorf("LayoutF(600,800) = (%v,%v), want (800,%d)", w, h, screenHeight)
+	}
+	if screenWidth != 800 {
+		t.Errorf("screenWidth after portrait LayoutF = %d, want 800", screenWidth)
 	}
 }
 
