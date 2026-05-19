@@ -45,39 +45,59 @@ func TestLayout(t *testing.T) {
 }
 
 // TestLayoutF verifies that LayoutF widens the logical canvas for landscape
-// windows and clamps to the 800-pixel minimum for narrow or portrait windows.
+// windows, tallens it for portrait windows, and clamps to 800×600 for
+// square-ish (4:3) windows.
 func TestLayoutF(t *testing.T) {
-	orig := screenWidth
-	defer func() { screenWidth = orig }()
+	origW, origH := screenWidth, screenHeight
+	defer func() { screenWidth, screenHeight = origW, origH }()
 
 	g := &Game{}
 
-	// 16:9 window (1280×720) → logical width must exceed the 800-pixel minimum.
+	// --- Landscape: 16:9 (1280×720) → width must exceed 800, height = 600 ---
 	ow, oh := 1280.0, 720.0
 	w, h := g.LayoutF(ow, oh)
-	if int(h) != screenHeight {
-		t.Errorf("LayoutF height = %v, want %d", h, screenHeight)
+	if int(h) != 600 {
+		t.Errorf("LayoutF(1280,720) height = %v, want 600", h)
 	}
 	if int(w) <= 800 {
 		t.Errorf("LayoutF(1280,720) width = %v, want >800 for widescreen", w)
 	}
-	// LayoutF must update the package-level screenWidth to the returned value.
-	if screenWidth != int(w) {
-		t.Errorf("screenWidth after LayoutF = %d, want %d", screenWidth, int(w))
+	if screenWidth != int(w) || screenHeight != int(h) {
+		t.Errorf("screenWidth/Height after LayoutF(1280,720) = %d/%d, want %d/%d",
+			screenWidth, screenHeight, int(w), int(h))
 	}
-	// Verify the proportional formula: w = outsideW * screenHeight / outsideH (truncated).
-	wantF := ow * float64(screenHeight) / oh
-	if int(w) != int(wantF) {
-		t.Errorf("LayoutF(1280,720) width = %d, want %d", int(w), int(wantF))
+	// Proportional formula: w = int(outsideW * 600 / outsideH)
+	wantW := int(ow * 600.0 / oh)
+	if int(w) != wantW {
+		t.Errorf("LayoutF(1280,720) width = %d, want %d", int(w), wantW)
 	}
 
-	// Portrait window (600×800) → clamped to minimum 800
-	w, h = g.LayoutF(600, 800)
-	if int(w) != 800 || int(h) != screenHeight {
-		t.Errorf("LayoutF(600,800) = (%v,%v), want (800,%d)", w, h, screenHeight)
+	// --- Portrait: 9:16 (720×1280) → height must exceed 600, width = 800 ---
+	ow, oh = 720.0, 1280.0
+	w, h = g.LayoutF(ow, oh)
+	if int(w) != 800 {
+		t.Errorf("LayoutF(720,1280) width = %v, want 800", w)
 	}
-	if screenWidth != 800 {
-		t.Errorf("screenWidth after portrait LayoutF = %d, want 800", screenWidth)
+	if int(h) <= 600 {
+		t.Errorf("LayoutF(720,1280) height = %v, want >600 for tallscreen", h)
+	}
+	if screenWidth != int(w) || screenHeight != int(h) {
+		t.Errorf("screenWidth/Height after LayoutF(720,1280) = %d/%d, want %d/%d",
+			screenWidth, screenHeight, int(w), int(h))
+	}
+	// Proportional formula: h = int(outsideH * 800 / outsideW)
+	wantH := int(oh * 800.0 / ow)
+	if int(h) != wantH {
+		t.Errorf("LayoutF(720,1280) height = %d, want %d", int(h), wantH)
+	}
+
+	// --- Square-ish: 4:3 (800×600) → both clamp to minimum ---
+	w, h = g.LayoutF(800, 600)
+	if int(w) != 800 || int(h) != 600 {
+		t.Errorf("LayoutF(800,600) = (%v,%v), want (800,600)", w, h)
+	}
+	if screenWidth != 800 || screenHeight != 600 {
+		t.Errorf("screenWidth/Height after 4:3 LayoutF = %d/%d, want 800/600", screenWidth, screenHeight)
 	}
 }
 

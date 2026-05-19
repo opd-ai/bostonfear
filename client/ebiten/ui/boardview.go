@@ -6,6 +6,7 @@ type BoardView struct {
 	centerX       float64
 	centerY       float64
 	screenOffsetX float64 // horizontal screen-space shift applied after projection
+	screenOffsetY float64 // vertical screen-space shift applied after projection
 }
 
 // NewBoardView creates a projection helper for a camera.
@@ -22,11 +23,20 @@ func (bv *BoardView) SetScreenOffsetX(dx float64) {
 	}
 }
 
+// SetScreenOffsetY updates the vertical screen-space shift applied after
+// projection. Caller is responsible for computing the correct offset (e.g. to
+// centre the board vertically in a taller-than-base portrait canvas).
+func (bv *BoardView) SetScreenOffsetY(dy float64) {
+	if bv != nil {
+		bv.screenOffsetY = dy
+	}
+}
+
 // ProjectPoint maps a board-space point to screen-space.
 func (bv *BoardView) ProjectPoint(x, y float64) (float64, float64, float64) {
 	if bv == nil {
 		return x, y, 1.0
 	}
 	sx, sy, scale := bv.camera.Project(x, y, bv.centerX, bv.centerY)
-	return sx + bv.screenOffsetX, sy, scale
+	return sx + bv.screenOffsetX, sy + bv.screenOffsetY, scale
 }

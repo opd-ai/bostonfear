@@ -31,12 +31,13 @@ import (
 // screenWidth is the current logical canvas width. It starts at the 800-pixel
 // minimum and is updated each frame by LayoutF to match the window's aspect
 // ratio, giving widescreen landscape displays more horizontal space without
-// letterboxing. screenHeight stays fixed at 600 so vertical layout is stable.
+// letterboxing.
 var screenWidth = 800
 
-// screenHeight is the fixed logical canvas height. All vertical positions are
-// computed relative to this value; only screenWidth grows on wide displays.
-const screenHeight = 600
+// screenHeight is the current logical canvas height. It starts at 600 and is
+// updated each frame by LayoutF to match the window's aspect ratio, giving
+// tallscreen portrait displays more vertical space without letterboxing.
+var screenHeight = 600
 
 // locationRects maps each location name to its board rectangle (x, y, w, h).
 // The layout places four neighbourhoods in a 2×2 grid with gutters.
@@ -251,21 +252,35 @@ func (g *Game) Layout(_, _ int) (int, int) {
 }
 
 // LayoutF implements ebiten.LayoutFer. Ebitengine calls this instead of Layout
-// when the interface is satisfied. It keeps the screen height fixed at 600 and
-// widens the logical canvas proportionally for displays with an aspect ratio
-// wider than 4:3 (e.g. 16:9, 21:9), eliminating letterboxing on landscape
-// widescreen windows and allowing the board to breathe in the extra space.
+// when the interface is satisfied. The logical canvas always matches the
+// window's aspect ratio at the 800×600 minimum size, eliminating letterboxing:
+//
+//   - Landscape/widescreen (aspect > 4:3): height stays 600, width grows.
+//   - Portrait/tallscreen   (aspect < 4:3): width stays 800, height grows.
+//   - Square-ish (aspect ≈ 4:3): both stay at 800×600.
 func (g *Game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
 	const minWidth = 800
-	w := minWidth
+	const minHeight = 600
+	const baseAspect = float64(minWidth) / float64(minHeight) // 4:3 = 1.333…
+	w, h := minWidth, minHeight
 	if outsideWidth > 0 && outsideHeight > 0 {
-		// Compute the logical width that exactly fills the window at height=600.
-		scaled := int(outsideWidth * float64(screenHeight) / outsideHeight)
-		if scaled > w {
-			w = scaled
+		aspect := outsideWidth / outsideHeight
+		if aspect > baseAspect {
+			// Landscape: grow width to fill window without letterboxing.
+			scaled := int(outsideWidth * minHeight / outsideHeight)
+			if scaled > w {
+				w = scaled
+			}
+		} else if aspect < baseAspect {
+			// Portrait: grow height to fill window without letterboxing.
+			scaled := int(outsideHeight * minWidth / outsideWidth)
+			if scaled > h {
+				h = scaled
+			}
 		}
 	}
 	screenWidth = w
+	screenHeight = h
 	return float64(screenWidth), float64(screenHeight)
 }
 
@@ -284,11 +299,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 // drawGameContent renders the in-game view. Called from SceneGame.Draw and
 // from the Draw fallback path when no active scene is set.
 func (g *Game) drawGameContent(screen *ebiten.Image) {
-	// Keep the board centred in the area left of the right panel. On the base
-	// 800-pixel canvas the board area is 410 px; any additional width gained on
-	// wider screens is split equally as left/right gutters so the tiles don't
-	// crowd the left edge on 16:9 or wider displays.
+	// Keep the board centred in its available space. syncBoardOffset handles
+	// horizontal centering for widescreen canvases; syncBoardVerticalOffset
+	// handles vertical centering for tallscreen portrait canvases.
 	g.syncBoardOffset()
+	g.syncBoardVerticalOffset()
 	g.frameCount++
 	g.ensureShaders()
 
@@ -2649,6 +2664,28 @@ func (g *Game) syncBoardOffset() {
 		extra = 0
 	}
 	g.boardView.SetScreenOffsetX(float64(extra) / 2)
+}
+
+// syncBoardVerticalOffset keeps the board centred in the vertical space
+// available between the status rail and the action dock. On the 600-pixel base
+// canvas the board sits naturally at y≈60–320; on taller logical canvases (set
+// by LayoutF for portrait/tallscreen displays) the extra pixels are split into
+// equal top/bottom cushions so the tile grid settles in the middle of the
+// available area rather than staying locked to the top-left corner.
+func (g *Game) syncBoardVerticalOffset() {
+	if g.boardView == nil {
+		return
+	}
+	extra := screenHeight - 600
+	if extra <= 0 {
+		g.boardView.SetScreenOffsetY(0)
+		return
+	}
+	// Split the extra height evenly as top and bottom margin. The action dock
+	// already claims the top half of the extra space via actionDockTop(); we
+	// therefore shift the board down by half the gain so it remains visually
+	// centred between the status rail and the shifted dock.
+	g.boardView.SetScreenOffsetY(float64(extra) / 2)
 }
 
 func bottomPanelY() int {
