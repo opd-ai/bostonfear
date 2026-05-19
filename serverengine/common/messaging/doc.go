@@ -1,5 +1,20 @@
 // Package messaging provides shared messaging primitives for cross-engine use.
 // MessageType is the canonical enumeration of wire message types sent over WebSocket.
+//
+// Example usage for encoding:
+//
+//	codec := messaging.JSONCodec{}
+//	payload, err := codec.Encode(gameState)
+//	if err != nil {
+//	    return fmt.Errorf("encode failed: %w", err)
+//	}
+//
+// Example usage for message type validation:
+//
+//	msgType := messaging.MessageGameState
+//	if msgType.IsValid() {
+//	    // Process valid message
+//	}
 package messaging
 
 import (

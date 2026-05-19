@@ -1,5 +1,24 @@
 // Package observability provides shared observability primitives for cross-engine use.
 // Hook is the pluggable interface for game engine event observation.
+//
+// Example usage for creating an observability hook:
+//
+//	type MetricsHook struct {
+//	    counter *prometheus.CounterVec
+//	}
+//
+//	func (h *MetricsHook) Observe(evt observability.Event) {
+//	    h.counter.WithLabelValues(evt.Name).Inc()
+//	}
+//
+// Example usage for emitting events:
+//
+//	hook := observability.NoopHook{} // or custom implementation
+//	hook.Observe(observability.Event{
+//	    Name:      "doom.increment",
+//	    Timestamp: time.Now(),
+//	    Labels:    map[string]string{"source": "mythos"},
+//	})
 package observability
 
 import "time"

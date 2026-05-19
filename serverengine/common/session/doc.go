@@ -1,5 +1,25 @@
 // Package session provides shared session lifecycle primitives for cross-engine use.
 // Token identifies a player session and can be validated before re-use.
+//
+// Example usage for token validation:
+//
+//	token := session.Token("abc123")
+//	if token.Validate() {
+//	    // Token is structurally valid (non-empty, no whitespace)
+//	}
+//
+// Example usage for reconnection flow:
+//
+//	store := session.Default
+//	record := session.Record{
+//	    PlayerID:       "player1",
+//	    Token:          session.Token("abc123"),
+//	    Connected:      false,
+//	    DisconnectedAt: time.Now().Add(-10 * time.Second),
+//	}
+//	if store.CanRestore(record, session.Token("abc123"), time.Now(), 30*time.Second) {
+//	    // Session can be restored within grace period
+//	}
 package session
 
 import (
