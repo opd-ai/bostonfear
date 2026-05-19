@@ -119,6 +119,11 @@ type GameServer struct {
 	broadcastAdapter BroadcastPayloadAdapter
 	// observabilityHook receives engine events (no-op by default).
 	observabilityHook commonobservability.Hook
+
+	// postTurnCallback is invoked after advancing to the next player, allowing
+	// game modules to inject custom logic (e.g., monster movement in Eldritch Horror).
+	// This hook is called with the mutex held, so implementations must not block.
+	postTurnCallback func()
 }
 
 // NewGameServer creates a new game server instance using the provided Scenario
@@ -237,6 +242,17 @@ func (gs *GameServer) SetObservabilityHook(hook commonobservability.Hook) {
 		return
 	}
 	gs.observabilityHook = hook
+}
+
+// SetPostTurnCallback configures a callback that is invoked after each turn advance.
+// This allows game modules to inject custom logic such as monster movement phases.
+// The callback is executed with the mutex held, so it must not block or acquire
+// additional locks that could cause deadlock.
+// Passing nil clears any existing callback.
+func (gs *GameServer) SetPostTurnCallback(callback func()) {
+	gs.mutex.Lock()
+	defer gs.mutex.Unlock()
+	gs.postTurnCallback = callback
 }
 
 // AllowedOrigins returns a copy of the normalized allowed origin list used by

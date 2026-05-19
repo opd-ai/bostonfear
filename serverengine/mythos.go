@@ -19,10 +19,16 @@ import (
 // Disconnected and defeated players are skipped so the game never stalls.
 // When all players complete a round, runMythosPhase is called before starting
 // the next round (AH3e §Mythos Phase).
+// If a postTurnCallback is registered, it is invoked after turn advancement.
 func (gs *GameServer) advanceTurn() {
 	arkhamphases.AdvanceTurn(gs.gameState, arkhamphases.TurnCallbacks{
 		RunMythosPhase: gs.runMythosPhase,
 	})
+
+	// Invoke post-turn callback if registered (e.g., for monster movement in Eldritch Horror)
+	if gs.postTurnCallback != nil {
+		gs.postTurnCallback()
+	}
 }
 
 // runMythosPhase executes the AH3e Mythos Phase after all investigators complete

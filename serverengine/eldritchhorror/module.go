@@ -60,5 +60,15 @@ func (Module) NewEngine() (contracts.Engine, error) {
 	gs := serverengine.NewGameServer()
 	// Inject eldritchhorror's broadcast adapter to own wire protocol message shaping.
 	gs.SetBroadcastAdapter(adapters.NewBroadcastAdapter())
-	return &Engine{GameServer: gs}, nil
+
+	// Create the Eldritch Horror engine wrapper
+	engine := &Engine{GameServer: gs}
+
+	// Initialize Eldritch Horror-specific game state
+	engine.InitializeEldritchState()
+
+	// Register the monster movement phase to run after each turn
+	gs.SetPostTurnCallback(engine.runMonsterPhase)
+
+	return engine, nil
 }

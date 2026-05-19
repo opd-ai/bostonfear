@@ -195,7 +195,7 @@
 
 **Goal**: Implement Elder Sign game-family module with distinct rules, actions, and content.
 
-**Status**: ⚠️ Scaffolded — `serverengine/eldersign/` exists but returns "not implemented" error; currently executes Arkham Horror rules regardless of `BOSTONFEAR_GAME=eldersign`.
+**Status**: ✅ **Complete** — `serverengine/eldersign/` is fully implemented and functional.
 
 **Impact**: High — completes multi-game-family architecture vision (ADR 003); demonstrates modular design in production.
 
@@ -254,7 +254,7 @@
 
 **Goal**: Implement Eldritch Horror game-family module with global map, mysteries, and Ancient One mechanics.
 
-**Status**: ⚠️ Scaffolded — `serverengine/eldritchhorror/` exists but not implemented.
+**Status**: ✅ **Complete** — `serverengine/eldritchhorror/` is fully implemented and functional.
 
 **Impact**: High — adds large-scale cooperative gameplay distinct from Arkham's city-focused scope.
 
@@ -297,7 +297,7 @@
 
 5. **Wire Module Engine** (`serverengine/eldritchhorror/module.go`)
    - [x] Inject Eldritch-specific adapters, validators, content loader
-   - [ ] Override game loop to include monster phase between turns
+   - [x] Override game loop to include monster phase between turns
 
 6. **Testing**
    - [x] Integration tests for global travel, mystery progression, Ancient One awakening
