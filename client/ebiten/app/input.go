@@ -502,54 +502,44 @@ func actionGridRows() [][]string {
 }
 
 func actionGridRect(row, col int) image.Rectangle {
-	const (
-		actionGridOriginX    = 10
-		actionGridGap        = 6
-		actionGridCellHeight = 44
-		// actionGridHeader must match the constant in actionGridTotalHeight.
-		actionGridHeader = 48
-	)
+	// actionGridHeader must match the constant in actionGridTotalHeight.
 	rows := actionGridRows()
-	// Offset by actionGridHeader so button cells begin below the panel title bar
+	// Offset by ActionGridHeader so button cells begin below the panel title bar
 	// and the two summary/hint text lines — previously buttons started at panelY+0
 	// which placed them directly behind the header text.
-	y := actionDockTop() + actionGridHeader + row*(actionGridCellHeight+actionGridGap)
+	y := actionDockTop() + ActionGridHeader + row*(ActionGridCellHeight+ActionGridGap)
 	buttonsInRow := len(rows[row])
 	if buttonsInRow == 0 {
-		return image.Rect(actionGridOriginX, y, actionGridOriginX, y+actionGridCellHeight)
+		return image.Rect(ActionGridOriginX, y, ActionGridOriginX, y+ActionGridCellHeight)
 	}
-	availableWidth := screenWidth - 20 - (buttonsInRow-1)*actionGridGap
+	availableWidth := screenWidth - 20 - (buttonsInRow-1)*ActionGridGap
 	cellWidth := availableWidth / buttonsInRow
-	if cellWidth < 96 {
-		cellWidth = 96
+	// Increased minimum from 96px to 110px to prevent label truncation
+	if cellWidth < ActionGridMinCellWidth {
+		cellWidth = ActionGridMinCellWidth
 	}
-	rowWidth := buttonsInRow*cellWidth + (buttonsInRow-1)*actionGridGap
-	x := actionGridOriginX + (screenWidth-20-rowWidth)/2 + col*(cellWidth+actionGridGap)
+	rowWidth := buttonsInRow*cellWidth + (buttonsInRow-1)*ActionGridGap
+	x := ActionGridOriginX + (screenWidth-20-rowWidth)/2 + col*(cellWidth+ActionGridGap)
 	if len(rows) == 1 {
-		x = actionGridOriginX + col*(cellWidth+actionGridGap)
+		x = ActionGridOriginX + col*(cellWidth+ActionGridGap)
 	}
 	return image.Rect(
 		x,
 		y,
 		x+cellWidth,
-		y+actionGridCellHeight,
+		y+ActionGridCellHeight,
 	)
 }
 
 func actionGridTotalHeight() int {
-	const (
-		actionGridGap        = 6
-		actionGridCellHeight = 44
-		// actionGridHeader reserves space for the drawStyledPanel title bar (24 px)
-		// plus the secondary header band holding the summary and hint text lines
-		// (headerY offset 26 + band height 20 = 46 px, rounded to 48).
-		actionGridHeader = 48
-	)
+	// ActionGridHeader reserves space for the drawStyledPanel title bar (24 px)
+	// plus the secondary header band holding the summary and hint text lines
+	// (headerY offset 26 + band height 20 = 46 px, rounded to 48).
 	rows := len(actionGridRows())
 	if rows == 0 {
-		return actionGridHeader
+		return ActionGridHeader
 	}
-	return actionGridHeader + rows*actionGridCellHeight + (rows-1)*actionGridGap + 8
+	return ActionGridHeader + rows*ActionGridCellHeight + (rows-1)*ActionGridGap + 8
 }
 
 // actionDockTop returns the screen-y coordinate of the top edge of the action

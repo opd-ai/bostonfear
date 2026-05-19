@@ -1048,10 +1048,11 @@ func (g *Game) drawInvestigatorTokens(screen *ebiten.Image, gs ebclient.GameStat
 		colourIdx := playerColourIndex(pid, gs.TurnOrder)
 		base := g.playerBaseColour(colourIdx)
 
-		tokenX := float64(rect.x + 26 + (offset%3)*38)
-		tokenY := float64(rect.y + rect.h - 22 - (offset/3)*36)
+		// Token spacing: 44px diameter with 8px horizontal and 6px vertical gaps
+		tokenX := float64(rect.x + 26 + (offset%3)*int(TokenHorizontalPitch))
+		tokenY := float64(rect.y + rect.h - 22 - (offset/3)*int(TokenVerticalPitch))
 		px, py, scale := g.projectPoint(tokenX, tokenY)
-		size := 44.0 * scale
+		size := TokenBaseDiameter * scale
 		bob := math.Sin(float64(g.frameCount+int64(colourIdx*7))/14.0) * 0.9 * scale
 
 		isCurrent := pid == gs.CurrentPlayer && gs.GamePhase == "playing"
@@ -1299,13 +1300,12 @@ func (g *Game) doomBarColors() (bg, fg color.RGBA) {
 
 // drawPlayerPanel renders resource levels for all players on the right side.
 func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID string) {
-	panelX := rightPanelX() - 10
-	panelY := 110
-	panelW := 386
-	// Height must fit 6 players: header(34) + 6×row(24+2=26) = 190 px; 192 adds
-	// a 2 px safety margin and still leaves a 2 px gap before the location panel
-	// at y=304 (110+192=302 < 304).
-	panel := image.Rect(panelX, panelY, panelX+panelW, panelY+192)
+	panelX := rightPanelX() - RightPanelMargin
+	panelY := PlayerPanelY
+	panelW := RightPanelWidth
+	// Height updated: header(34) + 6×row(24+4=28) = 202 px; rounded to 204 px
+	// for consistent spacing. Location panel positioned with PlayerPanelGap offset.
+	panel := image.Rect(panelX, panelY, panelX+panelW, panelY+PlayerPanelHeight)
 	drawStyledPanel(screen, panel, panelStyle{radius: 10}, "Turn Overview", g.phaseLabel(gs.GamePhase))
 
 	if len(gs.TurnOrder) == 0 {
@@ -1351,9 +1351,9 @@ func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *eb
 	pillX = g.drawResourceTrack(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, 10, color.RGBA{R: 90, G: 160, B: 232, A: 255}, g.resourceFlashLevel(pid, "sanity"))
 	pillX = g.drawResourceTrack(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, 5, color.RGBA{R: 86, G: 194, B: 122, A: 255}, g.resourceFlashLevel(pid, "clues"))
 	g.drawResourcePill(screen, pillX, y+4, "ACT", p.ActionsRemaining, color.RGBA{R: 228, G: 197, B: 102, A: 255}, g.resourceFlashLevel(pid, "actions"))
-	// 2 px inter-row gap instead of 5 px: saves 3 px per player (18 px for 6
-	// players) so the full roster fits within the declared panel height.
-	return cardH + 2
+	// PlayerRowGap provides breathing room between rows while fitting 6 players
+	// within the declared panel height.
+	return cardH + PlayerRowGap
 }
 
 func (g *Game) drawResourceTrack(screen *ebiten.Image, x, y int, icon string, value, max int, accent color.RGBA, flash int) int {
@@ -1437,7 +1437,7 @@ func (g *Game) drawResourcePill(screen *ebiten.Image, x, y int, icon string, val
 	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(width), 14, bg)
 	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(width), 2, accent)
 	drawUIText(screen, label, x+4, y+3, color.RGBA{R: 245, G: 247, B: 252, A: 255})
-	return x + width + 4
+	return x + width + ResourcePillSpacing // Standardized to match ResourceTrackSpacing
 }
 
 func (g *Game) advanceHUDAnimations(gs ebclient.GameState) {
@@ -2395,10 +2395,12 @@ func (g *Game) countPlayersAt(gs ebclient.GameState, loc ebclient.Location) int 
 }
 
 func locationPanelRect() image.Rectangle {
+	// Position below player panel with PlayerPanelGap vertical spacing
+	locationY := PlayerPanelY + PlayerPanelHeight + PlayerPanelGap
 	if currentUILayoutProfile() == layoutPortraitMobile {
-		return image.Rect(rightPanelX()-10, 252, rightPanelX()-10+386, 516)
+		return image.Rect(rightPanelX()-RightPanelMargin, locationY, rightPanelX()-RightPanelMargin+RightPanelWidth, locationY+264)
 	}
-	return image.Rect(rightPanelX()-10, 304, rightPanelX()-10+386, 472)
+	return image.Rect(rightPanelX()-RightPanelMargin, locationY, rightPanelX()-RightPanelMargin+RightPanelWidth, locationY+168)
 }
 
 func locationPanelButtonRect(index int) image.Rectangle {
