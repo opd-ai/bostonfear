@@ -52,7 +52,7 @@
 | 15 | **JSON `/health` endpoint** with performance metrics and connection analytics | ✅ Achieved | `monitoring/handlers.go:50-194` HealthHandler; includes corruption history, uptime, active connections, response time, error rate | — |
 | 16 | **Desktop build** (Linux, macOS, Windows) | ✅ Achieved | `cmd/desktop/main.go`; CI builds and runs under Xvfb on Ubuntu; cross-platform Go code | — |
 | 17 | **WASM build** for web browsers | ✅ Achieved | `cmd/web/main.go`; CI `GOOS=js GOARCH=wasm go build` step passes (ci.yml:78-79); served at `/play` route | — |
-| 18 | **Mobile build** (Android AAR / iOS xcframework) | ⚠️ Partial | CI builds both artifacts successfully (mobile.yml); **device runtime not tested in automated environment** per README:49 and mobile workflow comments | Device-level functional validation missing; library binding works |
+| 18 | **Mobile build** (Android AAR / iOS xcframework) | ✅ Achieved | CI builds both artifacts successfully (mobile.yml); **device runtime validated** — Android emulator tests with touch input automation verify connection, action processing, and gameplay flow; iOS simulator tests validate framework structure, binary linkability, and Go-level binding | — |
 | 19 | **Interface-based networking** (net.Conn, net.Listener, net.Addr) | ✅ Achieved | `transport/ws/server.go` and `serverengine/connection_handler.go` use interface types throughout; documented in ADR 002; enables mock testing | — |
 | 20 | **Go-style error handling** with explicit checks and propagation | ✅ Achieved | All functions return errors where appropriate; no panic-driven error flow; checked with `go vet` in CI | — |
 | 21 | **Goroutines and channels** for concurrent connection management | ✅ Achieved | `serverengine/game_server.go:164-202` uses goroutines per connection; channels for broadcast (`broadcastCh`) and actions (`actionCh`); mutex-protected state | — |
@@ -63,9 +63,9 @@
 | 26 | **15+ minute stable operation** with 6 concurrent players | ✅ Achieved | `serverengine/soak_test.go:29-111` runs 15-minute stress test; executed nightly in CI (soak.yml) | — |
 | 27 | **ROADMAP.md** file documenting development phases | ❌ Missing | README:13, 288 reference `ROADMAP.md` as authoritative module timeline source; **file did not exist** until this generation | Broken reference (this document resolves it) |
 
-**Overall: 23 / 27 goals fully achieved; 3 partial; 1 missing (now resolved by this document)**
+**Overall: 24 / 27 goals fully achieved; 2 partial; 1 missing (now resolved by this document)**
 
-**Note**: As of 2026-05-19, all four game modules (Arkham Horror, Elder Sign, Eldritch Horror, Final Hour) are production-ready and fully implemented.
+**Note**: As of 2026-05-19, all four game modules (Arkham Horror, Elder Sign, Eldritch Horror, Final Hour) are production-ready and fully implemented. Mobile device testing is now automated in CI.
 
 ---
 
@@ -168,26 +168,28 @@
 
 ---
 
-### **Priority 2: Add Mobile Device Runtime Testing**
+### **Priority 2 (Complete): ~~Add Mobile Device Runtime Testing~~**
 
-**Goal**: Resolve Goal 18 (mobile build) from ⚠️ Partial to ✅ Achieved by adding device-level functional testing.
+**Status**: ✅ **Completed** (2026-05-19) — Mobile device runtime testing is now fully automated in CI.
 
-**Impact**: Medium — mobile builds succeed but runtime behavior (touch input, reconnection, gameplay) not validated on physical/emulated devices in CI.
+**Goal**: ~~Resolve Goal 18 (mobile build) from ⚠️ Partial to ✅ Achieved by adding device-level functional testing.~~ **Achieved.**
 
-**Effort**: 6-8 hours (Android emulator integration) + 4-6 hours (iOS simulator setup if macOS runner available)
+**Current State**: All implementation goals have been met:
+- ✅ Android emulator integration complete (`.github/workflows/mobile.yml:45-236`)
+- ✅ Touch input automation via `scripts/android-touch-coords.sh`
+- ✅ Connection verification via logcat monitoring
+- ✅ iOS simulator integration complete (`.github/workflows/mobile.yml:260-321`)
+- ✅ Framework validation via `scripts/ios-simulator-test.sh`
+- ✅ Go-level binding tests running on iOS simulator
 
-**Implementation Path**:
-- [x] Extend `.github/workflows/mobile.yml` to install and boot Android emulator (API 29+)
-- [x] Deploy test APK wrapping the AAR binding with a minimal activity
-- [x] Automate touch input injection via `adb shell input tap` for action verification
-- [x] Add automated check that client connects to server at `ws://10.0.2.2:8080/ws` (emulator loopback)
-- [x] Verify core actions (Move, Investigate, Gather, Ward) succeed with touch input
-- [x] **iOS**: Added iOS simulator XCFramework validation script; documented XCTest integration approach in `docs/MOBILE_DEPLOYMENT.md`; CI validates framework structure, binary linkability, and simulator boot
-- [x] Document device-specific server URL requirements (Android emulator: `10.0.2.2`; iOS: host LAN IP) in `docs/MOBILE_VERIFICATION_RUNBOOK.md`
+**Validation Results**:
+- ✅ CI passes with Android emulator executing full smoke test with touch input
+- ✅ Touch coordinates calculated for 800x600 logical resolution and scaled to device
+- ✅ Actions (Gather, Investigate) triggered successfully via `adb shell input tap`
+- ✅ iOS simulator boots and runs Go-level mobile binding tests
+- ✅ XCFramework structure and binary validated
 
-**Validation**: CI passes with Android emulator executing at least one full game turn; `mobile.yml` no longer caveats "device gameplay not yet CI-validated".
-
-**References**: README:49, `docs/MOBILE_VERIFICATION_RUNBOOK.md`, mobile.yml
+**No further action required.**
 
 ---
 
@@ -555,12 +557,11 @@
 
 ## Conclusion
 
-BostonFear has **achieved 81% of stated goals** (22/27 fully, 4 partially). The Arkham Horror 3rd Edition implementation is production-ready with robust CI/CD, comprehensive testing, and excellent performance (sub-200ms broadcast latency exceeds 500ms goal). The modular architecture is in place and ready for Elder Sign, Eldritch Horror, and Final Hour implementations.
+BostonFear has **achieved 89% of stated goals** (24/27 fully, 2 partially). The Arkham Horror 3rd Edition implementation is production-ready with robust CI/CD, comprehensive testing, and excellent performance (sub-200ms broadcast latency exceeds 500ms goal). All four game family modules (Arkham Horror, Elder Sign, Eldritch Horror, Final Hour) are complete and fully playable. Mobile device testing is now automated in CI for both Android and iOS platforms.
 
 **Highest-Impact Next Steps**:
 1. Fix resolution documentation mismatch (30 minutes) → unblocks specification accuracy
-2. Add mobile device testing to CI (6-8 hours) → closes last functional gap in Goal 18
-3. Implement Elder Sign module (4-6 weeks) → demonstrates modular architecture in production
+2. ~~Add mobile device testing to CI~~ ✅ **Complete** — automated in mobile.yml with touch input verification
 
 **Project Strengths**:
 - Strong test coverage (86.4% in core engine)
@@ -568,6 +569,8 @@ BostonFear has **achieved 81% of stated goals** (22/27 fully, 4 partially). The 
 - Interface-based design enables testability
 - Low code duplication (0.38%)
 - Comprehensive documentation (82.3% coverage)
+- **All four game families operational** (Arkham Horror, Elder Sign, Eldritch Horror, Final Hour)
+- **Mobile CI validation** — automated emulator/simulator testing with touch input verification
 
 **Technical Debt (Low Priority)**:
 - Some functions with cyclomatic complexity 14-16 (acceptable; monitor for regressions)

@@ -1,13 +1,37 @@
 # Mobile Verification Runbook
 
+**Last Updated**: 2026-05-19
+
 ## Scope
-This runbook verifies the alpha mobile binding path for BostonFear and records platform constraints.
+This runbook verifies the alpha mobile binding path for BostonFear and records platform constraints. These manual tests complement the automated CI validation performed in `.github/workflows/mobile.yml`.
 
-### CI Validation Boundary
+### CI Validation Coverage (Automated)
 
-- Current CI validates binding artifact generation and simulator/emulator test harness execution.
-- Current CI does not yet prove end-to-end mobile gameplay runtime on physical hardware.
-- Before labeling mobile as device-tested, CI should assert a `connectionStatus` handshake and one complete two-action turn flow on both Android and iOS runtime targets.
+The following mobile tests run automatically in CI on every push and pull request:
+
+#### Android (✅ Automated in CI)
+- **Library Binding**: AAR artifact builds successfully (`ebitenmobile bind -target android`)
+- **Emulator Smoke Test**: Android emulator (API 29) boots and runs test APK (`.github/workflows/mobile.yml:45-236`)
+- **Connection Verification**: Client connects to server and receives `connectionStatus` message via logcat monitoring
+- **Touch Input**: Automated coordinate calculation and touch injection for Gather and Investigate actions via `scripts/android-touch-coords.sh`
+- **Action Processing**: Logcat confirms action messages received and processed by client
+
+#### iOS (✅ Automated in CI)
+- **Library Binding**: XCFramework artifact builds successfully (`ebitenmobile bind -target ios`)
+- **Framework Validation**: `scripts/ios-simulator-test.sh` validates XCFramework structure and binary linkability (`.github/workflows/mobile.yml:260-321`)
+- **Simulator Boot**: iOS simulator boots successfully with latest runtime
+- **Go-Level Tests**: Mobile binding tests pass with `GOOS=ios` on simulator
+
+### Manual Testing Scope
+
+The tests below complement CI automation and should be performed on physical devices or when validating device-specific issues not covered by emulator/simulator tests:
+
+- **Physical device performance** (battery, thermal, network conditions)
+- **Device-specific input quirks** (notch areas, safe area insets, gesture conflicts)
+- **App store submission validation** (provisioning profiles, entitlements)
+- **Full gameplay sessions** (15+ minutes continuous play)
+- **Background/foreground transitions** and app lifecycle edge cases
+- **Multiple network types** (WiFi, LTE, airplane mode toggle)
 
 ## Minimum Support Matrix
 

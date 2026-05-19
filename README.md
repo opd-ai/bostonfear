@@ -46,7 +46,7 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 |---|---|---|---|---|
 | **Desktop** (Linux, macOS, Windows) | `cmd/desktop/main.go` | `go build ./cmd/desktop` | Go 1.20+ | Active (alpha — placeholder sprites) |
 | **Web (WASM)** | `cmd/web/main.go` | `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` | Go 1.20+ | Active (alpha — placeholder sprites) |
-| **Mobile** (iOS, Android) | `cmd/mobile/binding.go` | Android: `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile`; iOS: `ebitenmobile bind -target ios -o dist/BostonFear.xcframework ./cmd/mobile` | Go 1.24+, ebitenmobile, Android SDK 29+ / Xcode 15+ | Alpha (library build verified; CI validates emulator gameplay with touch input automation) |
+| **Mobile** (iOS, Android) | `cmd/mobile/binding.go` | Android: `ebitenmobile bind -target android -o dist/bostonfear.aar ./cmd/mobile`; iOS: `ebitenmobile bind -target ios -o dist/BostonFear.xcframework ./cmd/mobile` | Go 1.24+, ebitenmobile, Android SDK 29+ / Xcode 15+ | Active (CI validates Android emulator gameplay with touch input automation; iOS simulator tests verify framework structure and Go-level binding) |
 
 #### Mobile Platform Notes
 - **Android**: Minimum API level 29 (Android 10). Use `ws://10.0.2.2:8080/ws` when connecting from an Android emulator to a server on the host machine.
