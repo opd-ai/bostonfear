@@ -300,9 +300,9 @@
    - [ ] Override game loop to include monster phase between turns
 
 6. **Testing**
-   - [ ] Integration tests for global travel, mystery progression, Ancient One awakening
-   - [ ] Verify win condition (solve 3 mysteries before Ancient One awakens or doom hits threshold)
-   - [ ] Verify lose conditions (Ancient One defeats all investigators OR doom reaches threshold OR investigator count drops below minimum)
+   - [x] Integration tests for global travel, mystery progression, Ancient One awakening
+   - [x] Verify win condition (solve 3 mysteries before Ancient One awakens or doom hits threshold)
+   - [x] Verify lose conditions (Ancient One defeats all investigators OR doom reaches threshold OR investigator count drops below minimum)
 
 **Validation**:
 - `BOSTONFEAR_GAME=eldritchhorror go run . server` starts Eldritch Horror with global map
