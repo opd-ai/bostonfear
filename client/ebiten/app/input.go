@@ -506,9 +506,14 @@ func actionGridRect(row, col int) image.Rectangle {
 		actionGridOriginX    = 10
 		actionGridGap        = 6
 		actionGridCellHeight = 44
+		// actionGridHeader must match the constant in actionGridTotalHeight.
+		actionGridHeader = 48
 	)
 	rows := actionGridRows()
-	y := screenHeight - actionGridTotalHeight() + row*(actionGridCellHeight+actionGridGap)
+	// Offset by actionGridHeader so button cells begin below the panel title bar
+	// and the two summary/hint text lines — previously buttons started at panelY+0
+	// which placed them directly behind the header text.
+	y := actionDockTop() + actionGridHeader + row*(actionGridCellHeight+actionGridGap)
 	buttonsInRow := len(rows[row])
 	if buttonsInRow == 0 {
 		return image.Rect(actionGridOriginX, y, actionGridOriginX, y+actionGridCellHeight)
@@ -535,13 +540,25 @@ func actionGridTotalHeight() int {
 	const (
 		actionGridGap        = 6
 		actionGridCellHeight = 44
-		actionGridHeader     = 28
+		// actionGridHeader reserves space for the drawStyledPanel title bar (24 px)
+		// plus the secondary header band holding the summary and hint text lines
+		// (headerY offset 26 + band height 20 = 46 px, rounded to 48).
+		actionGridHeader = 48
 	)
 	rows := len(actionGridRows())
 	if rows == 0 {
 		return actionGridHeader
 	}
 	return actionGridHeader + rows*actionGridCellHeight + (rows-1)*actionGridGap + 8
+}
+
+// actionDockTop returns the screen-y coordinate of the top edge of the action
+// dock panel. It is the single source of truth for the layout budget shared by
+// drawInputHints, drawShortcutHelp, drawEventLog, actionGridRect, and the
+// onboarding highlight rect.  Any change to actionGridTotalHeight automatically
+// propagates to every element anchored above or inside the dock.
+func actionDockTop() int {
+	return screenHeight - actionGridTotalHeight()
 }
 
 func hasActionInputAttempted() bool {

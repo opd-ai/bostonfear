@@ -495,7 +495,9 @@ func (g *Game) drawResultsPanel(screen *ebiten.Image) {
 		return
 	}
 	panelX := (screenWidth - 420) / 2
-	panelY := 26
+	// Start 2 px below the status rail (which ends at y=36) so the results panel
+	// background does not overdraw the status rail title bar.
+	panelY := 38
 	alpha := uint8(230)
 	if g.animState.resultFadeFrames > 18 {
 		alpha = uint8(min(230, (28-g.animState.resultFadeFrames)*24))
@@ -651,7 +653,7 @@ func (g *Game) onboardingHighlightRect(step *onboarding.OnboardingStep) (image.R
 	case "locations":
 		return image.Rect(28, 44, 376, 348), true
 	case "actions":
-		return image.Rect(8, screenHeight-actionGridTotalHeight(), screenWidth-8, screenHeight-8), true
+		return image.Rect(8, actionDockTop(), screenWidth-8, screenHeight-8), true
 	case "roll_dice":
 		return image.Rect(8, 24, 432, 108), true
 	case "ready":
@@ -722,7 +724,10 @@ func (g *Game) drawCameraControls(screen *ebiten.Image) {
 }
 
 func (g *Game) drawShortcutHelp(screen *ebiten.Image) {
-	panel := image.Rect(screenWidth-250, screenHeight-124, screenWidth-8, screenHeight-8)
+	// Anchor the panel so its bottom sits 8 px above the action dock rather than
+	// at the screen bottom — the old placement caused it to render on top of the
+	// bottom-right action buttons.
+	panel := image.Rect(screenWidth-250, actionDockTop()-124, screenWidth-8, actionDockTop()-8)
 	drawStyledPanel(screen, panel, panelStyle{radius: 10}, "Shortcut Help", "Keyboard quick reference")
 	drawUIText(screen, "Move: [1][2][3][4]", panel.Min.X+10, panel.Min.Y+30, color.RGBA{R: 238, G: 242, B: 252, A: 255})
 	drawUIText(screen, "Actions: G I W F R T C A E X N", panel.Min.X+10, panel.Min.Y+46, color.RGBA{R: 218, G: 228, B: 248, A: 255})
@@ -1248,7 +1253,10 @@ func (g *Game) drawPlayerPanel(screen *ebiten.Image, gs ebclient.GameState, myID
 	panelX := rightPanelX() - 10
 	panelY := 110
 	panelW := 386
-	panel := image.Rect(panelX, panelY, panelX+panelW, panelY+188)
+	// Height must fit 6 players: header(34) + 6×row(24+2=26) = 190 px; 192 adds
+	// a 2 px safety margin and still leaves a 2 px gap before the location panel
+	// at y=304 (110+192=302 < 304).
+	panel := image.Rect(panelX, panelY, panelX+panelW, panelY+192)
 	drawStyledPanel(screen, panel, panelStyle{radius: 10}, "Turn Overview", g.phaseLabel(gs.GamePhase))
 
 	if len(gs.TurnOrder) == 0 {
@@ -1294,7 +1302,9 @@ func (g *Game) drawPlayerPanelRow(screen *ebiten.Image, y int, pid string, p *eb
 	pillX = g.drawResourceTrack(screen, pillX, y+4, g.iconLabel(ui.IconSanity, "SN"), p.Resources.Sanity, 10, color.RGBA{R: 90, G: 160, B: 232, A: 255}, g.resourceFlashLevel(pid, "sanity"))
 	pillX = g.drawResourceTrack(screen, pillX, y+4, g.iconLabel(ui.IconClues, "CL"), p.Resources.Clues, 5, color.RGBA{R: 86, G: 194, B: 122, A: 255}, g.resourceFlashLevel(pid, "clues"))
 	g.drawResourcePill(screen, pillX, y+4, "ACT", p.ActionsRemaining, color.RGBA{R: 228, G: 197, B: 102, A: 255}, g.resourceFlashLevel(pid, "actions"))
-	return cardH + 5
+	// 2 px inter-row gap instead of 5 px: saves 3 px per player (18 px for 6
+	// players) so the full roster fits within the declared panel height.
+	return cardH + 2
 }
 
 func (g *Game) drawResourceTrack(screen *ebiten.Image, x, y int, icon string, value, max int, accent color.RGBA, flash int) int {
@@ -1486,7 +1496,10 @@ func (g *Game) playerPanelLabel(pid, currentPlayer, myID string, p *ebclient.Pla
 // drawEventLog renders a compact snapshot of the latest events above the action dock.
 func (g *Game) drawEventLog(screen *ebiten.Image) {
 	entries := g.state.EventLogSnapshot()
-	y := screenHeight - 130
+	// Position above the action dock: header(12) + 3 entries(3×12) + 12 px margin
+	// = 60 px total. Fixed y=screenHeight-130 was derived for the old (smaller)
+	// action dock and caused the log to render inside the dock on multi-row layouts.
+	y := actionDockTop() - 60
 	drawUIText(screen, "-- Event Log --", rightPanelX(), y, color.White)
 	y += 12
 
@@ -1504,14 +1517,17 @@ func (g *Game) drawEventLog(screen *ebiten.Image) {
 func (g *Game) drawInputHints(screen *ebiten.Image, gs ebclient.GameState, myID string) {
 	panelX := 10
 	panelH := actionGridTotalHeight()
-	panelY := screenHeight - panelH
+	panelY := actionDockTop() // single source of truth via actionDockTop()
 	panelW := screenWidth - 20
 	panel := image.Rect(panelX, panelY, panelX+panelW, panelY+panelH)
 	drawStyledPanel(screen, panel, panelStyle{radius: 12}, "Action Bar", "Available actions and shortcuts")
 	// Split header and action grid into clear sections for readability.
 	headerY := panelY + 26
 	ebitenutil.DrawRect(screen, float64(panelX+2), float64(headerY), float64(panelW-4), 20, color.RGBA{R: 30, G: 34, B: 48, A: 182})
-	ebitenutil.DrawRect(screen, float64(panelX+2), float64(headerY+20), float64(panelW-4), float64(panelH-22), color.RGBA{R: 14, G: 18, B: 28, A: 176})
+	// Body band starts at headerY+20 (=panelY+46). Height is panelH−46 so the
+	// fill exactly reaches the panel bottom without overflowing it. The old
+	// panelH−22 incorrectly assumed the body started at panelY+22.
+	ebitenutil.DrawRect(screen, float64(panelX+2), float64(headerY+20), float64(panelW-4), float64(panelH-46), color.RGBA{R: 14, G: 18, B: 28, A: 176})
 	drawUIText(screen, g.actionDockSummary(gs, myID), panelX+10, panelY+30, color.RGBA{R: 232, G: 238, B: 248, A: 255})
 	drawUIText(screen, trimToWidth(g.actionDockHint(gs, myID), panelW-20), panelX+10, panelY+42, color.RGBA{R: 194, G: 212, B: 238, A: 255})
 	g.drawVisibleActionButtons(screen, gs, myID)
