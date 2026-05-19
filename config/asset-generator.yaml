@@ -14,7 +14,7 @@ generate:
   steps: 40
   width: 1024
   length: 1024
-  cfg-scale: 7.5
+  cfg-scale: 1.5
   sampler: euler_a
   scheduler: karras
   
