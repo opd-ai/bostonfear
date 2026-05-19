@@ -2,6 +2,13 @@
 # Purpose: Generate investigator portrait sprites for all game modules
 # Last updated: 2026-05-19
 #
+# DESIGN NOTE: In this variant of the Arkham Horror universe, ALL investigators
+# are available in ANY game mode. Unlike the original board games where certain
+# investigators are tied to specific expansions, players can choose any of the
+# 100 characters regardless of which module they're playing (Arkham Horror,
+# Elder Sign, Eldritch Horror, or Final Hour). This maximizes character diversity
+# and player agency.
+#
 # Usage:
 #   make assets-investigators
 #   asset-generator pipeline --file assets/investigators.yaml

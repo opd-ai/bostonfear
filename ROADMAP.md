@@ -175,7 +175,7 @@ The placeholder art is an acknowledged constraint (no FFG copyrighted content) a
 2. **Asset Generation** (1 day)
    - [ ] Team member runs `./scripts/setup-asset-gen.sh` to configure SwarmUI connection
    - [ ] Generate all assets: `make assets` or `./scripts/generate-assets.sh`
-     - Investigators: ~15 character portraits across all modules
+     - Investigators: 100 character portraits (all available in any game mode)
      - Locations: ~15 location backgrounds (Arkham, Elder Sign, Eldritch Horror)
      - Tokens: ~20 game tokens (health, sanity, clues, doom, actions, dice)
      - UI Elements: ~15 interface components (buttons, panels, icons)
@@ -219,7 +219,7 @@ make assets-deploy
 ```
 
 **Asset Pipeline Files**:
-- `assets/investigators.yaml` — 15+ investigator portraits for all modules
+- `assets/investigators.yaml` — 100 investigator portraits (all available in any game mode)
 - `assets/locations.yaml` — 15+ location backgrounds (Arkham neighborhoods, museum, global)
 - `assets/tokens.yaml` — 20+ game tokens (resources, actions, dice, module-specific)
 - `assets/ui-elements.yaml` — 15+ UI components (buttons, panels, icons, backgrounds)
@@ -287,7 +287,7 @@ make assets-deploy
 
 ### Priority 3: Content Expansion — Dead of Night
 
-**Goal**: Activate the Dead of Night expansion pack (already scaffolded) to provide additional investigators, scenarios, and encounters for Arkham Horror module.
+**Goal**: Activate the Dead of Night expansion pack (already scaffolded) to provide additional scenarios and encounters for Arkham Horror module. Note: All investigators are already available in any game mode, so expansion investigators are seamlessly integrated into the shared character pool.
 
 **Status**: Content structure defined in `serverengine/arkhamhorror/content/deadofnight/`; not yet embedded or auto-loaded
 

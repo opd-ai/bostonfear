@@ -100,6 +100,9 @@ ebitenmobile bind -target ios -o dist/BostonFear.xcframework ./cmd/mobile
 
 ## Game Rules
 
+### Investigator Selection
+In this variant of the Arkham Horror universe, **all 100 investigators are available in any game mode**. Unlike the original board games where investigators are tied to specific expansions, players can choose any character regardless of which module (Arkham Horror, Elder Sign, Eldritch Horror, or Final Hour) they're playing. This design choice maximizes character diversity and player agency.
+
 ### Objective
 Investigators must work cooperatively to gather clues and cast protective wards before the doom counter reaches 12.
 
@@ -345,7 +348,7 @@ make assets-ui            # UI elements
 ```
 
 **Asset Pipeline Files**:
-- `assets/investigators.yaml` — Character portraits for all game modules
+- `assets/investigators.yaml` — 100 character portraits (all available in any game mode)
 - `assets/locations.yaml` — Location backgrounds (Arkham neighborhoods, museums, global locations)
 - `assets/tokens.yaml` — Resource tokens, action icons, dice faces
 - `assets/ui-elements.yaml` — Buttons, panels, icons, backgrounds
