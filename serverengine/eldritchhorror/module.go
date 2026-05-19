@@ -1,23 +1,35 @@
-// Package eldritchhorror provides a scaffolded Eldritch Horror game-family module.
+// Package eldritchhorror implements the Eldritch Horror global map cooperative game.
 //
-// The module is intentionally not playable yet. It registers cleanly in the
-// runtime registry, but returns a placeholder engine until Eldritch Horror-
-// specific rules are implemented in follow-up roadmap phases.
+// This module provides a playable implementation of Eldritch Horror featuring:
+//   - Global map: 18+ cities across 6 continents with travel routes
+//   - Mystery system: Multi-stage objectives requiring worldwide coordination
+//   - Ancient One mechanics: Active antagonist with unique abilities
+//   - Resource economy: Health, Sanity, Focus, Clues, Money, Tickets
+//   - Action system: Travel, Local, Component, Rest, Trade, Prepare, Research
+//   - Monster surge: Global spawning with combat and encounter resolution
+//   - Win condition: Solve 3 mysteries before Ancient One awakens or doom threshold
+//   - Lose conditions: Ancient One defeats all OR doom threshold OR insufficient investigators
 //
-// Planned features (when implemented):
-//   - Global map with intercontinental travel
-//   - Monster encounter system with escalating difficulty
-//   - Unique resource economy (special items, clues, sanity)
-//   - Ancient One selection with scenario-specific mechanics
-//   - Support for 2-8 players with asymmetric investigator abilities
+// Usage: Create an engine instance with NewModule().NewEngine() to start a game.
+// Configure origins with SetAllowedOrigins([]string{...}) before handling connections.
 //
-// Status: Scaffolding only. Use arkhamhorror module for a fully playable experience.
-// See ROADMAP.md for implementation timeline.
+// Example:
+//
+//	eh := eldritchhorror.NewModule()
+//	engine, err := eh.NewEngine()
+//	if err != nil {
+//		log.Fatalf("failed to create engine: %v", err)
+//	}
+//	engine.SetAllowedOrigins([]string{"localhost:3000"})
+//	if err := engine.Start(); err != nil {
+//		log.Fatalf("engine start failed: %v", err)
+//	}
 package eldritchhorror
 
 import (
+	"github.com/opd-ai/bostonfear/serverengine"
 	"github.com/opd-ai/bostonfear/serverengine/common/contracts"
-	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
+	"github.com/opd-ai/bostonfear/serverengine/eldritchhorror/adapters"
 )
 
 // Module is the Eldritch Horror game-family registration point.
@@ -39,8 +51,14 @@ func (Module) Description() string {
 	return "Eldritch Horror multiplayer rules engine"
 }
 
-// NewEngine creates a placeholder Eldritch Horror engine.
-// Start always returns a not-implemented error until Eldritch Horror rules ship.
+// NewEngine creates a new Eldritch Horror game server instance.
+// The returned engine manages game state, player connections, action processing,
+// and broadcasting for one active game session.
+// Call engine.Start() to begin accepting player connections.
+// Configure engine.SetAllowedOrigins() before Start() to enable CORS filtering.
 func (Module) NewEngine() (contracts.Engine, error) {
-	return commonruntime.NewUnimplementedEngine("eldritchhorror"), nil
+	gs := serverengine.NewGameServer()
+	// Inject eldritchhorror's broadcast adapter to own wire protocol message shaping.
+	gs.SetBroadcastAdapter(adapters.NewBroadcastAdapter())
+	return &Engine{GameServer: gs}, nil
 }

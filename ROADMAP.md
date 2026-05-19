@@ -288,7 +288,7 @@
    - [x] `AncientOne` struct: Abilities, awakening conditions, combat stats
 
 5. **Wire Module Engine** (`serverengine/eldritchhorror/module.go`)
-   - [ ] Inject Eldritch-specific adapters, validators, content loader
+   - [x] Inject Eldritch-specific adapters, validators, content loader
    - [ ] Override game loop to include monster phase between turns
 
 6. **Testing**

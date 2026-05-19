@@ -1,11 +1,10 @@
 package eldritchhorror
 
 import (
-	"strings"
 	"testing"
 )
 
-func TestModuleNewEngineReturnsEldritchHorrorPlaceholder(t *testing.T) {
+func TestModuleNewEngineReturnsEldritchHorrorEngine(t *testing.T) {
 	module := NewModule()
 	if module == nil {
 		t.Fatal("expected module instance")
@@ -19,11 +18,16 @@ func TestModuleNewEngineReturnsEldritchHorrorPlaceholder(t *testing.T) {
 		t.Fatal("expected non-nil engine")
 	}
 
-	startErr := engine.Start()
-	if startErr == nil {
-		t.Fatal("expected Start to return not-implemented error")
+	// Verify module metadata
+	if module.Key() != "eldritchhorror" {
+		t.Fatalf("expected key 'eldritchhorror', got %s", module.Key())
 	}
-	if !strings.Contains(startErr.Error(), "not implemented") {
-		t.Fatalf("expected not-implemented error, got %v", startErr)
+	if module.Description() == "" {
+		t.Fatal("expected non-empty description")
+	}
+
+	// Verify engine is properly typed as Engine wrapper
+	if _, ok := engine.(*Engine); !ok {
+		t.Fatalf("expected *Engine type, got %T", engine)
 	}
 }
