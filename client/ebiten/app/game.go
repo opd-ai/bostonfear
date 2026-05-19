@@ -805,7 +805,12 @@ func (g *Game) drawBoardOverlay(screen *ebiten.Image, gs ebclient.GameState) {
 				movesText += ", " + string(legalMoves[i])
 			}
 		}
-		ebitenutil.DrawRect(screen, 32, 540, 320, 22, color.RGBA{R: 8, G: 10, B: 18, A: 200})
+		// Anchor the legal-moves banner just above the action dock so it is
+		// never hidden inside the dock regardless of how many action rows are
+		// shown. The banner is 22 px tall; leave a 6 px breathing gap.
+		bannerY := actionDockTop() - 28
+		ebitenutil.DrawRect(screen, 32, float64(bannerY), 320, 22, color.RGBA{R: 8, G: 10, B: 18, A: 200})
+		drawUIText(screen, trimToWidth(movesText, 300), 40, bannerY+4, color.RGBA{R: 220, G: 240, B: 255, A: 255})
 		drawUIText(screen, trimToWidth(movesText, 300), 40, 544, color.RGBA{R: 220, G: 240, B: 255, A: 255})
 	}
 }
@@ -1719,9 +1724,14 @@ func (g *Game) drawCoachMarks(screen *ebiten.Image, gs ebclient.GameState, myID 
 	}
 
 	x := 10
-	y := 402
-	w := 410
+	// Position the coach-marks block just above the legal-moves banner
+	// (which sits at actionDockTop()-28). Using actionDockTop() keeps the
+	// block off the action dock even when the dock grows to 2-3 rows on
+	// portrait or narrow screens (old y=402 was inside the dock for 3-row
+	// layouts where actionDockTop() can be as low as 350).
 	h := 18 + len(hints)*14
+	y := actionDockTop() - 32 - h // 4 px gap above the 22-px legal-moves banner
+	w := 410
 	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(w), float64(h), color.RGBA{R: 10, G: 14, B: 26, A: 212})
 	border := color.RGBA{R: 188, G: 210, B: 255, A: 235}
 	drawTileBorder(screen, float64(x), float64(y), float64(w), float64(h), border)

@@ -240,13 +240,16 @@ func (s *SceneConnect) drawConnectButton(screen *ebiten.Image, buttonRect image.
 
 func (s *SceneConnect) drawConnectSlots(screen *ebiten.Image, vp *ui.Viewport, gs ebclient.GameState) {
 	connectedPlayers := countConnectedPlayers(gs)
-	slotsConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 245, Width: 240, Height: 16}
+	// Moved below the Connect button (bottom at y=364). OffsetY=372 gives an
+	// 8 px gap; old value 245 landed inside the Display Name field (y=244-292).
+	slotsConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 372, Width: 240, Height: 16}
 	slotsBounds := slotsConstraint.Bounds(vp)
 	drawUIText(screen, "Slots: "+strconv.Itoa(connectedPlayers)+"/6", slotsBounds.Min.X, slotsBounds.Min.Y, color.White)
 	if connectedPlayers < 6 {
 		return
 	}
-	fullConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 260, Width: 240, Height: 16}
+	// Old value 260 was also inside the Name field.
+	fullConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 388, Width: 240, Height: 16}
 	fullBounds := fullConstraint.Bounds(vp)
 	drawUIText(screen, "Game Full (6/6)", fullBounds.Min.X, fullBounds.Min.Y, color.RGBA{R: 255, G: 190, B: 190, A: 255})
 }
@@ -259,7 +262,8 @@ func (s *SceneConnect) drawReconnectCountdown(screen *ebiten.Image, vp *ui.Viewp
 	if remaining < 0 {
 		remaining = 0
 	}
-	constraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 290, Width: 400, Height: 16}
+	// Old value 290 was at the bottom edge of the Display Name field (y=244-292).
+	constraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 404, Width: 400, Height: 16}
 	bounds := constraint.Bounds(vp)
 	drawUIText(screen, "Reconnecting with saved session... "+strconv.Itoa(remaining)+"s", bounds.Min.X, bounds.Min.Y, color.White)
 }
@@ -269,15 +273,19 @@ func (s *SceneConnect) drawConnectInstructions(screen *ebiten.Image, vp *ui.View
 	if s.activeField == connectFieldName {
 		fieldLabel = "display name"
 	}
-	editConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 330, Width: 400, Height: 16}
+	// Old value 330 was inside the Connect button (y=312-364). Moved to 420,
+	// which is 56 px below the button bottom (364) — safely in the info zone.
+	editConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 420, Width: 400, Height: 16}
 	editBounds := editConstraint.Bounds(vp)
 	drawUIText(screen, "Editing: "+fieldLabel+" (TAB to switch)", editBounds.Min.X, editBounds.Min.Y, color.White)
 
-	instrConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 366, Width: 400, Height: 16}
+	// Old value 366 was just 2 px below the button, visually cramped.
+	instrConstraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 436, Width: 400, Height: 16}
 	instrBounds := instrConstraint.Bounds(vp)
 	drawUIText(screen, "Click fields to edit, then press Connect (or Enter) to join", instrBounds.Min.X, instrBounds.Min.Y, color.RGBA{R: 220, G: 220, B: 220, A: 255})
 	if hint := strings.TrimSpace(s.statusHint); hint != "" {
-		drawUIText(screen, trimToWidth(hint, 420), screenWidth/2-190, 396, color.RGBA{R: 255, G: 210, B: 180, A: 255})
+		// Old hardcoded y=396 was inside the button; moved to 452.
+		drawUIText(screen, trimToWidth(hint, 420), screenWidth/2-190, 452, color.RGBA{R: 255, G: 210, B: 180, A: 255})
 	}
 }
 
@@ -285,7 +293,10 @@ func (s *SceneConnect) drawPlayerID(screen *ebiten.Image, vp *ui.Viewport, playe
 	if playerID == "" {
 		return
 	}
-	constraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 380, Width: 320, Height: 16}
+	// Old value 380 was 16 px after the button (364+16=380) but before the
+	// instruction text (now at 420), so it would appear between the button and
+	// the instructions. Moved to 468 — one line below the instruction block.
+	constraint := &ui.Constraint{Anchor: ui.AnchorTopCenter, OffsetY: 468, Width: 320, Height: 16}
 	bounds := constraint.Bounds(vp)
 	drawUIText(screen, trimToWidth("Player ID: "+playerID, 320), bounds.Min.X, bounds.Min.Y, color.White)
 }
