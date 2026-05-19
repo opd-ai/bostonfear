@@ -1,7 +1,7 @@
 # Makefile — build, test, and lint targets for the bostonfear project.
 
 .PHONY: all build test test-display vet clean rebuild-wasm
-.PHONY: assets assets-preview assets-investigators assets-locations assets-tokens assets-ui assets-clean assets-deploy
+.PHONY: assets assets-preview assets-investigators assets-locations assets-tokens assets-ui assets-enemies assets-items assets-atmospherics assets-events assets-clean assets-deploy
 
 # Configuration
 ASSET_GEN := asset-generator
@@ -42,8 +42,8 @@ rebuild-wasm:
 # Asset Generation Targets
 # ============================================================================
 
-## assets: Generate all game assets (investigators, locations, tokens, UI)
-assets: assets-investigators assets-locations assets-tokens assets-ui
+## assets: Generate all game assets (investigators, locations, tokens, UI, enemies, items, atmospherics, events)
+assets: assets-investigators assets-locations assets-tokens assets-ui assets-enemies assets-items assets-atmospherics assets-events
 	@echo "✅ All assets generated in $(OUTPUT_DIR)/"
 
 ## assets-preview: Preview what assets would be generated (dry run)
@@ -56,6 +56,14 @@ assets-preview:
 	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/tokens.yaml --dry-run
 	@echo "\n📋 Preview: UI Elements"
 	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/ui-elements.yaml --dry-run
+	@echo "\n📋 Preview: Enemies"
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/enemies.yaml --dry-run
+	@echo "\n📋 Preview: Items"
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/items.yaml --dry-run
+	@echo "\n📋 Preview: Atmospherics"
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/atmospherics.yaml --dry-run
+	@echo "\n📋 Preview: Events"
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/events.yaml --dry-run
 
 ## assets-investigators: Generate investigator portrait sprites
 assets-investigators:
@@ -83,6 +91,41 @@ assets-tokens:
 		--auto-crop \
 		--downscale-width 256
 	@echo "✅ Tokens generated"
+
+## assets-enemies: Generate enemy and creature portraits
+assets-enemies:
+	@echo "🎨 Generating enemy portraits..."
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/enemies.yaml \
+		--output-dir $(OUTPUT_DIR) \
+		--auto-crop \
+		--downscale-width 512
+	@echo "✅ Enemies generated"
+
+## assets-items: Generate item and equipment sprites
+assets-items:
+	@echo "🎨 Generating item sprites..."
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/items.yaml \
+		--output-dir $(OUTPUT_DIR) \
+		--auto-crop \
+		--downscale-width 256
+	@echo "✅ Items generated"
+
+## assets-atmospherics: Generate atmospheric backgrounds and effects
+assets-atmospherics:
+	@echo "🎨 Generating atmospheric elements..."
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/atmospherics.yaml \
+		--output-dir $(OUTPUT_DIR) \
+		--auto-crop
+	@echo "✅ Atmospherics generated"
+
+## assets-events: Generate event and story illustrations
+assets-events:
+	@echo "🎨 Generating event illustrations..."
+	@$(ASSET_GEN) pipeline --file $(ASSET_DIR)/events.yaml \
+		--output-dir $(OUTPUT_DIR) \
+		--auto-crop \
+		--downscale-width 800
+	@echo "✅ Events generated"
 
 ## assets-ui: Generate UI element sprites
 assets-ui:
