@@ -66,3 +66,27 @@ tmp/
 *-server
 *-desktop
 *-connection_wrapper
+
+# ============================================================================
+# Asset Generation
+# ============================================================================
+
+# Generated assets (not committed)
+output/
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Exception: Keep example/reference assets if added later
+!examples/**/*.png
+!reference/**/*.png
+!docs/**/*.png
+
+# State files for reproducibility (optional - can be committed if needed)
+*.state.json
+.asset-generator-state/
+
+# Local configuration overrides
+config/local.yaml
+config/user.yaml

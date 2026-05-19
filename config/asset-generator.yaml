@@ -1,0 +1,34 @@
+# BostonFear Asset Generator Configuration
+# Project-specific settings for asset generation
+# Committed to version control for team consistency
+
+# Default API endpoint (override with user config or environment variable)
+api-url: http://localhost:7801
+
+# Output format for CLI commands
+format: table
+
+# Default generation parameters optimized for game assets
+generate:
+  model: stable-diffusion-xl
+  steps: 40
+  width: 1024
+  length: 1024
+  cfg-scale: 7.5
+  sampler: euler_a
+  scheduler: karras
+  
+  # Project-specific negative prompt for better quality
+  negative-prompt: "blurry, low quality, deformed, ugly, bad anatomy, watermark, text, signature, copyright"
+
+# Pipeline execution defaults
+pipeline:
+  auto-crop: true
+  downscale-width: 1024
+  strip-metadata: true
+  save-state: true
+
+# Post-processing settings
+postprocess:
+  compression-quality: 90
+  output-format: png

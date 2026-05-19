@@ -1,0 +1,159 @@
+# BostonFear - Token Asset Pipeline
+# Purpose: Generate game tokens (health, sanity, clues, doom, etc.)
+# Last updated: 2026-05-19
+#
+# Usage:
+#   make assets-tokens
+#   asset-generator pipeline --file assets/tokens.yaml
+#
+# Output: output/tokens/
+# Resolution: 256x256 (icon size)
+
+assets:
+  # Core Game Tokens
+  - name: Core Resource Tokens
+    output_dir: output/tokens/resources
+    seed_offset: 8000
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "game token icon, clean design, high contrast, professional game asset"
+      view: "top-down view, centered, icon composition"
+      background: "subtle background with glow effect"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, complex background, text, watermark"
+    
+    assets:
+      - id: token_health
+        name: health
+        prompt: "red heart icon, glowing health indicator, medical cross symbol, vibrant red color, game token"
+        filename: "health.png"
+      
+      - id: token_sanity
+        name: sanity
+        prompt: "blue brain icon, glowing mental health indicator, psychological symbol, vibrant blue color, game token"
+        filename: "sanity.png"
+      
+      - id: token_clue
+        name: clue
+        prompt: "golden magnifying glass icon, glowing clue marker, investigation symbol, yellow-gold color, game token"
+        filename: "clue.png"
+      
+      - id: token_doom
+        name: doom
+        prompt: "purple void icon, ominous doom counter, eldritch symbol, dark purple with energy, game token"
+        filename: "doom.png"
+
+  # Action Tokens
+  - name: Action Tokens
+    output_dir: output/tokens/actions
+    seed_offset: 8100
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "game action icon, clear symbol, high contrast, professional game asset"
+      view: "centered icon, simple composition"
+      quality: "sharp focus, clean icon, professional quality"
+      negative: "blurry, low quality, complex details, text, watermark"
+    
+    assets:
+      - id: token_move
+        name: move
+        prompt: "footsteps icon, movement action indicator, directional arrows, green color scheme, game token"
+        filename: "move.png"
+      
+      - id: token_gather
+        name: gather
+        prompt: "open hands collecting icon, resource gathering action, amber color scheme, game token"
+        filename: "gather.png"
+      
+      - id: token_investigate
+        name: investigate
+        prompt: "magnifying glass examining icon, investigation action, detective theme, yellow color scheme, game token"
+        filename: "investigate.png"
+      
+      - id: token_ward
+        name: ward
+        prompt: "protective shield icon, magical ward action, mystical symbol, blue-purple color scheme, game token"
+        filename: "ward.png"
+
+  # Dice Result Tokens
+  - name: Dice Result Tokens
+    output_dir: output/tokens/dice
+    seed_offset: 8200
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "dice face icon, clear symbol, game die aesthetic, professional game asset"
+      view: "front-facing die face, centered"
+      quality: "sharp focus, clear symbol, professional quality"
+      negative: "blurry, low quality, complex background, text except symbols, watermark"
+    
+    assets:
+      - id: token_success
+        name: success
+        prompt: "checkmark symbol on die face, success indicator, green glowing effect, game die token"
+        filename: "success.png"
+      
+      - id: token_blank
+        name: blank
+        prompt: "neutral blank die face, gray smooth surface, minimal design, game die token"
+        filename: "blank.png"
+      
+      - id: token_tentacle
+        name: tentacle
+        prompt: "tentacle symbol on die face, eldritch horror icon, purple-green glowing effect, game die token"
+        filename: "tentacle.png"
+
+  # Module-Specific Tokens
+  - name: Elder Sign - Museum Tokens
+    output_dir: output/tokens/eldersign
+    seed_offset: 8300
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "museum game token, artifact theme, professional game asset"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_elder_sign
+        name: elder-sign
+        prompt: "ancient protective symbol, star-like mystical glyph, glowing golden effect, artifact token"
+        filename: "elder_sign.png"
+      
+      - id: token_monster
+        name: monster
+        prompt: "creature silhouette icon, horror monster marker, red danger indicator, game token"
+        filename: "monster.png"
+
+  - name: Eldritch Horror - Global Tokens
+    output_dir: output/tokens/eldritchhorror
+    seed_offset: 8400
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "world map game token, global theme, professional game asset"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_gate
+        name: gate
+        prompt: "dimensional portal icon, swirling void gateway, purple-blue energy effect, game token"
+        filename: "gate.png"
+      
+      - id: token_rumor
+        name: rumor
+        prompt: "newspaper icon, investigation rumor marker, vintage paper aesthetic, game token"
+        filename: "rumor.png"

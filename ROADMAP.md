@@ -149,44 +149,99 @@ The placeholder art is an acknowledged constraint (no FFG copyrighted content) a
 
 **Goal**: Replace placeholder sprites with original art assets (non-FFG) to enhance visual experience while respecting copyright.
 
-**Status**: Not started — functional game exists with programmer art
+**Status**: ✅ **Pipeline Integrated** — asset-generator configured with automated generation pipelines
 
 **Impact**: High — improves player immersion and accessibility; does not affect core gameplay
 
-**Effort**: 6-8 weeks (artist collaboration + integration)
+**Effort**: 2-3 days (generation + integration + testing) — *Previously estimated 6-8 weeks; reduced 90% via automation*
+
+**Technology**: Integrated `asset-generator` CLI with SwarmUI backend for automated AI-driven asset creation
 
 **Implementation Path**:
 
-1. **Define Asset Requirements** (1 week)
-   - [ ] Inventory all placeholder sprites: investigators, locations, tokens, UI elements
-   - [ ] Create art direction document (style guide, color palette, thematic constraints)
-   - [ ] Define sprite atlas structure and naming conventions
-   - [ ] Document safe-area constraints for mobile platforms
+1. **Asset Pipeline Configuration** ✅ **COMPLETE** (May 19, 2026)
+   - [x] Created pipeline definitions in `assets/` directory:
+     - `investigators.yaml` — Character portraits (512×512)
+     - `locations.yaml` — Location backgrounds (1024×768)
+     - `tokens.yaml` — Game tokens (256×256)
+     - `ui-elements.yaml` — UI components (various sizes)
+   - [x] Configured project settings in `config/asset-generator.yaml`
+   - [x] Added Makefile targets: `make assets`, `make assets-preview`, individual asset types
+   - [x] Created setup script: `scripts/setup-asset-gen.sh`
+   - [x] Created generation script: `scripts/generate-assets.sh`
+   - [x] Updated `.gitignore` to exclude generated assets
+   - [x] Documented in `docs/ASSET_GENERATION.md`
 
-2. **Create Original Art Assets** (4-5 weeks; external artist)
-   - [ ] Location backgrounds (8 locations across 4 neighborhoods)
-   - [ ] Investigator portraits (10+ characters across all modules)
-   - [ ] Token sprites (clue, health, sanity, doom, focus, money)
-   - [ ] UI elements (buttons, panels, overlays)
-   - [ ] Icon set for actions (move, investigate, gather, ward, etc.)
-   - [ ] Ensure no visual similarity to FFG's copyrighted artwork
+2. **Asset Generation** (1 day)
+   - [ ] Team member runs `./scripts/setup-asset-gen.sh` to configure SwarmUI connection
+   - [ ] Generate all assets: `make assets` or `./scripts/generate-assets.sh`
+     - Investigators: ~15 character portraits across all modules
+     - Locations: ~15 location backgrounds (Arkham, Elder Sign, Eldritch Horror)
+     - Tokens: ~20 game tokens (health, sanity, clues, doom, actions, dice)
+     - UI Elements: ~15 interface components (buttons, panels, icons)
+   - [ ] Review generated assets for quality and copyright safety
+   - [ ] Regenerate specific assets if needed (adjusting prompts in pipeline files)
+   - [ ] Legal review confirms no visual similarity to FFG copyrighted artwork
 
-3. **Asset Integration** (1-2 weeks)
+3. **Asset Integration** (1 day)
+   - [ ] Deploy assets to client: `make assets-deploy`
    - [ ] Implement sprite atlas loader in `client/ebiten/render/atlas.go`
-   - [ ] Replace `ebiten.NewImage()` calls with atlas lookups
+   - [ ] Replace placeholder `ebiten.NewImage()` calls with atlas lookups
    - [ ] Update `Draw()` methods in `client/ebiten/app/` to use new sprites
-   - [ ] Add visual regression tests comparing placeholder vs. final renders
-   - [ ] Test mobile safe-area rendering with real assets
+   - [ ] Test asset loading on desktop, WASM, mobile platforms
 
-4. **Validation**:
+4. **Testing and Validation** (0.5 days)
    - [ ] All sprites load without errors on desktop, WASM, mobile
    - [ ] Visual consistency across all platforms
-   - [ ] No performance regression (maintain ≥60 FPS)
-   - [ ] Legal review confirms no copyright infringement
+   - [ ] Performance maintained (≥60 FPS; no regression)
+   - [ ] Mobile safe-area rendering verified with real assets
+   - [ ] Add visual regression tests (optional, for future changes)
 
-**Dependencies**: None (gameplay functional with placeholders)
+**Quick Start Commands**:
+```bash
+# First-time setup (team member)
+./scripts/setup-asset-gen.sh
 
-**References**: README.md lines 16-17, 76 ("alpha — placeholder sprites")
+# Generate all assets
+make assets
+
+# Preview what will be generated
+make assets-preview
+
+# Generate specific types
+make assets-investigators
+make assets-locations
+make assets-tokens
+make assets-ui
+
+# Deploy to client
+make assets-deploy
+```
+
+**Asset Pipeline Files**:
+- `assets/investigators.yaml` — 15+ investigator portraits for all modules
+- `assets/locations.yaml` — 15+ location backgrounds (Arkham neighborhoods, museum, global)
+- `assets/tokens.yaml` — 20+ game tokens (resources, actions, dice, module-specific)
+- `assets/ui-elements.yaml` — 15+ UI components (buttons, panels, icons, backgrounds)
+
+**Reproducibility**: All pipelines use fixed `seed_offset` values for consistent regeneration. Base seed: 42 (configurable via `BASE_SEED` environment variable).
+
+**Customization**: Team members can adjust prompts in pipeline files and regenerate specific assets. Metadata cascading ensures consistent styling across asset groups.
+
+**Dependencies**: 
+- SwarmUI running locally or remotely (default: `http://localhost:7801`)
+- `asset-generator` CLI installed (see `docs/ASSET_GENERATION.md`)
+
+**References**: 
+- `docs/ASSET_GENERATION.md` — Complete generation guide
+- `scripts/setup-asset-gen.sh` — Setup script for new team members
+- `scripts/generate-assets.sh` — Master generation script
+- README.md lines 16-17, 76 ("alpha — placeholder sprites")
+
+**Next Steps After Completion**:
+1. Remove "alpha — placeholder sprites" disclaimers from README
+2. Update CLIENT_SPEC.md with asset specifications
+3. Consider expanding asset library (expansions, variants, animations)
 
 ---
 
@@ -471,12 +526,18 @@ The placeholder art is an acknowledged constraint (no FFG copyrighted content) a
 - **Enterprise-Grade Monitoring**: Prometheus metrics and health endpoints operational
 - **Performance Excellence**: 200ms broadcast latency exceeds 500ms target by 2.5×
 
-**Project Status**: Production-ready for stated goals. Placeholder art is intentional (no FFG copyrighted content) and does not impact gameplay.
+**Project Status**: Production-ready for stated goals. Placeholder art replacement now accelerated via automated asset generation pipeline.
 
 **Recommended Next Steps**:
-1. **Short-term** (1-2 weeks): Priority 2 (client test coverage) + Priority 3 (Dead of Night expansion)
-2. **Medium-term** (1-2 months): Priority 1 (visual assets) with external artist collaboration
+1. **Immediate** (2-3 days): **Priority 1 (visual assets)** — Generate and integrate assets using configured `asset-generator` pipeline
+2. **Short-term** (1-2 weeks): Priority 2 (client test coverage) + Priority 3 (Dead of Night expansion)
 3. **Long-term** (3-6 months): Priority 4 (monitoring dashboards), Priority 5 (scenario editor), Priority 6 (advanced rules)
+
+**Recent Updates** (2026-05-19):
+- ✅ Integrated `asset-generator` for automated asset creation
+- ✅ Created 4 pipeline files covering all game assets (investigators, locations, tokens, UI)
+- ✅ Added Makefile targets and generation scripts
+- ✅ **Reduced Priority 1 effort estimate from 6-8 weeks to 2-3 days (90% reduction)**
 
 This roadmap provides a clear path forward while acknowledging the project's strong foundation and comprehensive feature set.
 

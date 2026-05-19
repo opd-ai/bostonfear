@@ -325,6 +325,39 @@ Xvfb :99 -screen 0 1024x768x24 &
 DISPLAY=:99 go test -race -tags=requires_display ./client/ebiten/app/... ./client/ebiten/render/...
 ```
 
+### Asset Generation
+
+BostonFear uses automated asset generation via `asset-generator` to create game sprites and UI elements.
+
+**Quick Start**:
+```bash
+# First-time setup
+./scripts/setup-asset-gen.sh
+
+# Generate all assets
+make assets
+
+# Generate specific asset types
+make assets-investigators  # Character portraits
+make assets-locations      # Location backgrounds  
+make assets-tokens         # Game tokens
+make assets-ui            # UI elements
+```
+
+**Asset Pipeline Files**:
+- `assets/investigators.yaml` — Character portraits for all game modules
+- `assets/locations.yaml` — Location backgrounds (Arkham neighborhoods, museums, global locations)
+- `assets/tokens.yaml` — Resource tokens, action icons, dice faces
+- `assets/ui-elements.yaml` — Buttons, panels, icons, backgrounds
+
+**Output**: Generated assets are placed in `output/` directory (git-ignored). Review and deploy to client using `make assets-deploy`.
+
+**Documentation**: See [`docs/ASSET_GENERATION.md`](docs/ASSET_GENERATION.md) for complete setup guide, customization options, and troubleshooting.
+
+**Requirements**: 
+- SwarmUI running locally or remotely (default: `http://localhost:7801`)
+- `asset-generator` CLI installed (see setup script)
+
 ## Game Flow Example
 
 1. **Player 1** moves from Downtown to University (Location System validates adjacency)

@@ -1,0 +1,132 @@
+# BostonFear - UI Element Asset Pipeline
+# Purpose: Generate UI components and interface elements
+# Last updated: 2026-05-19
+#
+# Usage:
+#   make assets-ui
+#   asset-generator pipeline --file assets/ui-elements.yaml
+#
+# Output: output/ui/
+# Resolution: varies by element type
+
+assets:
+  # Button Assets
+  - name: UI Buttons
+    output_dir: output/ui/buttons
+    seed_offset: 9000
+    width: 512
+    length: 128
+    steps: 25
+    
+    metadata:
+      style: "game UI button, clean design, professional interface element"
+      view: "flat UI element, centered composition"
+      quality: "sharp edges, clear design, professional quality"
+      negative: "blurry, low quality, 3D effect, text, watermark"
+    
+    assets:
+      - id: btn_primary
+        name: primary-button
+        prompt: "blue action button, glowing effect, game UI button, modern design"
+        filename: "button_primary.png"
+      
+      - id: btn_secondary
+        name: secondary-button
+        prompt: "gray neutral button, subtle effect, game UI button, modern design"
+        filename: "button_secondary.png"
+      
+      - id: btn_danger
+        name: danger-button
+        prompt: "red warning button, alert style, game UI button, modern design"
+        filename: "button_danger.png"
+
+  # Panel Backgrounds
+  - name: UI Panels
+    output_dir: output/ui/panels
+    seed_offset: 9100
+    width: 800
+    length: 600
+    steps: 25
+    
+    metadata:
+      style: "game UI panel background, subtle texture, professional interface"
+      view: "flat panel surface, centered"
+      quality: "clean design, professional quality"
+      negative: "blurry, low quality, busy pattern, text, watermark"
+    
+    assets:
+      - id: panel_game
+        name: game-panel
+        prompt: "dark semi-transparent game panel, subtle border glow, professional game UI"
+        filename: "panel_game.png"
+      
+      - id: panel_info
+        name: info-panel
+        prompt: "light information panel, clean background, subtle texture, game UI"
+        filename: "panel_info.png"
+      
+      - id: panel_player
+        name: player-panel
+        prompt: "player stats panel background, character card style, game UI border"
+        filename: "panel_player.png"
+
+  # Icon Set
+  - name: UI Icons
+    output_dir: output/ui/icons
+    seed_offset: 9200
+    width: 128
+    length: 128
+    steps: 25
+    
+    metadata:
+      style: "minimal UI icon, clean vector style, modern interface icon"
+      view: "centered icon, simple composition"
+      background: "transparent or minimal background"
+      quality: "sharp focus, clear symbol, professional quality"
+      negative: "blurry, low quality, complex details, text, watermark"
+    
+    assets:
+      - id: icon_settings
+        name: settings
+        prompt: "gear icon, settings symbol, minimal design, monochrome UI icon"
+        filename: "icon_settings.png"
+      
+      - id: icon_help
+        name: help
+        prompt: "question mark icon, help symbol, clean circle design, UI icon"
+        filename: "icon_help.png"
+      
+      - id: icon_menu
+        name: menu
+        prompt: "hamburger menu icon, three horizontal lines, minimal UI icon"
+        filename: "icon_menu.png"
+      
+      - id: icon_close
+        name: close
+        prompt: "X close icon, exit symbol, minimal clean design, UI icon"
+        filename: "icon_close.png"
+
+  # Background Elements
+  - name: Background Atmospheres
+    output_dir: output/ui/backgrounds
+    seed_offset: 9300
+    width: 1600
+    length: 900
+    steps: 35
+    
+    metadata:
+      style: "atmospheric background, subtle mood lighting, professional game background"
+      mood: "mysterious and atmospheric, not distracting"
+      quality: "high quality, subtle details, professional"
+      negative: "blurry, overly bright, distracting details, text, watermark"
+    
+    assets:
+      - id: bg_main_menu
+        name: main-menu
+        prompt: "dark mysterious background, subtle eldritch atmosphere, cosmic horror theme, very subtle details"
+        filename: "bg_main_menu.png"
+      
+      - id: bg_game
+        name: game-background
+        prompt: "dark vignette background, subtle texture, non-distracting game backdrop, atmospheric"
+        filename: "bg_game.png"

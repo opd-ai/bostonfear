@@ -1,0 +1,125 @@
+# BostonFear - Investigator Asset Pipeline
+# Purpose: Generate investigator portrait sprites for all game modules
+# Last updated: 2026-05-19
+#
+# Usage:
+#   make assets-investigators
+#   asset-generator pipeline --file assets/investigators.yaml
+#
+# Output: output/investigators/
+# Resolution: 512x512 (portrait sprites)
+
+assets:
+  # Arkham Horror Investigators
+  - name: Arkham Horror - Core Investigators
+    output_dir: output/investigators/arkhamhorror/core
+    seed_offset: 1000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "1920s investigator portrait, Arkham Horror style, detailed character art, professional quality"
+      era: "1920s period clothing and styling"
+      mood: "serious and determined, facing supernatural threats"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, modern clothing, text, watermark"
+    
+    assets:
+      - id: inv_roland_banks
+        name: roland-banks
+        prompt: "male federal agent, stern expression, dark suit and tie, short dark hair, square jaw, 1920s detective"
+        filename: "roland_banks.png"
+      
+      - id: inv_daisy_walker
+        name: daisy-walker
+        prompt: "female librarian, intelligent gaze, round glasses, brown hair in bun, cardigan and modest dress, bookish"
+        filename: "daisy_walker.png"
+      
+      - id: inv_skids_otoole
+        name: skids-otoole
+        prompt: "male ex-convict, rugged appearance, leather jacket, stubble, street-smart expression, tough guy"
+        filename: "skids_otoole.png"
+      
+      - id: inv_agnes_baker
+        name: agnes-baker
+        prompt: "elderly female waitress, kind but weary face, gray hair, simple work dress, mystical aura"
+        filename: "agnes_baker.png"
+      
+      - id: inv_wendy_adams
+        name: wendy-adams
+        prompt: "young female urchin, street kid, tattered but clean clothes, blonde hair, innocent but tough expression"
+        filename: "wendy_adams.png"
+
+  # Elder Sign Investigators
+  - name: Elder Sign - Museum Investigators
+    output_dir: output/investigators/eldersign/core
+    seed_offset: 2000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "1920s investigator portrait, Elder Sign museum setting, detailed character art"
+      era: "1920s period clothing"
+      setting: "museum investigator, scholarly appearance"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, modern clothing, text, watermark"
+    
+    assets:
+      - id: inv_harvey_walters
+        name: harvey-walters
+        prompt: "elderly male professor, white beard, tweed jacket, wise and scholarly, reading glasses"
+        filename: "harvey_walters.png"
+      
+      - id: inv_monterey_jack
+        name: monterey-jack
+        prompt: "male archaeologist adventurer, leather jacket, fedora hat, rugged explorer, confident smile"
+        filename: "monterey_jack.png"
+
+  # Eldritch Horror Investigators  
+  - name: Eldritch Horror - Global Investigators
+    output_dir: output/investigators/eldritchhorror/core
+    seed_offset: 3000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "1920s investigator portrait, world traveler, Eldritch Horror style, detailed character art"
+      era: "1920s period clothing and global styling"
+      setting: "international investigator, ready for global adventure"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, modern clothing, text, watermark"
+    
+    assets:
+      - id: inv_charlie_kane
+        name: charlie-kane
+        prompt: "wealthy male politician, expensive suit, distinguished appearance, silver hair, charismatic"
+        filename: "charlie_kane.png"
+      
+      - id: inv_diana_stanley
+        name: diana-stanley
+        prompt: "female cultist redeemed, dark dramatic clothing, intense gaze, mysterious aura, occult jewelry"
+        filename: "diana_stanley.png"
+
+  # Final Hour Investigators
+  - name: Final Hour - Countdown Investigators
+    output_dir: output/investigators/finalhour/core
+    seed_offset: 4000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "modern investigator portrait, urgent atmosphere, Final Hour style, detailed character art"
+      era: "contemporary modern clothing"
+      mood: "urgency and desperation, racing against time"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_final_survivor
+        name: final-survivor
+        prompt: "determined survivor, tactical gear, intense focused expression, modern urban explorer"
+        filename: "final_survivor.png"

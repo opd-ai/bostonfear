@@ -1,0 +1,115 @@
+# BostonFear - Location Asset Pipeline
+# Purpose: Generate location background sprites for all game modules
+# Last updated: 2026-05-19
+#
+# Usage:
+#   make assets-locations
+#   asset-generator pipeline --file assets/locations.yaml
+#
+# Output: output/locations/
+# Resolution: 1024x768 (landscape backgrounds)
+
+assets:
+  # Arkham Horror Locations
+  - name: Arkham Horror - Core Neighborhoods
+    output_dir: output/locations/arkhamhorror
+    seed_offset: 5000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "1920s New England town location, atmospheric, moody lighting, detailed environment art"
+      era: "1920s architecture and styling"
+      mood: "mysterious and ominous, supernatural undertones"
+      view: "establishing shot, isometric or slight angle view"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, modern elements, cars, people, text, watermark"
+    
+    assets:
+      - id: loc_downtown
+        name: downtown
+        prompt: "1920s downtown business district, brick buildings, streetlamps, foggy evening atmosphere, Arkham Massachusetts"
+        filename: "downtown.png"
+      
+      - id: loc_university
+        name: university
+        prompt: "Miskatonic University campus, ivy-covered academic buildings, gothic architecture, library tower, autumn evening"
+        filename: "university.png"
+      
+      - id: loc_rivertown
+        name: rivertown
+        prompt: "riverside dock district, old warehouses, Miskatonic River, wooden piers, misty waterfront, industrial area"
+        filename: "rivertown.png"
+      
+      - id: loc_northside
+        name: northside
+        prompt: "residential neighborhood, victorian houses, tree-lined streets, quiet suburban area, twilight atmosphere"
+        filename: "northside.png"
+
+  # Elder Sign Locations
+  - name: Elder Sign - Museum Locations
+    output_dir: output/locations/eldersign
+    seed_offset: 6000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "museum interior location, 1920s exhibit halls, atmospheric lighting, detailed environment"
+      era: "1920s museum architecture"
+      setting: "indoor museum spaces with artifacts"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, modern elements, people, text, watermark"
+    
+    assets:
+      - id: loc_entrance_hall
+        name: entrance-hall
+        prompt: "grand museum entrance hall, marble floors, high ceiling, exhibit displays, ornate architecture"
+        filename: "entrance_hall.png"
+      
+      - id: loc_egyptian_wing
+        name: egyptian-wing
+        prompt: "Egyptian artifacts exhibit, sarcophagi, hieroglyphics, ancient relics, dramatic museum lighting"
+        filename: "egyptian_wing.png"
+      
+      - id: loc_library_archives
+        name: library-archives
+        prompt: "museum research library, floor-to-ceiling bookshelves, reading tables, antique globes, scholarly atmosphere"
+        filename: "library_archives.png"
+
+  # Eldritch Horror Locations
+  - name: Eldritch Horror - Global Locations
+    output_dir: output/locations/eldritchhorror
+    seed_offset: 7000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "1920s international location, exotic atmosphere, travel poster aesthetic, detailed environment"
+      era: "1920s period styling"
+      mood: "mysterious and exotic, global adventure"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, modern elements, people, text, watermark"
+    
+    assets:
+      - id: loc_london
+        name: london
+        prompt: "1920s London street, Big Ben in distance, foggy Thames riverside, gas lamps, Victorian architecture"
+        filename: "london.png"
+      
+      - id: loc_cairo
+        name: cairo
+        prompt: "1920s Cairo marketplace, pyramids in background, bazaar stalls, desert architecture, exotic atmosphere"
+        filename: "cairo.png"
+      
+      - id: loc_tokyo
+        name: tokyo
+        prompt: "1920s Tokyo street, traditional architecture mixed with early modern, cherry blossoms, oriental atmosphere"
+        filename: "tokyo.png"
+      
+      - id: loc_antarctica
+        name: antarctica
+        prompt: "Antarctic research outpost, snow and ice, harsh environment, isolated building, aurora in sky, desolate"
+        filename: "antarctica.png"
