@@ -1,0 +1,41 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "cond.haunted"
+    name: "Haunted"
+    summary: "Spectral visions drain composure over time."
+    enabled: true
+    version: 1
+    conditionPolarity: "bane"
+    duration: "persistent"
+    expireTrigger: "conditionMet"
+    effect: {composureLoss: 1, triggerCondition: "turnEnd"}
+  - id: "cond.death-touched"
+    name: "Death-Touched"
+    summary: "Contact with spirits leaves lasting chill."
+    enabled: true
+    version: 1
+    conditionPolarity: "bane"
+    duration: "round"
+    expireTrigger: "roundEnd"
+    effect: {testPenalty: -1}
+  - id: "cond.exhausted"
+    name: "Exhausted"
+    summary: "Physical fatigue reduces effectiveness."
+    enabled: true
+    version: 1
+    conditionPolarity: "bane"
+    duration: "turn"
+    expireTrigger: "turnEnd"
+    effect: {actionCount: -1}
+  - id: "cond.sleepless"
+    name: "Sleepless"
+    summary: "Insomnia impairs mental clarity."
+    enabled: true
+    version: 1
+    conditionPolarity: "bane"
+    duration: "persistent"
+    expireTrigger: "conditionMet"
+    effect: {composureLoss: 1, triggerCondition: "testFailed"}

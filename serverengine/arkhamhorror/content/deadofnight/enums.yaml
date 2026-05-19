@@ -1,0 +1,13 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "enum.encounterDeck"
+    enabled: true
+    version: 1
+    values: ["museum", "graveyard", "nocturnal"]
+  - id: "enum.districtType"
+    enabled: true
+    version: 1
+    values: ["museum", "cemetery", "mausoleum", "exhibition-hall", "archives"]

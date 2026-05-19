@@ -1,0 +1,61 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "enc.museum-midnight-bell"
+    name: "Midnight Bell"
+    summary: "Ancient bell chimes, summoning threats from exhibits."
+    enabled: true
+    version: 1
+    encounterDeck: "museum"
+    effect: {spawnThreat: "thr.museum-sentinel", count: 1}
+  - id: "enc.museum-artifact-awakening"
+    name: "Artifact Awakening"
+    summary: "Dormant relics stir with malevolent life."
+    enabled: true
+    version: 1
+    encounterDeck: "museum"
+    effect: {spawnThreat: "thr.cursed-relic", count: 2}
+  - id: "enc.museum-shadow-gallery"
+    name: "Shadow Gallery"
+    summary: "Darkness spreads through exhibition halls."
+    enabled: true
+    version: 1
+    encounterDeck: "museum"
+    effect: {composureLoss: 1, affectsAll: true}
+  - id: "enc.graveyard-rising-dead"
+    name: "Rising Dead"
+    summary: "Corpses claw free from shallow graves."
+    enabled: true
+    version: 1
+    encounterDeck: "graveyard"
+    effect: {spawnThreat: "thr.grave-revenant", count: 2}
+  - id: "enc.graveyard-mist-veil"
+    name: "Mist Veil"
+    summary: "Spectral fog obscures vision and drains life."
+    enabled: true
+    version: 1
+    encounterDeck: "graveyard"
+    effect: {vitalityLoss: 1, composureLoss: 1, affectsAll: true}
+  - id: "enc.graveyard-spectral-moaning"
+    name: "Spectral Moaning"
+    summary: "Ghostly wails echo across tombstones."
+    enabled: true
+    version: 1
+    encounterDeck: "graveyard"
+    effect: {spawnThreat: "thr.spectral-warden", count: 1}
+  - id: "enc.nocturnal-witching-hour"
+    name: "Witching Hour"
+    summary: "Supernatural forces surge at peak darkness."
+    enabled: true
+    version: 1
+    encounterDeck: "nocturnal"
+    effect: {doomIncrease: 1, spawnThreat: "random", count: 1}
+  - id: "enc.nocturnal-moon-eclipse"
+    name: "Moon Eclipse"
+    summary: "Darkness deepens; all tests become harder."
+    enabled: true
+    version: 1
+    encounterDeck: "nocturnal"
+    effect: {difficultyIncrease: 1, duration: "round"}

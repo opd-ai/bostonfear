@@ -414,11 +414,11 @@
    - Side quests (optional objectives for bonus resources)
 
 **Implementation Path** (per expansion):
-- [ ] Define new content in `serverengine/arkhamhorror/content/{expansion_name}/`
-- [ ] Add scenario YAML/JSON files with expansion-specific encounters
-- [ ] Register investigators in content loader
-- [ ] Add tests verifying expansion scenarios load and play correctly
-- [ ] Update `serverengine/arkhamhorror/README.md` with expansion list
+- [x] Define new content in `serverengine/arkhamhorror/content/{expansion_name}/` — Dead of Night expansion created
+- [x] Add scenario YAML/JSON files with expansion-specific encounters — Museum Awakening and Graveyard Rising scenarios added
+- [x] Register investigators in content loader — 4 new investigators defined with unique abilities
+- [x] Add tests verifying expansion scenarios load and play correctly — deadofnight_test.go validates all content
+- [x] Update `serverengine/arkhamhorror/README.md` with expansion list — Documentation updated with expansion details
 
 **Validation**: Server can load expansion content; new scenarios appear in scenario selection; new investigators available in character selection.
 

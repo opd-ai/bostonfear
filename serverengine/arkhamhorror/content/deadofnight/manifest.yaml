@@ -1,0 +1,40 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+defaultScenarioId: "scn.deadofnight.museum-awakening"
+dependencies: ["nightglass.core"]
+files:
+  - path: "serverengine/arkhamhorror/content/deadofnight/enums.yaml"
+    kind: "enum-index"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/base-set/investigators.yaml"
+    kind: "investigators"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/base-set/items.yaml"
+    kind: "items"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/base-set/abilities.yaml"
+    kind: "abilities"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/base-set/threats.yaml"
+    kind: "threats"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/base-set/encounters.yaml"
+    kind: "encounters"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/base-set/conditions.yaml"
+    kind: "conditions"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/scenarios/index.yaml"
+    kind: "scenario-index"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/scenarios/deadofnight-museum-awakening.yaml"
+    kind: "scenario"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/scenarios/deadofnight-graveyard-rising.yaml"
+    kind: "scenario"
+    required: true
+  - path: "serverengine/arkhamhorror/content/deadofnight/text/en-US.yaml"
+    kind: "localization"
+    required: false

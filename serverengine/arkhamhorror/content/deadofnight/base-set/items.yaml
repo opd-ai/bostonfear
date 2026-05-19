@@ -1,0 +1,59 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "itm.silver-lantern"
+    name: "Silver Lantern"
+    summary: "Blessed lantern that reveals hidden threats."
+    enabled: true
+    version: 1
+    itemSlot: "hand"
+    cost: {res.salvage: 2}
+    effect: {revealThreat: true, range: 2}
+    charges: 3
+  - id: "itm.burial-shroud"
+    name: "Burial Shroud"
+    summary: "Ancient cloth that wards against spectral attacks."
+    enabled: true
+    version: 1
+    itemSlot: "body"
+    cost: {res.salvage: 1}
+    effect: {damageReduction: 2, threatClass: "whisper"}
+    charges: 0
+  - id: "itm.obsidian-amulet"
+    name: "Obsidian Amulet"
+    summary: "Dark stone that absorbs malign energy."
+    enabled: true
+    version: 1
+    itemSlot: "trinket"
+    cost: {res.focus: 1}
+    effect: {composureProtect: 3}
+    charges: 2
+  - id: "itm.grave-dirt"
+    name: "Grave Dirt"
+    summary: "Consecrated earth used in protective rituals."
+    enabled: true
+    version: 1
+    itemSlot: "consumable"
+    cost: {res.salvage: 1}
+    effect: {wardBonus: 2, duration: "turn"}
+    charges: 1
+  - id: "itm.bone-whistle"
+    name: "Bone Whistle"
+    summary: "Carved whistle that summons helpful spirits."
+    enabled: true
+    version: 1
+    itemSlot: "trinket"
+    cost: {res.composure: 1}
+    effect: {extraAction: true}
+    charges: 2
+  - id: "itm.museum-key"
+    name: "Museum Master Key"
+    summary: "Grants access to restricted exhibition halls."
+    enabled: true
+    version: 1
+    itemSlot: "trinket"
+    cost: {}
+    effect: {unlockLocation: true}
+    charges: 0

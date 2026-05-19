@@ -1,0 +1,18 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+defaultScenarioId: "scn.deadofnight.museum-awakening"
+records:
+  - id: "scn.deadofnight.museum-awakening"
+    name: "Museum Awakening"
+    summary: "Ancient relics come alive in the midnight museum."
+    enabled: true
+    version: 1
+    file: "serverengine/arkhamhorror/content/deadofnight/scenarios/deadofnight-museum-awakening.yaml"
+  - id: "scn.deadofnight.graveyard-rising"
+    name: "Graveyard Rising"
+    summary: "Contain the dead before they overrun the city."
+    enabled: true
+    version: 1
+    file: "serverengine/arkhamhorror/content/deadofnight/scenarios/deadofnight-graveyard-rising.yaml"

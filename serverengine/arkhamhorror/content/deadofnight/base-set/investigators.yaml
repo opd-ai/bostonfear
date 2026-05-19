@@ -1,0 +1,53 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "inv.evelyn-cross"
+    name: "Evelyn Cross"
+    summary: "Museum curator who deciphers ancient artifacts and forbidden relics."
+    enabled: true
+    version: 1
+    archetype: "analyst"
+    startingLocationId: "loc.museum-entrance"
+    stats: {vitalityMax: 7, composureMax: 10, wit: 3, force: 1, finesse: 2}
+    startingResources: {res.vitality: 7, res.composure: 10, res.leads: 2, res.focus: 2, res.salvage: 0}
+    passiveAbilityId: "abl.artifact-insight"
+    activeAbilityIds: ["abl.catalog-memory"]
+    personalConditionDeckIds: ["cond.haunted"]
+  - id: "inv.marcus-graves"
+    name: "Marcus Graves"
+    summary: "Gravekeeper who communes with restless spirits to uncover truths."
+    enabled: true
+    version: 1
+    archetype: "ritualist"
+    startingLocationId: "loc.old-cemetery"
+    stats: {vitalityMax: 8, composureMax: 9, wit: 2, force: 2, finesse: 2}
+    startingResources: {res.vitality: 8, res.composure: 9, res.leads: 1, res.focus: 2, res.salvage: 0}
+    passiveAbilityId: "abl.spirit-whisper"
+    activeAbilityIds: ["abl.grave-blessing"]
+    personalConditionDeckIds: ["cond.death-touched"]
+  - id: "inv.vera-night"
+    name: "Vera Night"
+    summary: "Night watchman skilled at patrolling darkness and spotting anomalies."
+    enabled: true
+    version: 1
+    archetype: "guardian"
+    startingLocationId: "loc.museum-entrance"
+    stats: {vitalityMax: 10, composureMax: 8, wit: 2, force: 3, finesse: 2}
+    startingResources: {res.vitality: 10, res.composure: 8, res.leads: 1, res.focus: 0, res.salvage: 1}
+    passiveAbilityId: "abl.nightwatch-vigilance"
+    activeAbilityIds: ["abl.flashlight-sweep"]
+    personalConditionDeckIds: ["cond.exhausted"]
+  - id: "inv.silas-thorne"
+    name: "Silas Thorne"
+    summary: "Occult scholar who translates forbidden texts under moonlight."
+    enabled: true
+    version: 1
+    archetype: "ritualist"
+    startingLocationId: "loc.old-cemetery"
+    stats: {vitalityMax: 6, composureMax: 10, wit: 3, force: 1, finesse: 2}
+    startingResources: {res.vitality: 6, res.composure: 10, res.leads: 2, res.focus: 2, res.salvage: 0}
+    passiveAbilityId: "abl.moon-reader"
+    activeAbilityIds: ["abl.binding-verse"]
+    personalConditionDeckIds: ["cond.sleepless"]

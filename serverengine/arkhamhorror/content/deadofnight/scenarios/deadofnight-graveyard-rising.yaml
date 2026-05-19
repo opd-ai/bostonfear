@@ -1,0 +1,91 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "scn.deadofnight.graveyard-rising"
+    name: "Graveyard Rising"
+    summary: "The dead rise from Old Cemetery as a dark ritual reaches completion."
+    enabled: true
+    version: 1
+    default: false
+    narrativePremise: "Investigators must halt the necromantic ritual and contain the undead before they spread throughout the city."
+    dependencies:
+      requiredLocationIds:
+        - "loc.old-cemetery"
+        - "loc.mausoleum"
+        - "loc.north-gate"
+        - "loc.catacombs"
+      requiredResourceIds:
+        - "res.vitality"
+        - "res.composure"
+        - "res.leads"
+        - "res.focus"
+        - "res.salvage"
+      requiredThreatIds:
+        - "thr.grave-revenant"
+        - "thr.spectral-warden"
+        - "thr.cursed-relic"
+      requiredEncounterIds:
+        - "enc.graveyard-rising-dead"
+        - "enc.graveyard-mist-veil"
+        - "enc.graveyard-spectral-moaning"
+        - "enc.nocturnal-witching-hour"
+    setup:
+      playerCount: {min: 1, max: 6}
+      startingLocationsByPlayerCount:
+        "1": ["loc.north-gate"]
+        "2": ["loc.north-gate", "loc.north-gate"]
+        "3": ["loc.north-gate", "loc.old-cemetery", "loc.north-gate"]
+        "4": ["loc.north-gate", "loc.old-cemetery", "loc.north-gate", "loc.old-cemetery"]
+        "5": ["loc.north-gate", "loc.old-cemetery", "loc.mausoleum", "loc.north-gate", "loc.old-cemetery"]
+        "6": ["loc.north-gate", "loc.old-cemetery", "loc.mausoleum", "loc.north-gate", "loc.old-cemetery", "loc.mausoleum"]
+      startingResources: {res.vitality: 9, res.composure: 7, res.leads: 1, res.focus: 1, res.salvage: 1}
+      startingGlobalResources: {res.nightfall: 2, res.ward-charge: 0}
+      initialThreatSpawns:
+        - when: "always"
+          threatId: "thr.grave-revenant"
+          locationId: "loc.old-cemetery"
+          count: 2
+        - when: "players>=3"
+          threatId: "thr.spectral-warden"
+          locationId: "loc.mausoleum"
+          count: 1
+        - when: "players>=5"
+          threatId: "thr.grave-revenant"
+          locationId: "loc.catacombs"
+          count: 2
+      encounterDeckComposition:
+        - deckId: "graveyard"
+          cards: ["enc.graveyard-rising-dead", "enc.graveyard-mist-veil", "enc.graveyard-spectral-moaning"]
+          weight: 70
+        - deckId: "nocturnal"
+          cards: ["enc.nocturnal-witching-hour", "enc.nocturnal-moon-eclipse"]
+          weight: 30
+    phases:
+      - phaseId: "setup"
+        name: "Cemetery Gates"
+        narrative: "Investigators gather at the cemetery as darkness falls."
+        trigger: "gameStart"
+        effects: []
+      - phaseId: "first-rising"
+        name: "The Dead Stir"
+        narrative: "Corpses begin clawing free from their graves."
+        trigger: "roundCount=2"
+        effects: [{spawnThreat: "thr.grave-revenant", count: 2}]
+      - phaseId: "ritual-peak"
+        name: "Ritual Crescendo"
+        narrative: "The necromancer's chant reaches fever pitch."
+        trigger: "doomLevel>=6"
+        effects: [{spawnThreat: "thr.spectral-warden", count: 1}, {doomIncrease: 2}]
+      - phaseId: "mass-rising"
+        name: "Mass Rising"
+        narrative: "Hundreds of corpses rise as one."
+        trigger: "doomLevel>=10"
+        effects: [{spawnThreat: "thr.grave-revenant", count: 4}]
+    victory:
+      condition: "ritualDisrupted=true AND leadsCollected>=6"
+      narrative: "The necromancer's ritual collapses. The dead return to their rest."
+    defeat:
+      condition: "doomLevel>=12 OR allInvestigatorsDefeated=true"
+      narrative: "The ritual completes. An army of undead marches on the city."

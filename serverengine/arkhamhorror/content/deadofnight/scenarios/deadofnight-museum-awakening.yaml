@@ -1,0 +1,86 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "scn.deadofnight.museum-awakening"
+    name: "Museum Awakening"
+    summary: "Ancient artifacts awaken in the city museum as midnight approaches."
+    enabled: true
+    version: 1
+    default: true
+    narrativePremise: "Investigators must contain animated exhibits and seal the cursed chamber before the museum becomes a gateway for elder horrors."
+    dependencies:
+      requiredLocationIds:
+        - "loc.museum-entrance"
+        - "loc.exhibition-hall"
+        - "loc.ancient-egypt-wing"
+        - "loc.curator-office"
+      requiredResourceIds:
+        - "res.vitality"
+        - "res.composure"
+        - "res.leads"
+        - "res.focus"
+        - "res.salvage"
+      requiredThreatIds:
+        - "thr.museum-sentinel"
+        - "thr.cursed-relic"
+        - "thr.spectral-warden"
+      requiredEncounterIds:
+        - "enc.museum-midnight-bell"
+        - "enc.museum-artifact-awakening"
+        - "enc.museum-shadow-gallery"
+        - "enc.nocturnal-witching-hour"
+    setup:
+      playerCount: {min: 1, max: 6}
+      startingLocationsByPlayerCount:
+        "1": ["loc.museum-entrance"]
+        "2": ["loc.museum-entrance", "loc.museum-entrance"]
+        "3": ["loc.museum-entrance", "loc.exhibition-hall", "loc.museum-entrance"]
+        "4": ["loc.museum-entrance", "loc.exhibition-hall", "loc.museum-entrance", "loc.exhibition-hall"]
+        "5": ["loc.museum-entrance", "loc.exhibition-hall", "loc.curator-office", "loc.museum-entrance", "loc.exhibition-hall"]
+        "6": ["loc.museum-entrance", "loc.exhibition-hall", "loc.curator-office", "loc.museum-entrance", "loc.exhibition-hall", "loc.curator-office"]
+      startingResources: {res.vitality: 8, res.composure: 8, res.leads: 1, res.focus: 1, res.salvage: 0}
+      startingGlobalResources: {res.nightfall: 0, res.ward-charge: 0}
+      initialThreatSpawns:
+        - when: "always"
+          threatId: "thr.museum-sentinel"
+          locationId: "loc.exhibition-hall"
+          count: 1
+        - when: "players>=3"
+          threatId: "thr.cursed-relic"
+          locationId: "loc.ancient-egypt-wing"
+          count: 1
+        - when: "players>=5"
+          threatId: "thr.spectral-warden"
+          locationId: "loc.curator-office"
+          count: 1
+      encounterDeckComposition:
+        - deckId: "museum"
+          cards: ["enc.museum-midnight-bell", "enc.museum-artifact-awakening", "enc.museum-shadow-gallery"]
+          weight: 60
+        - deckId: "nocturnal"
+          cards: ["enc.nocturnal-witching-hour", "enc.nocturnal-moon-eclipse"]
+          weight: 40
+    phases:
+      - phaseId: "setup"
+        name: "Museum Opens"
+        narrative: "Investigators arrive at the museum as the last visitors depart."
+        trigger: "gameStart"
+        effects: []
+      - phaseId: "midnight"
+        name: "Midnight Chimes"
+        narrative: "The clock strikes twelve. Exhibits begin to stir."
+        trigger: "roundCount=3"
+        effects: [{spawnThreat: "thr.museum-sentinel", count: 1}]
+      - phaseId: "awakening"
+        name: "Full Awakening"
+        narrative: "Ancient power surges through the museum halls."
+        trigger: "doomLevel>=8"
+        effects: [{spawnThreat: "thr.cursed-relic", count: 2}, {doomIncrease: 1}]
+    victory:
+      condition: "leadsCollected>=8 AND cursedChamberSealed=true"
+      narrative: "The cursed chamber is sealed. The museum grows silent once more."
+    defeat:
+      condition: "doomLevel>=12 OR allInvestigatorsDefeated=true"
+      narrative: "The museum erupts with otherworldly energy. The city is lost."

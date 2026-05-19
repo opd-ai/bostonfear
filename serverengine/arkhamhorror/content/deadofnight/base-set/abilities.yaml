@@ -1,0 +1,77 @@
+schemaVersion: "1.0.0"
+contentPackId: "deadofnight.expansion"
+language: "en-US"
+generatedAt: "2026-05-19T00:00:00Z"
+records:
+  - id: "abl.artifact-insight"
+    name: "Artifact Insight"
+    summary: "Gain 1 lead when investigating at museum locations."
+    enabled: true
+    version: 1
+    abilityType: "passive"
+    trigger: "actionEnd"
+    cost: {}
+    effect: {resourceGain: {res.leads: 1}, condition: "location=museum"}
+  - id: "abl.catalog-memory"
+    name: "Catalog Memory"
+    summary: "Spend 1 focus to reroll all dice once per turn."
+    enabled: true
+    version: 1
+    abilityType: "activated"
+    trigger: "testRolled"
+    cost: {res.focus: 1}
+    effect: {rerollAll: true, maxPerTurn: 1}
+  - id: "abl.spirit-whisper"
+    name: "Spirit Whisper"
+    summary: "+1 to all tests at graveyard locations."
+    enabled: true
+    version: 1
+    abilityType: "passive"
+    trigger: "testRolled"
+    cost: {}
+    effect: {diceBonus: 1, condition: "location=graveyard"}
+  - id: "abl.grave-blessing"
+    name: "Grave Blessing"
+    summary: "Spend 1 composure to give all investigators +1 to next test."
+    enabled: true
+    version: 1
+    abilityType: "activated"
+    trigger: "actionStart"
+    cost: {res.composure: 1}
+    effect: {teamBonus: 1, duration: "nextTest"}
+  - id: "abl.nightwatch-vigilance"
+    name: "Nightwatch Vigilance"
+    summary: "Automatically spot threats within 1 location distance."
+    enabled: true
+    version: 1
+    abilityType: "passive"
+    trigger: "threatSpawned"
+    cost: {}
+    effect: {reveal: true, range: 1}
+  - id: "abl.flashlight-sweep"
+    name: "Flashlight Sweep"
+    summary: "Spend 1 salvage to reveal all threats at current location."
+    enabled: true
+    version: 1
+    abilityType: "activated"
+    trigger: "actionStart"
+    cost: {res.salvage: 1}
+    effect: {revealAll: true, range: 0}
+  - id: "abl.moon-reader"
+    name: "Moon Reader"
+    summary: "+2 to ritual tests during night phase."
+    enabled: true
+    version: 1
+    abilityType: "passive"
+    trigger: "testRolled"
+    cost: {}
+    effect: {diceBonus: 2, condition: "phase=night"}
+  - id: "abl.binding-verse"
+    name: "Binding Verse"
+    summary: "Spend 2 focus to freeze a threat for 1 round."
+    enabled: true
+    version: 1
+    abilityType: "activated"
+    trigger: "actionStart"
+    cost: {res.focus: 2}
+    effect: {freezeThreat: true, duration: "round"}
