@@ -52,17 +52,23 @@ func TestLayoutF(t *testing.T) {
 
 	g := &Game{}
 
-	// 16:9 window (1280×720) → logical width = 1280*600/720 ≈ 1066
-	w, h := g.LayoutF(1280, 720)
+	// 16:9 window (1280×720) → logical width must exceed the 800-pixel minimum.
+	ow, oh := 1280.0, 720.0
+	w, h := g.LayoutF(ow, oh)
 	if int(h) != screenHeight {
 		t.Errorf("LayoutF height = %v, want %d", h, screenHeight)
 	}
-	want := int(1280 * float64(screenHeight) / 720)
-	if int(w) != want {
-		t.Errorf("LayoutF(1280,720) width = %v, want %d", w, want)
+	if int(w) <= 800 {
+		t.Errorf("LayoutF(1280,720) width = %v, want >800 for widescreen", w)
 	}
-	if screenWidth != want {
-		t.Errorf("screenWidth after LayoutF(1280,720) = %d, want %d", screenWidth, want)
+	// LayoutF must update the package-level screenWidth to the returned value.
+	if screenWidth != int(w) {
+		t.Errorf("screenWidth after LayoutF = %d, want %d", screenWidth, int(w))
+	}
+	// Verify the proportional formula: w = outsideW * screenHeight / outsideH (truncated).
+	wantF := ow * float64(screenHeight) / oh
+	if int(w) != int(wantF) {
+		t.Errorf("LayoutF(1280,720) width = %d, want %d", int(w), int(wantF))
 	}
 
 	// Portrait window (600×800) → clamped to minimum 800
