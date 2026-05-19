@@ -1,11 +1,10 @@
 package finalhour
 
 import (
-	"strings"
 	"testing"
 )
 
-func TestModuleNewEngineReturnsFinalHourPlaceholder(t *testing.T) {
+func TestModuleNewEngineReturnsFinalHourEngine(t *testing.T) {
 	module := NewModule()
 	if module == nil {
 		t.Fatal("expected module instance")
@@ -19,11 +18,24 @@ func TestModuleNewEngineReturnsFinalHourPlaceholder(t *testing.T) {
 		t.Fatal("expected non-nil engine")
 	}
 
+	// Verify engine can be started
 	startErr := engine.Start()
-	if startErr == nil {
-		t.Fatal("expected Start to return not-implemented error")
+	if startErr != nil {
+		t.Fatalf("Engine.Start() failed: %v", startErr)
 	}
-	if !strings.Contains(startErr.Error(), "not implemented") {
-		t.Fatalf("expected not-implemented error, got %v", startErr)
+}
+
+func TestModuleKey(t *testing.T) {
+	mod := NewModule()
+	if mod.Key() != "finalhour" {
+		t.Errorf("expected key 'finalhour', got '%s'", mod.Key())
+	}
+}
+
+func TestModuleDescription(t *testing.T) {
+	mod := NewModule()
+	desc := mod.Description()
+	if desc == "" {
+		t.Error("expected non-empty description")
 	}
 }

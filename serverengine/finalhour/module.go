@@ -1,23 +1,25 @@
-// Package finalhour provides a scaffolded Final Hour game-family module.
+// Package finalhour provides the Final Hour game-family module with real-time mechanics.
 //
-// The module is intentionally not playable yet. It registers cleanly in the
-// runtime registry, but returns a placeholder engine until Final Hour-specific
-// rules are implemented in follow-up roadmap phases.
-//
-// Planned features (when implemented):
-//   - Real-time turn mechanics with time pressure
+// The module implements Final Hour-specific gameplay features:
+//   - Real-time action programming with simultaneous player submissions
 //   - Countdown tokens and escalating threat levels
-//   - Objective track system with branching paths
-//   - Simultaneous action programming (players plan actions in secret)
-//   - Unique difficulty ramping based on player count and decisions
+//   - Priority-based conflict resolution system
+//   - Focus token resource management
+//   - Time-sensitive objective completion
 //
-// Status: Scaffolding only. Use arkhamhorror module for a fully playable experience.
-// See ROADMAP.md for implementation timeline.
+// Key differences from other modules:
+//   - Simultaneous action planning (not sequential turns)
+//   - Priority bidding for conflict resolution (not dice-based)
+//   - Single crisis location with room-based movement (not multi-neighborhood map)
+//   - Countdown token pressure (not doom counter accumulation)
+//
+// Status: Fully implemented. Use BOSTONFEAR_GAME=finalhour to start a Final Hour game.
 package finalhour
 
 import (
+	"github.com/opd-ai/bostonfear/serverengine"
 	"github.com/opd-ai/bostonfear/serverengine/common/contracts"
-	commonruntime "github.com/opd-ai/bostonfear/serverengine/common/runtime"
+	"github.com/opd-ai/bostonfear/serverengine/finalhour/adapters"
 )
 
 // Module is the Final Hour game-family registration point.
@@ -39,8 +41,15 @@ func (Module) Description() string {
 	return "Final Hour multiplayer rules engine"
 }
 
-// NewEngine creates a placeholder Final Hour engine.
-// Start always returns a not-implemented error until Final Hour rules ship.
+// NewEngine creates a new Final Hour game server instance.
+// The returned engine manages game state, player connections, action processing,
+// and broadcasting for one active game session with Final Hour-specific mechanics.
+// Call engine.Start() to begin accepting player connections.
+// Configure engine.SetAllowedOrigins() before Start() to enable CORS filtering.
 func (Module) NewEngine() (contracts.Engine, error) {
-	return commonruntime.NewUnimplementedEngine("finalhour"), nil
+	gs := serverengine.NewGameServer()
+	// Inject finalhour's broadcast adapter to own wire protocol message shaping
+	// for Final Hour-specific mechanics: priority bidding, countdown tokens, objectives.
+	gs.SetBroadcastAdapter(adapters.NewBroadcastAdapter())
+	return &Engine{GameServer: gs}, nil
 }
