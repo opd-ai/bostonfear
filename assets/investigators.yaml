@@ -223,3 +223,461 @@ assets:
         name: "Marcus Flynn (Veteran)"
         prompt: "male ex-military, combat-ready posture, experienced warrior expression, protecting others"
         filename: "marcus_flynn_veteran.png"
+
+  # Additional Investigator Variations - Set 1
+  - name: Additional Investigators - Professionals
+    output_dir: output/investigators/additional/professionals
+    seed_offset: 5000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "investigator portrait, professional character, detailed character art"
+      era: "1920s to modern period clothing"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_031
+        name: "Oliver Grant (Surgeon)"
+        prompt: "male surgeon, medical attire, surgical mask around neck, steady hands, clinical expression"
+        filename: "oliver_grant_surgeon.png"
+      
+      - id: inv_032
+        name: "Emma Price (Psychologist)"
+        prompt: "female psychologist, professional dress, empathetic expression, notepad in hand"
+        filename: "emma_price_psychologist.png"
+      
+      - id: inv_033
+        name: "Frank Chen (Pharmacist)"
+        prompt: "male chemist, lab coat, glasses, medicinal knowledge, analytical expression"
+        filename: "frank_chen_pharmacist.png"
+      
+      - id: inv_034
+        name: "Grace Hamilton (Lawyer)"
+        prompt: "female attorney, business suit, briefcase, sharp intelligent gaze"
+        filename: "grace_hamilton_lawyer.png"
+      
+      - id: inv_035
+        name: "Robert Mills (Architect)"
+        prompt: "male architect, drafting tools, blueprints, structural knowledge, focused expression"
+        filename: "robert_mills_architect.png"
+      
+      - id: inv_036
+        name: "Nina Volkov (Scientist)"
+        prompt: "female physicist, lab coat, research equipment, brilliant mind, intense focus"
+        filename: "nina_volkov_scientist.png"
+      
+      - id: inv_037
+        name: "David Park (Accountant)"
+        prompt: "male accountant, conservative suit, ledger book, detail-oriented expression"
+        filename: "david_park_accountant.png"
+      
+      - id: inv_038
+        name: "Maria Santos (Social Worker)"
+        prompt: "female social worker, practical clothing, compassionate expression, helping others"
+        filename: "maria_santos_social_worker.png"
+      
+      - id: inv_039
+        name: "Charles Webb (Historian)"
+        prompt: "male historian, tweed jacket, ancient texts, scholarly research, knowledgeable expression"
+        filename: "charles_webb_historian.png"
+      
+      - id: inv_040
+        name: "Alice Foster (Translator)"
+        prompt: "female linguist, multiple language books, interpreter skills, cultured appearance"
+        filename: "alice_foster_translator.png"
+
+  # Additional Investigators - Working Class
+  - name: Additional Investigators - Workers
+    output_dir: output/investigators/additional/workers
+    seed_offset: 6000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "investigator portrait, working class character, detailed character art"
+      era: "1920s period working clothes"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_041
+        name: "Joe Brennan (Mechanic)"
+        prompt: "male mechanic, work clothes, oil stains, wrench in hand, practical expression"
+        filename: "joe_brennan_mechanic.png"
+      
+      - id: inv_042
+        name: "Betty Cooper (Waitress)"
+        prompt: "female waitress, diner uniform, friendly demeanor, hardworking expression"
+        filename: "betty_cooper_waitress.png"
+      
+      - id: inv_043
+        name: "Sam Tucker (Taxi Driver)"
+        prompt: "male cab driver, driving cap, streetwise expression, urban knowledge"
+        filename: "sam_tucker_taxi_driver.png"
+      
+      - id: inv_044
+        name: "Ruby Martinez (Factory Worker)"
+        prompt: "female factory worker, work overalls, strong hands, determined expression"
+        filename: "ruby_martinez_factory_worker.png"
+      
+      - id: inv_045
+        name: "Pete O'Brien (Bartender)"
+        prompt: "male bartender, vest and shirtsleeves, observant expression, knows everyone"
+        filename: "pete_obrien_bartender.png"
+      
+      - id: inv_046
+        name: "Linda Gray (Secretary)"
+        prompt: "female secretary, office attire, typing skills, organized efficient expression"
+        filename: "linda_gray_secretary.png"
+      
+      - id: inv_047
+        name: "Mike Walsh (Dockworker)"
+        prompt: "male longshoreman, rough work clothes, muscular build, tough expression"
+        filename: "mike_walsh_dockworker.png"
+      
+      - id: inv_048
+        name: "Clara Novak (Seamstress)"
+        prompt: "female tailor, sewing materials, skilled hands, detail-focused expression"
+        filename: "clara_novak_seamstress.png"
+      
+      - id: inv_049
+        name: "George Kim (Grocer)"
+        prompt: "male shopkeeper, apron, friendly merchant, community connection"
+        filename: "george_kim_grocer.png"
+      
+      - id: inv_050
+        name: "Helen Berg (Laundress)"
+        prompt: "female laundry worker, practical dress, hardworking demeanor, strong character"
+        filename: "helen_berg_laundress.png"
+
+  # Additional Investigators - Artists & Writers
+  - name: Additional Investigators - Creative
+    output_dir: output/investigators/additional/creative
+    seed_offset: 7000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "investigator portrait, artistic character, detailed character art"
+      era: "1920s bohemian styling"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_051
+        name: "Leo Hartman (Playwright)"
+        prompt: "male dramatist, theatrical expression, script in hand, creative energy"
+        filename: "leo_hartman_playwright.png"
+      
+      - id: inv_052
+        name: "Violet Reed (Poet)"
+        prompt: "female poet, flowing artistic clothing, journal of verses, contemplative expression"
+        filename: "violet_reed_poet.png"
+      
+      - id: inv_053
+        name: "Julian Cross (Photographer)"
+        prompt: "male photographer, camera equipment, artistic eye, observant expression"
+        filename: "julian_cross_photographer.png"
+      
+      - id: inv_054
+        name: "Stella Morgan (Singer)"
+        prompt: "female jazz singer, elegant performance dress, vocal talent, stage presence"
+        filename: "stella_morgan_singer.png"
+      
+      - id: inv_055
+        name: "Arthur Blake (Novelist)"
+        prompt: "male writer, typewriter presence, creative struggle, intense writing expression"
+        filename: "arthur_blake_novelist.png"
+      
+      - id: inv_056
+        name: "Iris Caldwell (Sculptor)"
+        prompt: "female sculptor, work clothes, artistic vision, creative hands"
+        filename: "iris_caldwell_sculptor.png"
+      
+      - id: inv_057
+        name: "Felix Romano (Musician)"
+        prompt: "male jazz musician, instrument case, musical talent, bohemian appearance"
+        filename: "felix_romano_musician.png"
+      
+      - id: inv_058
+        name: "Mabel Quinn (Actress)"
+        prompt: "female stage actress, theatrical costume, dramatic expression, performer's presence"
+        filename: "mabel_quinn_actress.png"
+      
+      - id: inv_059
+        name: "Winston Cole (Critic)"
+        prompt: "male art critic, refined appearance, analytical gaze, cultured demeanor"
+        filename: "winston_cole_critic.png"
+      
+      - id: inv_060
+        name: "Pearl Dixon (Dancer)"
+        prompt: "female dancer, graceful posture, performance attire, artistic movement"
+        filename: "pearl_dixon_dancer.png"
+
+  # Additional Investigators - Occult & Mystical
+  - name: Additional Investigators - Mystics
+    output_dir: output/investigators/additional/mystics
+    seed_offset: 8000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "investigator portrait, mystical character, detailed character art"
+      era: "1920s mystical styling"
+      mood: "mysterious and arcane, spiritual presence"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_061
+        name: "Madame Zara (Fortune Teller)"
+        prompt: "female fortune teller, mystical robes, crystal ball, divination gifts"
+        filename: "madame_zara_fortune_teller.png"
+      
+      - id: inv_062
+        name: "Father Dominic (Exorcist)"
+        prompt: "male priest, religious vestments, cross pendant, spiritual warrior"
+        filename: "father_dominic_exorcist.png"
+      
+      - id: inv_063
+        name: "Sage Wu (Herbalist)"
+        prompt: "elderly Asian herbalist, traditional robes, medicinal knowledge, wise expression"
+        filename: "sage_wu_herbalist.png"
+      
+      - id: inv_064
+        name: "Luna Starling (Astrologer)"
+        prompt: "female astrologer, star charts, celestial knowledge, mystical appearance"
+        filename: "luna_starling_astrologer.png"
+      
+      - id: inv_065
+        name: "Ezra Blackwood (Warlock)"
+        prompt: "male reformed warlock, dark past, occult knowledge, haunted expression"
+        filename: "ezra_blackwood_warlock.png"
+      
+      - id: inv_066
+        name: "Morgana Vale (Witch)"
+        prompt: "female hereditary witch, natural magic, herbal components, wise woman"
+        filename: "morgana_vale_witch.png"
+      
+      - id: inv_067
+        name: "Brother Matthias (Monk)"
+        prompt: "male contemplative monk, simple robes, spiritual discipline, serene expression"
+        filename: "brother_matthias_monk.png"
+      
+      - id: inv_068
+        name: "Seraphina Moon (Channeler)"
+        prompt: "female spirit medium, trance state, spiritual connection, ethereal presence"
+        filename: "seraphina_moon_channeler.png"
+      
+      - id: inv_069
+        name: "Silas Thorn (Demonologist)"
+        prompt: "male demon expert, forbidden knowledge, protective wards, wary expression"
+        filename: "silas_thorn_demonologist.png"
+      
+      - id: inv_070
+        name: "Raven Crow (Shaman)"
+        prompt: "Native American shaman, tribal elements, spiritual power, ancestral wisdom"
+        filename: "raven_crow_shaman.png"
+
+  # Additional Investigators - Military & Law
+  - name: Additional Investigators - Authority
+    output_dir: output/investigators/additional/authority
+    seed_offset: 9000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "investigator portrait, authority figure, detailed character art"
+      era: "1920s to modern uniforms"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_071
+        name: "Captain Hayes (Navy Officer)"
+        prompt: "male naval officer, dress uniform, military bearing, experienced seaman"
+        filename: "captain_hayes_navy.png"
+      
+      - id: inv_072
+        name: "Sergeant Diaz (Police Officer)"
+        prompt: "female police sergeant, uniform, badge, street cop experience"
+        filename: "sergeant_diaz_police.png"
+      
+      - id: inv_073
+        name: "Major Bradford (Army Officer)"
+        prompt: "male army major, military uniform, command presence, tactical mind"
+        filename: "major_bradford_army.png"
+      
+      - id: inv_074
+        name: "Agent Monroe (Federal Agent)"
+        prompt: "female FBI agent, professional suit, investigative skills, determined expression"
+        filename: "agent_monroe_federal.png"
+      
+      - id: inv_075
+        name: "Marshal Carson (US Marshal)"
+        prompt: "male marshal, western elements mixed with 1920s, lawman presence"
+        filename: "marshal_carson_marshal.png"
+      
+      - id: inv_076
+        name: "Inspector Ross (Detective)"
+        prompt: "female inspector, detective's trench coat, sharp investigative mind"
+        filename: "inspector_ross_detective.png"
+      
+      - id: inv_077
+        name: "Corporal Kim (Soldier)"
+        prompt: "male infantry soldier, combat uniform, war veteran, battle-hardened"
+        filename: "corporal_kim_soldier.png"
+      
+      - id: inv_078
+        name: "Deputy Shaw (Sheriff Deputy)"
+        prompt: "female deputy sheriff, rural law enforcement, practical demeanor"
+        filename: "deputy_shaw_deputy.png"
+      
+      - id: inv_079
+        name: "Colonel Drake (Marine)"
+        prompt: "male marine colonel, dress blues, military discipline, leadership"
+        filename: "colonel_drake_marine.png"
+      
+      - id: inv_080
+        name: "Officer Park (Beat Cop)"
+        prompt: "male patrol officer, standard uniform, neighborhood knowledge, friendly cop"
+        filename: "officer_park_beat_cop.png"
+
+  # Additional Investigators - Scholars & Specialists
+  - name: Additional Investigators - Academics
+    output_dir: output/investigators/additional/academics
+    seed_offset: 10000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "investigator portrait, academic character, detailed character art"
+      era: "1920s academic styling"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_081
+        name: "Dr. Elizabeth Ward (Biologist)"
+        prompt: "female biologist, lab coat, microscope work, scientific curiosity"
+        filename: "dr_elizabeth_ward_biologist.png"
+      
+      - id: inv_082
+        name: "Professor Chen (Mathematician)"
+        prompt: "male mathematician, chalkboard equations, abstract thinking, scholarly appearance"
+        filename: "professor_chen_mathematician.png"
+      
+      - id: inv_083
+        name: "Dr. James Reed (Geologist)"
+        prompt: "male geologist, field equipment, rock samples, earth science expertise"
+        filename: "dr_james_reed_geologist.png"
+      
+      - id: inv_084
+        name: "Dr. Sarah Klein (Chemist)"
+        prompt: "female chemist, lab safety gear, chemical knowledge, experimental mindset"
+        filename: "dr_sarah_klein_chemist.png"
+      
+      - id: inv_085
+        name: "Professor Ali (Theologian)"
+        prompt: "male religious scholar, ancient texts, theological knowledge, contemplative"
+        filename: "professor_ali_theologian.png"
+      
+      - id: inv_086
+        name: "Dr. Maya Patel (Astronomer)"
+        prompt: "female astronomer, telescope, star charts, cosmic knowledge"
+        filename: "dr_maya_patel_astronomer.png"
+      
+      - id: inv_087
+        name: "Professor Volkov (Linguist)"
+        prompt: "male language expert, ancient manuscripts, translation skills, scholarly"
+        filename: "professor_volkov_linguist.png"
+      
+      - id: inv_088
+        name: "Dr. Laura Singh (Botanist)"
+        prompt: "female botanist, plant specimens, nature knowledge, field researcher"
+        filename: "dr_laura_singh_botanist.png"
+      
+      - id: inv_089
+        name: "Professor Green (Philosopher)"
+        prompt: "male philosopher, contemplative expression, deep thinking, scholarly robes"
+        filename: "professor_green_philosopher.png"
+      
+      - id: inv_090
+        name: "Dr. Rachel Gold (Psychologist)"
+        prompt: "female clinical psychologist, patient demeanor, understanding expression"
+        filename: "dr_rachel_gold_psychologist.png"
+
+  # Additional Investigators - Survivors & Outcasts
+  - name: Additional Investigators - Outsiders
+    output_dir: output/investigators/additional/outsiders
+    seed_offset: 11000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "investigator portrait, outsider character, detailed character art"
+      era: "1920s to modern street fashion"
+      mood: "resilient and resourceful, survivor mentality"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, bad anatomy, text, watermark"
+    
+    assets:
+      - id: inv_091
+        name: "Jake Rivers (Street Kid)"
+        prompt: "young male homeless youth, survival instincts, scrappy appearance, street smart"
+        filename: "jake_rivers_street_kid.png"
+      
+      - id: inv_092
+        name: "Candy Lopez (Prostitute)"
+        prompt: "female sex worker, tough survival, street knowledge, resilient spirit"
+        filename: "candy_lopez_prostitute.png"
+      
+      - id: inv_093
+        name: "Red Murphy (Gangster)"
+        prompt: "male reformed criminal, street clothes, dangerous past, redemption seeking"
+        filename: "red_murphy_gangster.png"
+      
+      - id: inv_094
+        name: "Ash Williams (Junkie)"
+        prompt: "recovering addict, worn appearance, fighting demons, redemption journey"
+        filename: "ash_williams_junkie.png"
+      
+      - id: inv_095
+        name: "Storm Rider (Biker)"
+        prompt: "male motorcycle rider, leather jacket, road warrior, independent spirit"
+        filename: "storm_rider_biker.png"
+      
+      - id: inv_096
+        name: "Pixie Dust (Runaway)"
+        prompt: "female teenage runaway, survival skills, found family, resourceful"
+        filename: "pixie_dust_runaway.png"
+      
+      - id: inv_097
+        name: "Ghost Walker (Vagrant)"
+        prompt: "male homeless wanderer, traveling gear, urban survivor, invisible to society"
+        filename: "ghost_walker_vagrant.png"
+      
+      - id: inv_098
+        name: "Scarlett Rose (Grifter)"
+        prompt: "female con artist, charming appearance, street smarts, survival by wit"
+        filename: "scarlett_rose_grifter.png"
+      
+      - id: inv_099
+        name: "Tank Morrison (Bouncer)"
+        prompt: "male security guard, intimidating build, protective nature, street enforcer"
+        filename: "tank_morrison_bouncer.png"
+      
+      - id: inv_100
+        name: "Blade Chen (Enforcer)"
+        prompt: "martial artist, street fighter skills, disciplined warrior, underground hero"
+        filename: "blade_chen_enforcer.png"
+

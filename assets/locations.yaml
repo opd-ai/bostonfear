@@ -113,3 +113,328 @@ assets:
         name: antarctica
         prompt: "Antarctic research outpost, snow and ice, harsh environment, isolated building, aurora in sky, desolate"
         filename: "antarctica.png"
+
+  # Additional Urban Locations
+  - name: Urban Locations - Various Districts
+    output_dir: output/locations/urban
+    seed_offset: 8000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "urban location, city environment, atmospheric lighting, detailed environment art"
+      era: "1920s to modern city architecture"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, people, cars, text, watermark"
+    
+    assets:
+      - id: loc_alley_01
+        name: "Dark Alley"
+        prompt: "narrow city alley, brick walls, fire escapes, trash bins, dim street light, urban decay"
+        filename: "dark_alley.png"
+      
+      - id: loc_subway_01
+        name: "Subway Station"
+        prompt: "underground metro station, tiled walls, platform, tracks, flickering lights, urban transit"
+        filename: "subway_station.png"
+      
+      - id: loc_warehouse_01
+        name: "Abandoned Warehouse"
+        prompt: "empty warehouse interior, high ceiling, broken windows, industrial decay, forgotten storage"
+        filename: "abandoned_warehouse.png"
+      
+      - id: loc_rooftop_01
+        name: "City Rooftop"
+        prompt: "building rooftop, city skyline view, water towers, ventilation units, urban heights"
+        filename: "city_rooftop.png"
+      
+      - id: loc_parking_01
+        name: "Parking Garage"
+        prompt: "underground parking structure, concrete pillars, dim lighting, empty parking spaces"
+        filename: "parking_garage.png"
+      
+      - id: loc_market_01
+        name: "Night Market"
+        prompt: "closed marketplace at night, vendor stalls, empty plaza, moonlight shadows"
+        filename: "night_market.png"
+      
+      - id: loc_factory_01
+        name: "Old Factory"
+        prompt: "abandoned factory floor, rusted machinery, broken equipment, industrial ruins"
+        filename: "old_factory.png"
+      
+      - id: loc_tenement_01
+        name: "Tenement Building"
+        prompt: "old apartment building interior, narrow hallway, worn stairs, urban housing"
+        filename: "tenement_building.png"
+      
+      - id: loc_theater_01
+        name: "Abandoned Theater"
+        prompt: "empty old theater, stage and seats, peeling paint, forgotten entertainment"
+        filename: "abandoned_theater.png"
+      
+      - id: loc_hospital_01
+        name: "Old Hospital"
+        prompt: "abandoned hospital ward, empty beds, medical equipment, eerie medical facility"
+        filename: "old_hospital.png"
+
+  # Residential Locations
+  - name: Residential Locations - Houses & Apartments
+    output_dir: output/locations/residential
+    seed_offset: 9000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "residential interior, home environment, intimate lighting, detailed environment art"
+      era: "1920s to modern home interiors"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, people, text, watermark"
+    
+    assets:
+      - id: loc_mansion_01
+        name: "Victorian Mansion"
+        prompt: "grand Victorian mansion interior, ornate furniture, chandelier, elegant decay"
+        filename: "victorian_mansion.png"
+      
+      - id: loc_apartment_01
+        name: "City Apartment"
+        prompt: "small city apartment interior, modest furnishings, cramped living space, urban dwelling"
+        filename: "city_apartment.png"
+      
+      - id: loc_basement_01
+        name: "Dark Basement"
+        prompt: "basement interior, low ceiling, storage boxes, single light bulb, damp atmosphere"
+        filename: "dark_basement.png"
+      
+      - id: loc_attic_01
+        name: "Dusty Attic"
+        prompt: "attic space, sloped ceiling, old trunks, cobwebs, forgotten storage"
+        filename: "dusty_attic.png"
+      
+      - id: loc_study_01
+        name: "Private Study"
+        prompt: "home study or library, bookshelves, desk, reading lamp, scholarly retreat"
+        filename: "private_study.png"
+      
+      - id: loc_parlor_01
+        name: "Parlor Room"
+        prompt: "Victorian parlor, formal sitting area, antique furniture, period decor"
+        filename: "parlor_room.png"
+      
+      - id: loc_kitchen_01
+        name: "Old Kitchen"
+        prompt: "vintage kitchen, old appliances, worn counters, domestic space"
+        filename: "old_kitchen.png"
+      
+      - id: loc_bedroom_01
+        name: "Master Bedroom"
+        prompt: "period bedroom, four-poster bed, wardrobe, personal sleeping quarters"
+        filename: "master_bedroom.png"
+      
+      - id: loc_conservatory_01
+        name: "Glass Conservatory"
+        prompt: "glass conservatory room, indoor plants, greenhouse atmosphere, natural light"
+        filename: "glass_conservatory.png"
+      
+      - id: loc_wine_cellar_01
+        name: "Wine Cellar"
+        prompt: "underground wine cellar, bottle racks, stone walls, cool storage"
+        filename: "wine_cellar.png"
+
+  # Outdoor Natural Locations
+  - name: Natural Locations - Wilderness & Rural
+    output_dir: output/locations/natural
+    seed_offset: 10000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "natural environment, outdoor location, atmospheric lighting, detailed environment art"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, people, modern elements, text, watermark"
+    
+    assets:
+      - id: loc_forest_01
+        name: "Dark Forest"
+        prompt: "dense dark woods, twisted trees, minimal light, ominous forest atmosphere"
+        filename: "dark_forest.png"
+      
+      - id: loc_swamp_01
+        name: "Misty Swamp"
+        prompt: "foggy swampland, murky water, dead trees, marsh environment"
+        filename: "misty_swamp.png"
+      
+      - id: loc_cave_01
+        name: "Cave Entrance"
+        prompt: "cave mouth opening, rocky entrance, darkness within, natural cavern"
+        filename: "cave_entrance.png"
+      
+      - id: loc_cliff_01
+        name: "Coastal Cliffs"
+        prompt: "rocky ocean cliffs, crashing waves, dramatic coastline, seaside precipice"
+        filename: "coastal_cliffs.png"
+      
+      - id: loc_desert_01
+        name: "Desert Wasteland"
+        prompt: "barren desert landscape, sand dunes, harsh sunlight, desolate terrain"
+        filename: "desert_wasteland.png"
+      
+      - id: loc_mountain_01
+        name: "Mountain Path"
+        prompt: "steep mountain trail, rocky path, high altitude, treacherous terrain"
+        filename: "mountain_path.png"
+      
+      - id: loc_lake_01
+        name: "Dark Lake"
+        prompt: "isolated forest lake, still water, overhanging trees, mysterious depths"
+        filename: "dark_lake.png"
+      
+      - id: loc_canyon_01
+        name: "Desert Canyon"
+        prompt: "deep canyon gorge, layered rock formations, dramatic shadows, geological wonder"
+        filename: "desert_canyon.png"
+      
+      - id: loc_field_01
+        name: "Abandoned Field"
+        prompt: "overgrown empty field, tall grass, scattered ruins, rural abandonment"
+        filename: "abandoned_field.png"
+      
+      - id: loc_quarry_01
+        name: "Stone Quarry"
+        prompt: "abandoned quarry pit, cut stone walls, flooded bottom, industrial extraction site"
+        filename: "stone_quarry.png"
+
+  # Historical & Ancient Locations
+  - name: Historical Locations - Ancient Sites
+    output_dir: output/locations/historical
+    seed_offset: 11000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "ancient location, historical site, mysterious atmosphere, detailed environment art"
+      era: "ancient to medieval architecture"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, modern elements, people, text, watermark"
+    
+    assets:
+      - id: loc_tomb_01
+        name: "Ancient Tomb"
+        prompt: "stone tomb interior, sarcophagi, hieroglyphs, ancient burial chamber"
+        filename: "ancient_tomb.png"
+      
+      - id: loc_temple_01
+        name: "Ruined Temple"
+        prompt: "crumbling temple structure, weathered columns, ancient worship site, overgrown ruins"
+        filename: "ruined_temple.png"
+      
+      - id: loc_catacombs_01
+        name: "Catacombs"
+        prompt: "underground catacombs, bone-lined walls, burial tunnels, ancient ossuary"
+        filename: "catacombs.png"
+      
+      - id: loc_pyramid_01
+        name: "Pyramid Interior"
+        prompt: "inside ancient pyramid, stone passages, hieroglyphic walls, treasure chamber"
+        filename: "pyramid_interior.png"
+      
+      - id: loc_castle_01
+        name: "Medieval Castle"
+        prompt: "medieval castle interior, stone halls, torch lighting, feudal architecture"
+        filename: "medieval_castle.png"
+      
+      - id: loc_monastery_01
+        name: "Abandoned Monastery"
+        prompt: "old monastery cloister, arched walkways, courtyard, religious architecture"
+        filename: "abandoned_monastery.png"
+      
+      - id: loc_amphitheater_01
+        name: "Roman Amphitheater"
+        prompt: "ancient amphitheater ruins, stone seating, arena floor, classical architecture"
+        filename: "roman_amphitheater.png"
+      
+      - id: loc_ziggurat_01
+        name: "Ancient Ziggurat"
+        prompt: "stepped pyramid ziggurat, Mesopotamian architecture, desert temple"
+        filename: "ancient_ziggurat.png"
+      
+      - id: loc_shrine_01
+        name: "Forgotten Shrine"
+        prompt: "overgrown ancient shrine, stone altar, ritual space, sacred ruins"
+        filename: "forgotten_shrine.png"
+      
+      - id: loc_dungeon_01
+        name: "Castle Dungeon"
+        prompt: "medieval dungeon cells, iron bars, stone walls, torture implements"
+        filename: "castle_dungeon.png"
+
+  # Commercial & Public Spaces
+  - name: Commercial Locations - Shops & Services
+    output_dir: output/locations/commercial
+    seed_offset: 12000
+    width: 1024
+    length: 768
+    steps: 40
+    
+    metadata:
+      style: "commercial interior, business environment, period appropriate, detailed environment art"
+      era: "1920s commercial spaces"
+      quality: "high detail, sharp focus, professional environment art"
+      negative: "blurry, low quality, people, modern elements, text, watermark"
+    
+    assets:
+      - id: loc_bookshop_01
+        name: "Antiquarian Bookshop"
+        prompt: "old bookshop interior, floor-to-ceiling shelves, rare volumes, dusty collection"
+        filename: "antiquarian_bookshop.png"
+      
+      - id: loc_pharmacy_01
+        name: "Old Pharmacy"
+        prompt: "vintage pharmacy interior, medicine bottles, wooden counters, apothecary"
+        filename: "old_pharmacy.png"
+      
+      - id: loc_bank_01
+        name: "Bank Interior"
+        prompt: "1920s bank interior, teller windows, vault door, marble floors, financial institution"
+        filename: "bank_interior.png"
+      
+      - id: loc_hotel_01
+        name: "Hotel Lobby"
+        prompt: "grand hotel lobby, reception desk, ornate furnishings, period hospitality"
+        filename: "hotel_lobby.png"
+      
+      - id: loc_diner_01
+        name: "Late Night Diner"
+        prompt: "vintage diner interior, counter stools, booths, neon signs, American eatery"
+        filename: "late_night_diner.png"
+      
+      - id: loc_barbershop_01
+        name: "Barber Shop"
+        prompt: "old-fashioned barbershop, barber chairs, mirrors, grooming establishment"
+        filename: "barber_shop.png"
+      
+      - id: loc_pawnshop_01
+        name: "Pawn Shop"
+        prompt: "cluttered pawn shop, shelves of items, display cases, secondhand goods"
+        filename: "pawn_shop.png"
+      
+      - id: loc_tailor_01
+        name: "Tailor Shop"
+        prompt: "tailoring shop interior, fabric bolts, sewing equipment, clothing workshop"
+        filename: "tailor_shop.png"
+      
+      - id: loc_speakeasy_01
+        name: "Hidden Speakeasy"
+        prompt: "prohibition speakeasy, hidden bar, dim lighting, secret establishment"
+        filename: "hidden_speakeasy.png"
+      
+      - id: loc_station_01
+        name: "Train Station"
+        prompt: "grand train station interior, platforms, arrivals board, transit hub"
+        filename: "train_station.png"
+

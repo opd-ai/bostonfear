@@ -157,3 +157,273 @@ assets:
         name: rumor
         prompt: "newspaper icon, investigation rumor marker, vintage paper aesthetic, game token"
         filename: "rumor.png"
+
+  # Status Effect Tokens
+  - name: Status Effects - Conditions
+    output_dir: output/tokens/status
+    seed_offset: 8500
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "status effect icon, clear symbol, game condition marker, professional game asset"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_blessed
+        name: "Blessed"
+        prompt: "holy light aura icon, divine blessing effect, golden glow, positive status"
+        filename: "blessed.png"
+      
+      - id: token_cursed
+        name: "Cursed"
+        prompt: "dark curse mark icon, malevolent effect, purple-black energy, negative status"
+        filename: "cursed.png"
+      
+      - id: token_poisoned
+        name: "Poisoned"
+        prompt: "toxic droplet icon, poison effect, sickly green color, damage over time"
+        filename: "poisoned.png"
+      
+      - id: token_stunned
+        name: "Stunned"
+        prompt: "spinning stars icon, dazed effect, yellow swirls, incapacitation"
+        filename: "stunned.png"
+      
+      - id: token_frightened
+        name: "Frightened"
+        prompt: "terror symbol icon, fear effect, panicked expression, fear status"
+        filename: "frightened.png"
+      
+      - id: token_confused
+        name: "Confused"
+        prompt: "question marks swirling icon, mental confusion, disorientation effect"
+        filename: "confused.png"
+      
+      - id: token_weakened
+        name: "Weakened"
+        prompt: "broken chain icon, strength reduction, faded power, debuff effect"
+        filename: "weakened.png"
+      
+      - id: token_empowered
+        name: "Empowered"
+        prompt: "radiating energy icon, power boost, glowing strength, buff effect"
+        filename: "empowered.png"
+
+  # Resource Variations
+  - name: Resource Tokens - Expanded
+    output_dir: output/tokens/resources_extra
+    seed_offset: 8600
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "resource token icon, clear symbol, game resource marker, professional game asset"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_money
+        name: "Money"
+        prompt: "dollar bills icon, currency resource, green cash, economic token"
+        filename: "money.png"
+      
+      - id: token_ammo
+        name: "Ammunition"
+        prompt: "bullet cartridges icon, ammo resource, brass shells, combat supply"
+        filename: "ammunition.png"
+      
+      - id: token_food
+        name: "Food"
+        prompt: "provisions icon, food supplies, survival resource, nourishment"
+        filename: "food.png"
+      
+      - id: token_medicine
+        name: "Medicine"
+        prompt: "medical kit icon, healing supplies, red cross, health resource"
+        filename: "medicine.png"
+      
+      - id: token_fuel
+        name: "Fuel"
+        prompt: "gasoline can icon, fuel resource, orange warning, vehicle supply"
+        filename: "fuel.png"
+      
+      - id: token_tools
+        name: "Tools"
+        prompt: "wrench and hammer icon, tool resource, utility equipment, crafting materials"
+        filename: "tools.png"
+      
+      - id: token_knowledge
+        name: "Knowledge"
+        prompt: "book icon, knowledge resource, scholarly wisdom, information"
+        filename: "knowledge.png"
+      
+      - id: token_influence
+        name: "Influence"
+        prompt: "charisma star icon, social influence, persuasion resource, leadership"
+        filename: "influence.png"
+
+  # Combat Tokens
+  - name: Combat Tokens - Battle Markers
+    output_dir: output/tokens/combat
+    seed_offset: 8700
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "combat token icon, battle marker, game combat asset, professional design"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_attack
+        name: "Attack"
+        prompt: "crossed swords icon, attack action, red aggressive energy, combat token"
+        filename: "attack.png"
+      
+      - id: token_defend
+        name: "Defend"
+        prompt: "shield icon, defensive stance, blue protective barrier, defense token"
+        filename: "defend.png"
+      
+      - id: token_evade
+        name: "Evade"
+        prompt: "dodge motion icon, evasion action, agility swirl, avoidance token"
+        filename: "evade.png"
+      
+      - id: token_damage
+        name: "Damage"
+        prompt: "explosion burst icon, damage marker, red impact, harm indicator"
+        filename: "damage.png"
+      
+      - id: token_armor
+        name: "Armor"
+        prompt: "plate armor icon, protection value, metallic defense, armor rating"
+        filename: "armor.png"
+      
+      - id: token_critical
+        name: "Critical Hit"
+        prompt: "star explosion icon, critical success, golden burst, maximum effect"
+        filename: "critical_hit.png"
+
+  # Location Markers
+  - name: Location Markers - Map Tokens
+    output_dir: output/tokens/locations
+    seed_offset: 8800
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "location marker icon, map pin, navigation token, professional game asset"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_destination
+        name: "Destination"
+        prompt: "map pin icon, location marker, red destination point, navigation"
+        filename: "destination.png"
+      
+      - id: token_blocked
+        name: "Blocked Path"
+        prompt: "barrier icon, blocked route, red X symbol, impassable marker"
+        filename: "blocked_path.png"
+      
+      - id: token_secret
+        name: "Secret Location"
+        prompt: "hidden door icon, secret passage, mysterious reveal, discovery marker"
+        filename: "secret_location.png"
+      
+      - id: token_safe_house
+        name: "Safe House"
+        prompt: "house with shield icon, sanctuary marker, green safety, refuge point"
+        filename: "safe_house.png"
+      
+      - id: token_danger_zone
+        name: "Danger Zone"
+        prompt: "hazard warning icon, dangerous area, red alert, threat marker"
+        filename: "danger_zone.png"
+
+  # Quest & Objective Tokens
+  - name: Quest Tokens - Objectives
+    output_dir: output/tokens/quests
+    seed_offset: 8900
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "quest marker icon, objective token, game mission asset, professional design"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_quest_active
+        name: "Active Quest"
+        prompt: "exclamation mark icon, active quest marker, yellow alert, mission available"
+        filename: "quest_active.png"
+      
+      - id: token_quest_complete
+        name: "Complete Quest"
+        prompt: "checkmark with ribbon icon, quest completion, green success, mission done"
+        filename: "quest_complete.png"
+      
+      - id: token_quest_failed
+        name: "Failed Quest"
+        prompt: "X mark icon, quest failure, red negative, mission failed"
+        filename: "quest_failed.png"
+      
+      - id: token_objective
+        name: "Objective Marker"
+        prompt: "target reticle icon, objective point, mission goal, quest target"
+        filename: "objective_marker.png"
+      
+      - id: token_optional
+        name: "Optional Objective"
+        prompt: "question mark icon, optional quest, bonus objective, side mission"
+        filename: "optional_objective.png"
+
+  # Time & Turn Tokens
+  - name: Time Tokens - Turn Management
+    output_dir: output/tokens/time
+    seed_offset: 9000
+    width: 256
+    length: 256
+    steps: 30
+    
+    metadata:
+      style: "time marker icon, turn counter, game timing asset, professional design"
+      quality: "sharp focus, clear icon, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: token_turn
+        name: "Turn Marker"
+        prompt: "circular arrow icon, turn indicator, blue rotation, round counter"
+        filename: "turn_marker.png"
+      
+      - id: token_round
+        name: "Round Counter"
+        prompt: "numbered circle icon, round counter, phase marker, cycle indicator"
+        filename: "round_counter.png"
+      
+      - id: token_timer
+        name: "Timer"
+        prompt: "hourglass icon, time limit, countdown timer, temporal pressure"
+        filename: "timer.png"
+      
+      - id: token_fast
+        name: "Fast Mode"
+        prompt: "double arrow icon, speed boost, accelerated time, quick action"
+        filename: "fast_mode.png"
+      
+      - id: token_slow
+        name: "Slow Mode"
+        prompt: "snail icon, slowed time, delayed effect, temporal reduction"
+        filename: "slow_mode.png"
+

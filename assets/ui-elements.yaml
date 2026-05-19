@@ -130,3 +130,323 @@ assets:
         name: game-background
         prompt: "dark vignette background, subtle texture, non-distracting game backdrop, atmospheric"
         filename: "bg_game.png"
+
+  # Additional Buttons - Expanded
+  - name: UI Buttons - Extended Set
+    output_dir: output/ui/buttons_extended
+    seed_offset: 9400
+    width: 512
+    length: 128
+    steps: 25
+    
+    metadata:
+      style: "game UI button, varied styles, professional interface element"
+      quality: "sharp edges, clear design, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: btn_success
+        name: "Success Button"
+        prompt: "green success button, positive confirmation, game UI"
+        filename: "button_success.png"
+      
+      - id: btn_warning
+        name: "Warning Button"
+        prompt: "yellow warning button, caution style, game UI"
+        filename: "button_warning.png"
+      
+      - id: btn_disabled
+        name: "Disabled Button"
+        prompt: "grayed out disabled button, inactive state, game UI"
+        filename: "button_disabled.png"
+      
+      - id: btn_large
+        name: "Large Action Button"
+        prompt: "large prominent button, call to action, dramatic style, game UI"
+        filename: "button_large.png"
+      
+      - id: btn_small
+        name: "Small Icon Button"
+        prompt: "compact icon button, minimal size, game UI control"
+        filename: "button_small.png"
+      
+      - id: btn_toggle_on
+        name: "Toggle On"
+        prompt: "toggle switch in on position, enabled state, game UI"
+        filename: "button_toggle_on.png"
+      
+      - id: btn_toggle_off
+        name: "Toggle Off"
+        prompt: "toggle switch in off position, disabled state, game UI"
+        filename: "button_toggle_off.png"
+
+  # Additional Icons - Navigation
+  - name: UI Icons - Navigation
+    output_dir: output/ui/icons_nav
+    seed_offset: 9500
+    width: 128
+    length: 128
+    steps: 25
+    
+    metadata:
+      style: "navigation icon, clean symbol, modern interface icon"
+      quality: "sharp focus, clear symbol, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: icon_home
+        name: "Home"
+        prompt: "house icon, home button, navigation symbol, UI icon"
+        filename: "icon_home.png"
+      
+      - id: icon_back
+        name: "Back Arrow"
+        prompt: "left arrow icon, back navigation, return symbol, UI icon"
+        filename: "icon_back.png"
+      
+      - id: icon_forward
+        name: "Forward Arrow"
+        prompt: "right arrow icon, forward navigation, proceed symbol, UI icon"
+        filename: "icon_forward.png"
+      
+      - id: icon_up
+        name: "Up Arrow"
+        prompt: "upward arrow icon, scroll up, elevation symbol, UI icon"
+        filename: "icon_up.png"
+      
+      - id: icon_down
+        name: "Down Arrow"
+        prompt: "downward arrow icon, scroll down, descend symbol, UI icon"
+        filename: "icon_down.png"
+      
+      - id: icon_refresh
+        name: "Refresh"
+        prompt: "circular refresh icon, reload symbol, update indicator, UI icon"
+        filename: "icon_refresh.png"
+      
+      - id: icon_search
+        name: "Search"
+        prompt: "magnifying glass icon, search function, find symbol, UI icon"
+        filename: "icon_search.png"
+      
+      - id: icon_filter
+        name: "Filter"
+        prompt: "funnel filter icon, sorting function, filter symbol, UI icon"
+        filename: "icon_filter.png"
+
+  # Additional Icons - Actions
+  - name: UI Icons - Actions
+    output_dir: output/ui/icons_actions
+    seed_offset: 9600
+    width: 128
+    length: 128
+    steps: 25
+    
+    metadata:
+      style: "action icon, clear symbol, modern interface icon"
+      quality: "sharp focus, clear symbol, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: icon_save
+        name: "Save"
+        prompt: "floppy disk icon, save function, storage symbol, UI icon"
+        filename: "icon_save.png"
+      
+      - id: icon_load
+        name: "Load"
+        prompt: "folder open icon, load function, import symbol, UI icon"
+        filename: "icon_load.png"
+      
+      - id: icon_delete
+        name: "Delete"
+        prompt: "trash bin icon, delete function, remove symbol, UI icon"
+        filename: "icon_delete.png"
+      
+      - id: icon_edit
+        name: "Edit"
+        prompt: "pencil icon, edit function, modify symbol, UI icon"
+        filename: "icon_edit.png"
+      
+      - id: icon_add
+        name: "Add"
+        prompt: "plus sign icon, add function, create new symbol, UI icon"
+        filename: "icon_add.png"
+      
+      - id: icon_remove
+        name: "Remove"
+        prompt: "minus sign icon, remove function, subtract symbol, UI icon"
+        filename: "icon_remove.png"
+      
+      - id: icon_copy
+        name: "Copy"
+        prompt: "duplicate pages icon, copy function, replicate symbol, UI icon"
+        filename: "icon_copy.png"
+      
+      - id: icon_share
+        name: "Share"
+        prompt: "share nodes icon, sharing function, distribute symbol, UI icon"
+        filename: "icon_share.png"
+
+  # Additional Icons - Media Controls
+  - name: UI Icons - Media
+    output_dir: output/ui/icons_media
+    seed_offset: 9700
+    width: 128
+    length: 128
+    steps: 25
+    
+    metadata:
+      style: "media control icon, clear symbol, modern interface icon"
+      quality: "sharp focus, clear symbol, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: icon_play
+        name: "Play"
+        prompt: "triangle play icon, start playback, media control, UI icon"
+        filename: "icon_play.png"
+      
+      - id: icon_pause
+        name: "Pause"
+        prompt: "two bars pause icon, pause playback, media control, UI icon"
+        filename: "icon_pause.png"
+      
+      - id: icon_stop
+        name: "Stop"
+        prompt: "square stop icon, stop playback, media control, UI icon"
+        filename: "icon_stop.png"
+      
+      - id: icon_volume_high
+        name: "Volume High"
+        prompt: "speaker with waves icon, high volume, loud sound, UI icon"
+        filename: "icon_volume_high.png"
+      
+      - id: icon_volume_low
+        name: "Volume Low"
+        prompt: "speaker with one wave icon, low volume, quiet sound, UI icon"
+        filename: "icon_volume_low.png"
+      
+      - id: icon_volume_mute
+        name: "Volume Mute"
+        prompt: "speaker with X icon, muted volume, no sound, UI icon"
+        filename: "icon_volume_mute.png"
+
+  # Frame & Border Elements
+  - name: UI Frames - Decorative Borders
+    output_dir: output/ui/frames
+    seed_offset: 9800
+    width: 512
+    length: 512
+    steps: 30
+    
+    metadata:
+      style: "decorative frame border, gothic horror theme, game UI element"
+      era: "ornate vintage styling"
+      quality: "sharp edges, clear design, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: frame_gothic_01
+        name: "Gothic Frame"
+        prompt: "ornate gothic border frame, dark Victorian styling, horror game UI"
+        filename: "frame_gothic.png"
+      
+      - id: frame_simple_01
+        name: "Simple Frame"
+        prompt: "clean simple border frame, minimal design, modern game UI"
+        filename: "frame_simple.png"
+      
+      - id: frame_ornate_01
+        name: "Ornate Frame"
+        prompt: "highly decorative border frame, baroque styling, elaborate game UI"
+        filename: "frame_ornate.png"
+      
+      - id: frame_card_01
+        name: "Card Frame"
+        prompt: "playing card style border, game card frame, collectible UI element"
+        filename: "frame_card.png"
+      
+      - id: frame_portrait_01
+        name: "Portrait Frame"
+        prompt: "character portrait border, investigator card frame, hero UI"
+        filename: "frame_portrait.png"
+
+  # Progress Bars & Meters
+  - name: UI Meters - Progress Indicators
+    output_dir: output/ui/meters
+    seed_offset: 9900
+    width: 512
+    length: 64
+    steps: 25
+    
+    metadata:
+      style: "progress bar UI element, meter indicator, game interface"
+      quality: "sharp edges, clear design, professional quality"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: meter_health_bar
+        name: "Health Bar"
+        prompt: "red health bar, horizontal progress meter, game UI health indicator"
+        filename: "meter_health_bar.png"
+      
+      - id: meter_energy_bar
+        name: "Energy Bar"
+        prompt: "blue energy bar, horizontal progress meter, game UI mana indicator"
+        filename: "meter_energy_bar.png"
+      
+      - id: meter_experience_bar
+        name: "Experience Bar"
+        prompt: "purple experience bar, horizontal progress meter, game UI XP indicator"
+        filename: "meter_experience_bar.png"
+      
+      - id: meter_loading_bar
+        name: "Loading Bar"
+        prompt: "generic loading bar, horizontal progress meter, game UI loading indicator"
+        filename: "meter_loading_bar.png"
+
+  # Additional Panels - Themed
+  - name: UI Panels - Themed Backgrounds
+    output_dir: output/ui/panels_themed
+    seed_offset: 10000
+    width: 800
+    length: 600
+    steps: 30
+    
+    metadata:
+      style: "themed game panel background, atmospheric texture, professional interface"
+      quality: "clean design, professional quality"
+      negative: "blurry, low quality, busy pattern, text, watermark"
+    
+    assets:
+      - id: panel_horror
+        name: "Horror Theme Panel"
+        prompt: "dark horror themed panel, eldritch atmosphere, subtle cosmic horror texture"
+        filename: "panel_horror.png"
+      
+      - id: panel_investigation
+        name: "Investigation Panel"
+        prompt: "detective theme panel, case file aesthetic, investigation UI"
+        filename: "panel_investigation.png"
+      
+      - id: panel_combat
+        name: "Combat Panel"
+        prompt: "action combat panel, aggressive energy, battle UI"
+        filename: "panel_combat.png"
+      
+      - id: panel_inventory
+        name: "Inventory Panel"
+        prompt: "storage themed panel, item collection background, inventory UI"
+        filename: "panel_inventory.png"
+      
+      - id: panel_map
+        name: "Map Panel"
+        prompt: "aged map themed panel, navigation background, cartography UI"
+        filename: "panel_map.png"
+      
+      - id: panel_character
+        name: "Character Panel"
+        prompt: "character sheet themed panel, RPG stat block, character UI"
+        filename: "panel_character.png"
+

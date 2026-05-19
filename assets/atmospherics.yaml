@@ -1,0 +1,237 @@
+# BostonFear - Atmospheric Background Asset Pipeline
+# Purpose: Generate atmospheric backgrounds, ambiance, and scene elements  
+# Last updated: 2026-05-19
+#
+# Usage:
+#   asset-generator pipeline --file assets/atmospherics.yaml
+#
+# Output: output/atmospherics/
+# Resolution: 1920x1080 (widescreen backgrounds)
+
+assets:
+  # Weather and Sky
+  - name: Weather Atmospherics
+    output_dir: output/atmospherics/weather
+    seed_offset: 30000
+    width: 1920
+    length: 1080
+    steps: 40
+    
+    metadata:
+      style: "atmospheric background, environmental art, moody lighting"
+      quality: "high detail, cinematic, professional environment art"
+      negative: "blurry, low quality, people, buildings, text, watermark"
+    
+    assets:
+      - id: atmos_fog_01
+        name: "Heavy Fog"
+        prompt: "thick fog rolling through empty street, diffused light, atmospheric haze"
+        filename: "heavy_fog.png"
+      
+      - id: atmos_fog_02
+        name: "Mist Layers"
+        prompt: "layered mist over ground, mysterious atmosphere, soft fog banks"
+        filename: "mist_layers.png"
+      
+      - id: atmos_storm_01
+        name: "Storm Clouds"
+        prompt: "dark storm clouds gathering, ominous sky, heavy weather"
+        filename: "storm_clouds.png"
+      
+      - id: atmos_storm_02
+        name: "Lightning Sky"
+        prompt: "lightning illuminating dark clouds, electrical storm, dramatic sky"
+        filename: "lightning_sky.png"
+      
+      - id: atmos_rain_01
+        name: "Heavy Rain"
+        prompt: "rain streaks in darkness, wet atmosphere, downpour effect"
+        filename: "heavy_rain.png"
+      
+      - id: atmos_night_01
+        name: "Moonlit Night"
+        prompt: "full moon through clouds, nighttime atmosphere, lunar light"
+        filename: "moonlit_night.png"
+      
+      - id: atmos_night_02
+        name: "Starless Sky"
+        prompt: "pitch black night sky, oppressive darkness, no stars visible"
+        filename: "starless_sky.png"
+      
+      - id: atmos_twilight
+        name: "Dusk Gradient"
+        prompt: "twilight color gradient, fading light, dusk atmosphere"
+        filename: "dusk_gradient.png"
+
+  # Cosmic Horror Skies
+  - name: Cosmic Skies
+    output_dir: output/atmospherics/cosmic
+    seed_offset: 31000
+    width: 1920
+    length: 1080
+    steps: 40
+    
+    metadata:
+      style: "cosmic horror sky, eldritch atmosphere, surreal celestial"
+      mood: "otherworldly and terrifying, reality breaking"
+      quality: "high detail, cinematic, professional environment art"
+      negative: "blurry, low quality, normal sky, realistic, text, watermark"
+    
+    assets:
+      - id: cosmic_01
+        name: "Alien Constellations"
+        prompt: "wrong constellations in sky, alien star patterns, unnatural celestial arrangement"
+        filename: "alien_constellations.png"
+      
+      - id: cosmic_02
+        name: "Reality Tear"
+        prompt: "reality ripping apart in sky, dimensional breach, cosmic horror"
+        filename: "reality_tear.png"
+      
+      - id: cosmic_03
+        name: "Green Comet"
+        prompt: "sickly green comet streaking across sky, ominous celestial body"
+        filename: "green_comet.png"
+      
+      - id: cosmic_04
+        name: "Double Moon"
+        prompt: "two moons in sky, impossible astronomy, reality distortion"
+        filename: "double_moon.png"
+      
+      - id: cosmic_05
+        name: "Void Portal"
+        prompt: "swirling void portal in sky, dimensional gateway, eldritch opening"
+        filename: "void_portal.png"
+      
+      - id: cosmic_06
+        name: "Star Collapse"
+        prompt: "collapsing star phenomenon, cosmic horror event, celestial distortion"
+        filename: "star_collapse.png"
+
+  # Location Ambiance
+  - name: Location Ambiance
+    output_dir: output/atmospherics/ambiance
+    seed_offset: 32000
+    width: 1920
+    length: 1080
+    steps: 40
+    
+    metadata:
+      style: "environmental ambiance, location atmosphere, mood lighting"
+      era: "timeless atmospheric elements"
+      quality: "high detail, cinematic, professional environment art"
+      negative: "blurry, low quality, specific buildings, people, text, watermark"
+    
+    assets:
+      - id: amb_alley_01
+        name: "Dark Alley Fog"
+        prompt: "fog-filled dark alley, dim light filtering through, shadowy passage"
+        filename: "dark_alley_fog.png"
+      
+      - id: amb_cemetery_01
+        name: "Cemetery Mist"
+        prompt: "graveyard with ground mist, tombstone silhouettes, eerie atmosphere"
+        filename: "cemetery_mist.png"
+      
+      - id: amb_forest_01
+        name: "Dark Woods"
+        prompt: "dense dark forest, bare trees, minimal light penetration"
+        filename: "dark_woods.png"
+      
+      - id: amb_cave_01
+        name: "Cave Darkness"
+        prompt: "cave interior darkness, minimal light source, underground atmosphere"
+        filename: "cave_darkness.png"
+      
+      - id: amb_water_01
+        name: "Murky Water"
+        prompt: "dark murky water surface, reflections, mysterious depths"
+        filename: "murky_water.png"
+      
+      - id: amb_ruins_01
+        name: "Ancient Ruins Fog"
+        prompt: "fog among ancient stone ruins, weathered structures, mysterious atmosphere"
+        filename: "ancient_ruins_fog.png"
+
+  # Particle Effects
+  - name: Particle Effects
+    output_dir: output/atmospherics/particles
+    seed_offset: 33000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "particle effect, transparent background compatible, game VFX"
+      quality: "high detail, clear effect, alpha channel friendly"
+      negative: "blurry, low quality, solid background, text, watermark"
+    
+    assets:
+      - id: particle_smoke_01
+        name: "Smoke Wisp"
+        prompt: "wisp of smoke, transparent smoke curl, isolated particle effect"
+        filename: "smoke_wisp.png"
+      
+      - id: particle_dust_01
+        name: "Dust Motes"
+        prompt: "floating dust particles, light ray particles, atmospheric dust"
+        filename: "dust_motes.png"
+      
+      - id: particle_spark_01
+        name: "Magic Sparks"
+        prompt: "magical sparks floating, mystical particle effect, glowing motes"
+        filename: "magic_sparks.png"
+      
+      - id: particle_ash_01
+        name: "Falling Ash"
+        prompt: "ash particles falling, ember remnants, burning aftermath"
+        filename: "falling_ash.png"
+      
+      - id: particle_void_01
+        name: "Void Particles"
+        prompt: "dark void particles, anti-light effect, reality distortion motes"
+        filename: "void_particles.png"
+      
+      - id: particle_energy_01
+        name: "Energy Wisps"
+        prompt: "mystical energy wisps, glowing trails, supernatural energy"
+        filename: "energy_wisps.png"
+
+  # Texture Overlays
+  - name: Texture Overlays
+    output_dir: output/atmospherics/overlays
+    seed_offset: 34000
+    width: 1024
+    length: 1024
+    steps: 40
+    
+    metadata:
+      style: "texture overlay, seamless tileable, repeating pattern"
+      quality: "high detail, clear texture, seamless edges"
+      negative: "blurry, low quality, objects, people, text, watermark"
+    
+    assets:
+      - id: overlay_grain_01
+        name: "Film Grain"
+        prompt: "film grain texture, vintage noise pattern, photographic grain"
+        filename: "film_grain.png"
+      
+      - id: overlay_vignette_01
+        name: "Dark Vignette"
+        prompt: "dark edge vignette, corner shadowing, frame darkening"
+        filename: "dark_vignette.png"
+      
+      - id: overlay_scratch_01
+        name: "Aged Scratches"
+        prompt: "vintage scratches and wear, aged film damage, texture overlay"
+        filename: "aged_scratches.png"
+      
+      - id: overlay_paper_01
+        name: "Old Paper Texture"
+        prompt: "aged paper texture, yellowed parchment, vintage paper"
+        filename: "old_paper.png"
+      
+      - id: overlay_concrete_01
+        name: "Concrete Texture"
+        prompt: "weathered concrete surface, urban texture, rough stone"
+        filename: "concrete_texture.png"

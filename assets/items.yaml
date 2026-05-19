@@ -1,0 +1,286 @@
+# BostonFear - Item Asset Pipeline
+# Purpose: Generate item cards and equipment illustrations
+# Last updated: 2026-05-19
+#
+# Usage:
+#   asset-generator pipeline --file assets/items.yaml
+#
+# Output: output/items/
+# Resolution: 256x256 (item icons/cards)
+
+assets:
+  # Common Items
+  - name: Common Items
+    output_dir: output/items/common
+    seed_offset: 20000
+    width: 256
+    length: 256
+    steps: 40
+    
+    metadata:
+      style: "item illustration, detailed object art, game asset"
+      era: "1920s period appropriate"
+      quality: "high detail, sharp focus, clear object, centered composition"
+      negative: "blurry, low quality, multiple objects, cluttered, text, watermark"
+    
+    assets:
+      - id: item_flashlight
+        name: "Flashlight"
+        prompt: "vintage brass flashlight, 1920s design, detailed metal work"
+        filename: "flashlight.png"
+      
+      - id: item_knife
+        name: "Pocket Knife"
+        prompt: "folding pocket knife, worn handle, utilitarian blade"
+        filename: "pocket_knife.png"
+      
+      - id: item_matches
+        name: "Matches"
+        prompt: "box of safety matches, vintage matchbook, period design"
+        filename: "matches.png"
+      
+      - id: item_rope
+        name: "Rope"
+        prompt: "coiled hemp rope, weathered natural fiber rope"
+        filename: "rope.png"
+      
+      - id: item_bandages
+        name: "Medical Bandages"
+        prompt: "rolled medical bandages, first aid supplies, white gauze"
+        filename: "bandages.png"
+      
+      - id: item_cigarettes
+        name: "Cigarettes"
+        prompt: "pack of cigarettes, 1920s packaging, vintage tobacco"
+        filename: "cigarettes.png"
+      
+      - id: item_flask
+        name: "Hip Flask"
+        prompt: "silver hip flask, engraved metal, vintage liquor flask"
+        filename: "hip_flask.png"
+      
+      - id: item_notebook
+        name: "Notebook"
+        prompt: "leather-bound notebook, aged paper, investigator's journal"
+        filename: "notebook.png"
+      
+      - id: item_compass
+        name: "Compass"
+        prompt: "brass compass, antique navigation tool, detailed metalwork"
+        filename: "compass.png"
+      
+      - id: item_watch
+        name: "Pocket Watch"
+        prompt: "gold pocket watch, chain attached, roman numerals, vintage timepiece"
+        filename: "pocket_watch.png"
+
+  # Weapons
+  - name: Weapons
+    output_dir: output/items/weapons
+    seed_offset: 21000
+    width: 256
+    length: 256
+    steps: 40
+    
+    metadata:
+      style: "weapon illustration, detailed object art, game asset"
+      era: "1920s period weapons"
+      quality: "high detail, sharp focus, clear weapon, centered composition"
+      negative: "blurry, low quality, modern, futuristic, text, watermark"
+    
+    assets:
+      - id: weapon_revolver
+        name: "Revolver"
+        prompt: "1920s revolver pistol, detailed cylinder, wooden grip"
+        filename: "revolver.png"
+      
+      - id: weapon_shotgun
+        name: "Shotgun"
+        prompt: "double barrel shotgun, wooden stock, vintage hunting gun"
+        filename: "shotgun.png"
+      
+      - id: weapon_rifle
+        name: "Rifle"
+        prompt: "bolt action rifle, period military weapon, detailed metalwork"
+        filename: "rifle.png"
+      
+      - id: weapon_tommygun
+        name: "Tommy Gun"
+        prompt: "thompson submachine gun, gangster era weapon, drum magazine"
+        filename: "tommy_gun.png"
+      
+      - id: weapon_crowbar
+        name: "Crowbar"
+        prompt: "steel crowbar, worn metal tool, improvised weapon"
+        filename: "crowbar.png"
+      
+      - id: weapon_axe
+        name: "Fire Axe"
+        prompt: "fire axe, red painted head, wooden handle, emergency tool"
+        filename: "fire_axe.png"
+      
+      - id: weapon_bat
+        name: "Baseball Bat"
+        prompt: "wooden baseball bat, worn wood, sports equipment weapon"
+        filename: "baseball_bat.png"
+      
+      - id: weapon_machete
+        name: "Machete"
+        prompt: "large machete blade, leather wrapped handle, jungle knife"
+        filename: "machete.png"
+
+  # Spell Components
+  - name: Spell Components
+    output_dir: output/items/components
+    seed_offset: 22000
+    width: 256
+    length: 256
+    steps: 40
+    
+    metadata:
+      style: "mystical item illustration, occult object, game asset"
+      mood: "mysterious and arcane, supernatural"
+      quality: "high detail, sharp focus, clear object, centered composition"
+      negative: "blurry, low quality, text, watermark"
+    
+    assets:
+      - id: comp_candle
+        name: "Ritual Candle"
+        prompt: "black ritual candle, melted wax, occult ceremony"
+        filename: "ritual_candle.png"
+      
+      - id: comp_chalk
+        name: "Summoning Chalk"
+        prompt: "stick of ritual chalk, arcane markings, mystical implement"
+        filename: "summoning_chalk.png"
+      
+      - id: comp_incense
+        name: "Mystical Incense"
+        prompt: "incense sticks, aromatic smoke wisps, ritual burning"
+        filename: "mystical_incense.png"
+      
+      - id: comp_crystal
+        name: "Focus Crystal"
+        prompt: "clear quartz crystal, mystical gem, arcane focus"
+        filename: "focus_crystal.png"
+      
+      - id: comp_herbs
+        name: "Protective Herbs"
+        prompt: "bundle of dried herbs, tied with string, apothecary plants"
+        filename: "protective_herbs.png"
+      
+      - id: comp_salt
+        name: "Blessed Salt"
+        prompt: "small pouch of salt, protective substance, ritual material"
+        filename: "blessed_salt.png"
+      
+      - id: comp_oil
+        name: "Anointing Oil"
+        prompt: "small vial of oil, ritual liquid, mystical substance"
+        filename: "anointing_oil.png"
+      
+      - id: comp_bones
+        name: "Divination Bones"
+        prompt: "small carved bones, fortune telling pieces, occult tools"
+        filename: "divination_bones.png"
+
+  # Tomes and Books
+  - name: Tomes
+    output_dir: output/items/tomes
+    seed_offset: 23000
+    width: 256
+    length: 256
+    steps: 40
+    
+    metadata:
+      style: "ancient tome illustration, occult book, detailed book art"
+      era: "ancient to 1920s books"
+      mood: "mysterious and forbidden, ancient knowledge"
+      quality: "high detail, sharp focus, clear book, centered composition"
+      negative: "blurry, low quality, modern, text, watermark"
+    
+    assets:
+      - id: tome_01
+        name: "Leather Grimoire"
+        prompt: "ancient leather-bound grimoire, worn cover, arcane symbols"
+        filename: "leather_grimoire.png"
+      
+      - id: tome_02
+        name: "Forbidden Codex"
+        prompt: "dark tome with metal clasp, forbidden knowledge, sinister book"
+        filename: "forbidden_codex.png"
+      
+      - id: tome_03
+        name: "Ancient Scroll"
+        prompt: "rolled parchment scroll, aged paper, mystical writings"
+        filename: "ancient_scroll.png"
+      
+      - id: tome_04
+        name: "Ritual Manual"
+        prompt: "ceremonial book, ritual diagrams, occult manual"
+        filename: "ritual_manual.png"
+      
+      - id: tome_05
+        name: "Journal of Madness"
+        prompt: "tattered journal, erratic handwriting visible, descent into madness"
+        filename: "journal_madness.png"
+      
+      - id: tome_06
+        name: "Elder Glyphs"
+        prompt: "stone tablet with carved symbols, ancient alien writing"
+        filename: "elder_glyphs.png"
+
+  # Artifacts
+  - name: Artifacts
+    output_dir: output/items/artifacts
+    seed_offset: 24000
+    width: 256
+    length: 256
+    steps: 40
+    
+    metadata:
+      style: "mystical artifact, powerful relic, detailed object art"
+      mood: "ancient and powerful, supernatural"
+      quality: "high detail, sharp focus, clear artifact, centered composition"
+      negative: "blurry, low quality, modern, text, watermark"
+    
+    assets:
+      - id: artifact_amulet
+        name: "Protective Amulet"
+        prompt: "ancient amulet on chain, mystical symbols, protective charm"
+        filename: "protective_amulet.png"
+      
+      - id: artifact_ring
+        name: "Sorcerer's Ring"
+        prompt: "ornate ring with gemstone, arcane jewelry, magical ring"
+        filename: "sorcerer_ring.png"
+      
+      - id: artifact_mask
+        name: "Ritual Mask"
+        prompt: "ceremonial mask, carved wood, tribal designs, ritual artifact"
+        filename: "ritual_mask.png"
+      
+      - id: artifact_dagger
+        name: "Ceremonial Dagger"
+        prompt: "ornate ritual dagger, engraved blade, mystical weapon"
+        filename: "ceremonial_dagger.png"
+      
+      - id: artifact_mirror
+        name: "Scrying Mirror"
+        prompt: "small ornate mirror, divination tool, dark reflection"
+        filename: "scrying_mirror.png"
+      
+      - id: artifact_orb
+        name: "Crystal Orb"
+        prompt: "mystical crystal ball, swirling mist inside, fortune telling sphere"
+        filename: "crystal_orb.png"
+      
+      - id: artifact_statuette
+        name: "Idol Statuette"
+        prompt: "small carved idol, alien features, ancient statue"
+        filename: "idol_statuette.png"
+      
+      - id: artifact_key
+        name: "Obsidian Key"
+        prompt: "black obsidian key, intricate teeth, mystical unlocking device"
+        filename: "obsidian_key.png"

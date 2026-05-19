@@ -1,0 +1,237 @@
+# BostonFear - Event/Story Illustration Pipeline
+# Purpose: Generate story moment and event illustrations
+# Last updated: 2026-05-19
+#
+# Usage:
+#   asset-generator pipeline --file assets/events.yaml
+#
+# Output: output/events/
+# Resolution: 800x600 (story card format)
+
+assets:
+  # Investigation Events
+  - name: Investigation Events
+    output_dir: output/events/investigation
+    seed_offset: 40000
+    width: 800
+    length: 600
+    steps: 40
+    
+    metadata:
+      style: "story illustration, narrative scene, detailed environment art"
+      era: "1920s period appropriate"
+      mood: "mysterious and investigative, noir atmosphere"
+      quality: "high detail, cinematic composition, professional illustration"
+      negative: "blurry, low quality, text, UI elements, watermark"
+    
+    assets:
+      - id: event_inv_01
+        name: "Library Research"
+        prompt: "dim library interior, stacks of ancient books, investigator studying by lamplight"
+        filename: "library_research.png"
+      
+      - id: event_inv_02
+        name: "Crime Scene"
+        prompt: "mysterious crime scene, chalk outline, dramatic investigation lighting"
+        filename: "crime_scene.png"
+      
+      - id: event_inv_03
+        name: "Secret Meeting"
+        prompt: "clandestine meeting in shadowy corner, conspiratorial atmosphere"
+        filename: "secret_meeting.png"
+      
+      - id: event_inv_04
+        name: "Document Discovery"
+        prompt: "finding hidden documents, old papers and photographs, revelation moment"
+        filename: "document_discovery.png"
+      
+      - id: event_inv_05
+        name: "Interrogation"
+        prompt: "tense questioning scene, dramatic lighting, confrontation atmosphere"
+        filename: "interrogation.png"
+      
+      - id: event_inv_06
+        name: "Following Suspect"
+        prompt: "shadowy figure being tailed, urban pursuit, noir stalking scene"
+        filename: "following_suspect.png"
+
+  # Supernatural Encounters
+  - name: Supernatural Encounters
+    output_dir: output/events/supernatural
+    seed_offset: 41000
+    width: 800
+    length: 600
+    steps: 40
+    
+    metadata:
+      style: "horror illustration, supernatural scene, detailed environment art"
+      mood: "terrifying and otherworldly, cosmic horror"
+      quality: "high detail, cinematic composition, professional illustration"
+      negative: "blurry, low quality, text, UI elements, watermark"
+    
+    assets:
+      - id: event_sup_01
+        name: "Ritual Discovery"
+        prompt: "stumbling upon active ritual, candles and symbols, cultist ceremony"
+        filename: "ritual_discovery.png"
+      
+      - id: event_sup_02
+        name: "Ghost Manifestation"
+        prompt: "spectral apparition appearing, ghostly figure, supernatural encounter"
+        filename: "ghost_manifestation.png"
+      
+      - id: event_sup_03
+        name: "Tentacle Horror"
+        prompt: "tentacles emerging from darkness, cosmic horror reveal, lovecraftian moment"
+        filename: "tentacle_horror.png"
+      
+      - id: event_sup_04
+        name: "Reality Distortion"
+        prompt: "reality warping around investigator, walls bending, dimensional distortion"
+        filename: "reality_distortion.png"
+      
+      - id: event_sup_05
+        name: "Possession Moment"
+        prompt: "person being possessed, supernatural takeover, horror transformation"
+        filename: "possession_moment.png"
+      
+      - id: event_sup_06
+        name: "Nightmare Vision"
+        prompt: "surreal nightmare landscape, dreamlike horror, psychological terror"
+        filename: "nightmare_vision.png"
+
+  # Location-Specific Events
+  - name: Location Events
+    output_dir: output/events/locations
+    seed_offset: 42000
+    width: 800
+    length: 600
+    steps: 40
+    
+    metadata:
+      style: "location event illustration, environmental storytelling, detailed scene"
+      era: "1920s period appropriate"
+      quality: "high detail, cinematic composition, professional illustration"
+      negative: "blurry, low quality, text, UI elements, watermark"
+    
+    assets:
+      - id: event_loc_01
+        name: "Museum After Hours"
+        prompt: "empty museum at night, artifacts in shadows, isolated guard station"
+        filename: "museum_after_hours.png"
+      
+      - id: event_loc_02
+        name: "Abandoned Ward"
+        prompt: "derelict hospital ward, empty beds, eerie medical equipment"
+        filename: "abandoned_ward.png"
+      
+      - id: event_loc_03
+        name: "Dockside Smuggling"
+        prompt: "shadowy dock scene, cargo being moved secretly, maritime crime"
+        filename: "dockside_smuggling.png"
+      
+      - id: event_loc_04
+        name: "Mansion Ballroom"
+        prompt: "elegant but sinister ballroom, chandelier shadows, formal gathering"
+        filename: "mansion_ballroom.png"
+      
+      - id: event_loc_05
+        name: "Underground Tunnel"
+        prompt: "secret tunnel system, brick passages, hidden underground network"
+        filename: "underground_tunnel.png"
+      
+      - id: event_loc_06
+        name: "Rooftop Chase"
+        prompt: "running across rooftops, urban skyline, desperate escape"
+        filename: "rooftop_chase.png"
+
+  # Resolution Moments
+  - name: Resolution Moments
+    output_dir: output/events/resolutions
+    seed_offset: 43000
+    width: 800
+    length: 600
+    steps: 40
+    
+    metadata:
+      style: "climactic scene illustration, story resolution, dramatic moment"
+      mood: "intense and conclusive, pivotal moment"
+      quality: "high detail, cinematic composition, professional illustration"
+      negative: "blurry, low quality, text, UI elements, watermark"
+    
+    assets:
+      - id: event_res_01
+        name: "Banishing Ritual"
+        prompt: "casting banishment spell, protective circle glowing, climactic magic"
+        filename: "banishing_ritual.png"
+      
+      - id: event_res_02
+        name: "Final Confrontation"
+        prompt: "facing final boss enemy, climactic showdown, hero moment"
+        filename: "final_confrontation.png"
+      
+      - id: event_res_03
+        name: "Sacrifice Choice"
+        prompt: "difficult sacrifice moment, dramatic choice, moral climax"
+        filename: "sacrifice_choice.png"
+      
+      - id: event_res_04
+        name: "Portal Closing"
+        prompt: "dimensional portal closing, reality stabilizing, crisis averted"
+        filename: "portal_closing.png"
+      
+      - id: event_res_05
+        name: "Escape Collapse"
+        prompt: "escaping collapsing structure, running from destruction, narrow escape"
+        filename: "escape_collapse.png"
+      
+      - id: event_res_06
+        name: "Dawn Breaking"
+        prompt: "dawn light ending nightmare, sunrise after horror, relief moment"
+        filename: "dawn_breaking.png"
+
+  # Character Moments
+  - name: Character Moments
+    output_dir: output/events/characters
+    seed_offset: 44000
+    width: 800
+    length: 600
+    steps: 40
+    
+    metadata:
+      style: "character moment illustration, emotional scene, narrative art"
+      era: "1920s period appropriate"
+      mood: "emotional and personal, character development"
+      quality: "high detail, cinematic composition, professional illustration"
+      negative: "blurry, low quality, text, UI elements, watermark"
+    
+    assets:
+      - id: event_char_01
+        name: "Moment of Doubt"
+        prompt: "investigator questioning reality, self-doubt moment, psychological stress"
+        filename: "moment_doubt.png"
+      
+      - id: event_char_02
+        name: "Partnership Bond"
+        prompt: "investigators working together, teamwork moment, alliance forming"
+        filename: "partnership_bond.png"
+      
+      - id: event_char_03
+        name: "Breakdown"
+        prompt: "sanity breaking point, psychological collapse, mental strain"
+        filename: "breakdown.png"
+      
+      - id: event_char_04
+        name: "Discovery Shock"
+        prompt: "horrified realization, terrible truth revealed, shock reaction"
+        filename: "discovery_shock.png"
+      
+      - id: event_char_05
+        name: "Determination"
+        prompt: "steeling resolve, determined expression, hero's resolve"
+        filename: "determination.png"
+      
+      - id: event_char_06
+        name: "Victory Relief"
+        prompt: "exhausted but victorious, relief after ordeal, survival moment"
+        filename: "victory_relief.png"

@@ -1,0 +1,225 @@
+# BostonFear - Enemy/Creature Asset Pipeline
+# Purpose: Generate enemy and creature portraits for encounters
+# Last updated: 2026-05-19
+#
+# Usage:
+#   asset-generator pipeline --file assets/enemies.yaml
+#
+# Output: output/enemies/
+# Resolution: 512x512 (creature portraits)
+
+assets:
+  # Cultist Enemies
+  - name: Cultist Enemies
+    output_dir: output/enemies/cultists
+    seed_offset: 10000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "gothic horror enemy portrait, menacing, detailed character art"
+      mood: "threatening and sinister, supernatural evil"
+      quality: "high detail, sharp focus, professional character art"
+      negative: "blurry, low quality, deformed, text, watermark"
+    
+    assets:
+      - id: enemy_cultist_01
+        name: "Hooded Cultist"
+        prompt: "hooded cultist in dark robes, shadowed face, ritual markings, sinister pose"
+        filename: "hooded_cultist.png"
+      
+      - id: enemy_cultist_02
+        name: "Ritual Leader"
+        prompt: "cult leader with ceremonial robes, occult symbols, commanding presence"
+        filename: "ritual_leader.png"
+      
+      - id: enemy_cultist_03
+        name: "Masked Devotee"
+        prompt: "cultist wearing ceremonial mask, dark robes, ritual implements"
+        filename: "masked_devotee.png"
+      
+      - id: enemy_cultist_04
+        name: "Corrupted Priest"
+        prompt: "corrupted religious figure, tattered vestments, mad expression"
+        filename: "corrupted_priest.png"
+      
+      - id: enemy_cultist_05
+        name: "Acolyte"
+        prompt: "young cult acolyte, dark clothing, zealous expression, ritual dagger"
+        filename: "acolyte.png"
+
+  # Lesser Entities
+  - name: Lesser Entities
+    output_dir: output/enemies/entities
+    seed_offset: 11000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "cosmic horror creature, lovecraftian monster, detailed creature art"
+      mood: "otherworldly and terrifying, alien presence"
+      quality: "high detail, sharp focus, professional creature design"
+      negative: "blurry, low quality, cute, friendly, text, watermark"
+    
+    assets:
+      - id: enemy_entity_01
+        name: "Dimensional Shambler"
+        prompt: "amorphous shadowy creature, writhing tentacles, otherworldly entity"
+        filename: "dimensional_shambler.png"
+      
+      - id: enemy_entity_02
+        name: "Spectral Haunt"
+        prompt: "ghostly apparition, translucent form, eerie glow, floating wraith"
+        filename: "spectral_haunt.png"
+      
+      - id: enemy_entity_03
+        name: "Wyrd Thing"
+        prompt: "bizarre alien creature, multiple eyes, twisted anatomy, cosmic horror"
+        filename: "wyrd_thing.png"
+      
+      - id: enemy_entity_04
+        name: "Void Spawn"
+        prompt: "dark tentacled mass, writhing appendages, eldritch abomination"
+        filename: "void_spawn.png"
+      
+      - id: enemy_entity_05
+        name: "Star Creature"
+        prompt: "otherworldly being, bioluminescent features, alien morphology"
+        filename: "star_creature.png"
+      
+      - id: enemy_entity_06
+        name: "Dream Stalker"
+        prompt: "nightmarish entity, distorted humanoid shape, surreal features"
+        filename: "dream_stalker.png"
+      
+      - id: enemy_entity_07
+        name: "Temporal Anomaly"
+        prompt: "flickering unstable creature, phase-shifting form, reality distortion"
+        filename: "temporal_anomaly.png"
+      
+      - id: enemy_entity_08
+        name: "Eldritch Servitor"
+        prompt: "bound summoned creature, ritual chains, alien servant"
+        filename: "eldritch_servitor.png"
+
+  # Corrupted Humans
+  - name: Corrupted Humans
+    output_dir: output/enemies/corrupted
+    seed_offset: 12000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "horror portrait, corrupted human, body horror, detailed character art"
+      mood: "grotesque and disturbing, human corruption"
+      quality: "high detail, sharp focus, professional horror art"
+      negative: "blurry, low quality, clean, healthy, text, watermark"
+    
+    assets:
+      - id: enemy_corrupt_01
+        name: "Flesh Horror"
+        prompt: "mutated human, exposed veins, flesh corruption, body horror"
+        filename: "flesh_horror.png"
+      
+      - id: enemy_corrupt_02
+        name: "Possessed Victim"
+        prompt: "possessed person, unnatural movements, glowing eyes, twisted expression"
+        filename: "possessed_victim.png"
+      
+      - id: enemy_corrupt_03
+        name: "Plague Bearer"
+        prompt: "diseased infected human, sickly pallor, supernatural plague"
+        filename: "plague_bearer.png"
+      
+      - id: enemy_corrupt_04
+        name: "Transformed Cultist"
+        prompt: "partially transformed human, cosmic mutation, alien features emerging"
+        filename: "transformed_cultist.png"
+      
+      - id: enemy_corrupt_05
+        name: "Hollow Shell"
+        prompt: "empty eyed human puppet, marionette movements, soulless vessel"
+        filename: "hollow_shell.png"
+
+  # Animal Abominations
+  - name: Animal Abominations
+    output_dir: output/enemies/abominations
+    seed_offset: 13000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "creature horror, mutated animal, supernatural beast, detailed creature art"
+      mood: "feral and unnatural, beast horror"
+      quality: "high detail, sharp focus, professional creature design"
+      negative: "blurry, low quality, normal animal, cute, text, watermark"
+    
+    assets:
+      - id: enemy_beast_01
+        name: "Hound of Shadow"
+        prompt: "corrupted canine beast, dark fur, glowing red eyes, supernatural hound"
+        filename: "hound_shadow.png"
+      
+      - id: enemy_beast_02
+        name: "Rat Swarm"
+        prompt: "writhing mass of rats, collective entity, swarm intelligence"
+        filename: "rat_swarm.png"
+      
+      - id: enemy_beast_03
+        name: "Carrion Crow"
+        prompt: "oversized black crow, intelligent eyes, ominous presence"
+        filename: "carrion_crow.png"
+      
+      - id: enemy_beast_04
+        name: "Serpent Horror"
+        prompt: "massive mutated snake, scales with strange patterns, hypnotic eyes"
+        filename: "serpent_horror.png"
+      
+      - id: enemy_beast_05
+        name: "Spider Spawn"
+        prompt: "giant supernatural spider, too many eyes, web of shadow"
+        filename: "spider_spawn.png"
+
+  # Ancient Guardians
+  - name: Ancient Guardians
+    output_dir: output/enemies/guardians
+    seed_offset: 14000
+    width: 512
+    length: 512
+    steps: 40
+    
+    metadata:
+      style: "ancient guardian creature, tomb protector, detailed creature art"
+      mood: "ancient and powerful, guardian entity"
+      quality: "high detail, sharp focus, professional creature design"
+      negative: "blurry, low quality, modern, text, watermark"
+    
+    assets:
+      - id: enemy_guard_01
+        name: "Stone Sentinel"
+        prompt: "animated stone statue, ancient guardian, crumbling architecture"
+        filename: "stone_sentinel.png"
+      
+      - id: enemy_guard_02
+        name: "Mummified Priest"
+        prompt: "ancient mummy, wrapped in bandages, ritual markings, cursed guardian"
+        filename: "mummified_priest.png"
+      
+      - id: enemy_guard_03
+        name: "Bone Construct"
+        prompt: "skeleton warrior, assembled bones, ancient armor fragments"
+        filename: "bone_construct.png"
+      
+      - id: enemy_guard_04
+        name: "Dust Wraith"
+        prompt: "spirit of ancient tomb, swirling dust form, spectral guardian"
+        filename: "dust_wraith.png"
+      
+      - id: enemy_guard_05
+        name: "Clay Golem"
+        prompt: "animated clay construct, ritual symbols, ancient protector"
+        filename: "clay_golem.png"
