@@ -1,6 +1,6 @@
 # Implementation Gaps — 2026-05-21
 
-## GAP-01: ReconnectToken broadcast to all clients
+## GAPS-2026-01: ReconnectToken broadcast to all clients
 
 - **Stated Goal**: "Handle connection drops with 30-second reconnection timeout" and "session recovery" (README / GameServer GoDoc). The token is intended to let a _specific_ player reclaim their slot.
 - **Current State**: `Player.ReconnectToken` is tagged `json:"reconnectToken"` and is embedded in `GameState.Players`, which is serialised and broadcast to **every** connected WebSocket client on every state change (`serverengine/connection.go:111`, `serverengine/game_server.go:564–578`). Each client receives the reconnect tokens of all other players.
@@ -9,25 +9,25 @@
 
 ---
 
-## GAP-02: Doom is double-incremented by Attack and Evade actions
+## GAPS-2026-02: Doom is double-incremented by Attack and Evade actions
 
 - **Stated Goal**: "Doom Counter: Maintain global doom tracker (0–12) that increments on failed dice rolls or turn timeouts" (task specification). "Each Tentacle result increments the doom counter" (actions.go GoDoc).
 - **Current State**: `performAttack` and `performEvade` both modify `gs.gameState.Doom` directly when tentacles appear (actions.go:307, 350) **and** return `doomIncrease = tentacles`. `processActionCore` (game_server.go:451–453) applies `doomIncrease` a second time. Every tentacle from Attack or Evade advances doom by 2 instead of 1. All other dice-rolling actions (Gather, Investigate, CastWard, Research) only return `doomIncrease` and correctly rely on `processActionCore` for the single application.
 - **Impact**: Game difficulty is substantially inflated for combat-heavy play. Doom races to 12 twice as fast when players fight enemies, making the game nearly unwinnable as soon as enemies spawn. The bug violates the core doom mechanic.
-- **Closing the Gap**: Remove the direct `gs.gameState.Doom` mutations from `performAttack` (line 307) and `performEvade` (line 350). Let `processActionCore` remain the single write point, as it is for all other actions. Add `go test -run TestAttack -run TestEvade ./serverengine/...`.
+- **Closing the Gap**: Remove the direct `gs.gameState.Doom` mutations from `performAttack` (line 307) and `performEvade` (line 350). Let `processActionCore` remain the single write point, as it is for all other actions. Add `go test -run 'Test(Attack|Evade)$' ./serverengine/...`.
 
 ---
 
-## GAP-03: Successful CastWard with an anomaly reduces doom by 4 instead of 2
+## GAPS-2026-03: Successful CastWard with an anomaly reduces doom by 4 instead of 2
 
 - **Stated Goal**: "Cast Ward: On success, reduces the doom counter by 2 and seals any anomaly in the player's current location" (actions.go GoDoc).
 - **Current State**: `performCastWard` (actions.go:97) decrements doom by 2, then calls `SealAnomalyAtLocation` (line 99). `SealAnomalyAtLocation` (mythos.go:290) decrements doom by another 2 when an anomaly is found. When no anomaly exists, only the first -2 applies. When an anomaly is present, the combined reduction is 4.
 - **Impact**: Warding away an anomaly accelerates doom reduction unpredictably. Players who understand this can trivially defuse the doom counter by casting wards in anomaly-dense locations, undermining the intended game tension.
-- **Closing the Gap**: The intended total is -2. Remove the explicit `-2` from `performCastWard` (actions.go:97) and let `SealAnomalyAtLocation` own the full -2 as the "sealing" reward. For wards with no anomaly, `SealAnomalyAtLocation` would need to return a bool indicating success so `performCastWard` can apply -2 on the no-anomaly path. Add `go test -run TestCastWardWithAnomaly -run TestCastWardNoAnomaly ./serverengine/...`.
+- **Closing the Gap**: The intended total is -2. Remove the explicit `-2` from `performCastWard` (actions.go:97) and let `SealAnomalyAtLocation` own the full -2 as the "sealing" reward. For wards with no anomaly, `SealAnomalyAtLocation` would need to return a bool indicating success so `performCastWard` can apply -2 on the no-anomaly path. Add `go test -run 'TestCastWard(WithAnomaly|NoAnomaly)$' ./serverengine/...`.
 
 ---
 
-## GAP-04: Connection read-timeout increments doom regardless of turn ownership
+## GAPS-2026-04: Connection read-timeout increments doom regardless of turn ownership
 
 - **Stated Goal**: "Handle connection drops with 30-second reconnection timeout" (README). Turn timeouts should be a consequence of a player failing to act within their allotted time.
 - **Current State**: `runMessageLoop` (connection.go:245–255) fires a `doom += 1` increment and broadcasts state on _any_ 30-second read timeout, for _any_ player, regardless of whether that player is the current active-turn holder. A player who is observing the game, connected but not their turn, will cause doom to advance if they are quiet for 30 seconds. After the timeout, the player is also disconnected.
@@ -36,7 +36,7 @@
 
 ---
 
-## GAP-05: Latency percentiles reported by `/metrics` endpoint are incorrect
+## GAPS-2026-05: Latency percentiles reported by `/metrics` endpoint are incorrect
 
 - **Stated Goal**: "Performance Standards: Does the server maintain stable operation with 6 concurrent players" and the Prometheus `/metrics` endpoint advertises `p50`, `p95`, `p99` broadcast latency percentiles.
 - **Current State**: `BroadcastLatencyPercentiles` (metrics.go:265–291) copies the ring buffer into a slice and indexes it at positions `N*p/100` **without sorting**. The returned "percentile" values are arbitrary ring-buffer positions, not statistical percentiles.
@@ -45,7 +45,7 @@
 
 ---
 
-## GAP-06: No client-side shutdown / stop mechanism for `NetClient`
+## GAPS-2026-06: No client-side shutdown / stop mechanism for `NetClient`
 
 - **Stated Goal**: The client supports "cross-platform deployment (desktop, WASM, mobile) from single Go codebase" and the desktop binary is expected to exit cleanly.
 - **Current State**: `NetClient.Connect()` spawns a `reconnectLoop` goroutine that runs forever with no context cancellation, no stop channel, and no lifecycle method. On desktop builds, closing the Ebitengine window triggers `os.Exit`, leaving the goroutine leaked (resources not released, deferred cleanup not run).
@@ -54,7 +54,7 @@
 
 ---
 
-## GAP-07: Focus reroll does not allow player choice of which dice to reroll
+## GAPS-2026-07: Focus reroll does not allow player choice of which dice to reroll
 
 - **Stated Goal**: "Each focus token grants one reroll of a non-success die" (rules/dice.go GoDoc, mirroring AH3e rules).
 - **Current State**: `RollDicePoolWithFocus` (rules/dice.go:82–99) iterates results left-to-right and rerolls the first non-success die it finds. Players cannot choose which die to reroll, contrary to AH3e rules where the investigator selects which non-success dice to reroll (typically preferring to reroll tentacles over blanks to avoid doom).

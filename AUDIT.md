@@ -41,7 +41,7 @@ Longest function: `DefaultAdventures` 730 lines · Top complexity: `Draw` 25 cyc
 
 **go vet**: Clean on all buildable packages (`./serverengine/...`, `./transport/...`, `./protocol/...`, `./monitoring/...`).
 
-**Test results**: All non-display packages pass `go test -race`. Ebitengine client/desktop packages fail to build on this headless CI host (missing X11 headers); those packages were audited by static analysis only.
+**Test results**: All non-display packages pass `go test -race`. Ebitengine client/desktop packages require X11/GL headers (`libgl1-mesa-dev`, `xorg-dev`) and an X server for display-tagged tests (`xvfb-run`); the repository CI workflow installs these dependencies before build/test.
 
 ---
 
