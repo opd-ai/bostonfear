@@ -29,8 +29,6 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
       - name: Install ebitenmobile
         run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
-      - name: Initialize ebitenmobile
-        run: ebitenmobile init
       - name: Build Android AAR
         run: ebitenmobile bind -target android -o /tmp/bostonfear.aar ./cmd/mobile
       - name: Verify AAR artifact
@@ -63,8 +61,6 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
       - name: Install ebitenmobile
         run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
-      - name: Initialize ebitenmobile
-        run: ebitenmobile init
       - name: Run Android emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -244,8 +240,6 @@ jobs:
           go-version: "1.24"
       - name: Install ebitenmobile
         run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
-      - name: Initialize ebitenmobile
-        run: ebitenmobile init
       - name: Build iOS XCFramework
         run: ebitenmobile bind -target ios -o /tmp/BostonFear.xcframework ./cmd/mobile
       - name: Verify XCFramework artifact
@@ -267,8 +261,6 @@ jobs:
           go-version: "1.24"
       - name: Install ebitenmobile
         run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
-      - name: Initialize ebitenmobile
-        run: ebitenmobile init
       - name: Build iOS XCFramework
         run: |
           ebitenmobile bind -target ios -o "$RUNNER_TEMP/BostonFear.xcframework" ./cmd/mobile
