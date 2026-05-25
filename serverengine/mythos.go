@@ -116,12 +116,14 @@ func (gs *GameServer) rescaleActDeck(playerCount int) {
 			gs.gameState.ActDeck[i].ClueThreshold = base
 		}
 	}
-	log.Printf("Act deck rescaled for %d player(s): thresholds %d / %d / %d",
-		n,
-		gs.gameState.ActDeck[0].ClueThreshold,
-		gs.gameState.ActDeck[1].ClueThreshold,
-		gs.gameState.ActDeck[2].ClueThreshold,
-	)
+	if len(gs.gameState.ActDeck) >= 3 {
+		log.Printf("Act deck rescaled for %d player(s): thresholds %d / %d / %d",
+			n,
+			gs.gameState.ActDeck[0].ClueThreshold,
+			gs.gameState.ActDeck[1].ClueThreshold,
+			gs.gameState.ActDeck[2].ClueThreshold,
+		)
+	}
 }
 
 // checkActAdvance evaluates whether the investigators have accumulated enough clues
@@ -283,10 +285,10 @@ func (gs *GameServer) spawnEnemiesForDoom() {
 // sealAnomalyAtLocation removes the first anomaly found at neighbourhood and
 // reduces doom by 2. This is the sealing effect applied on a successful Ward.
 // Caller must hold gs.mutex.
-// SealAnomalyAtLocation finds and removes an anomaly at the given neighbourhood,
+// sealAnomalyAtLocation finds and removes an anomaly at the given neighbourhood,
 // reducing doom by 2 when found. Returns true if an anomaly was sealed.
 // Caller must hold gs.mutex.
-func (gs *GameServer) SealAnomalyAtLocation(neighbourhood string) bool {
+func (gs *GameServer) sealAnomalyAtLocation(neighbourhood string) bool {
 	for i, a := range gs.gameState.Anomalies {
 		if a.NeighbourhoodID == neighbourhood {
 			gs.gameState.Anomalies = append(gs.gameState.Anomalies[:i], gs.gameState.Anomalies[i+1:]...)

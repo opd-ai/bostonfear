@@ -63,6 +63,7 @@ type GameServer struct {
 	broadcaster Broadcaster // Interface for sending state updates to all clients
 	actionCh    chan PlayerActionMessage
 	shutdownCh  chan struct{}
+	shutdownOnce sync.Once // guards shutdownCh close
 	validator   StateValidator // Interface for game state invariant checking
 
 	// Performance monitoring fields
@@ -335,10 +336,9 @@ func (gs *GameServer) StartWithContext(ctx context.Context) error {
 // signalShutdown closes the shutdown channel once and ignores repeated close
 // attempts so multiple shutdown signals cannot crash the server.
 func (gs *GameServer) signalShutdown() {
-	defer func() {
-		_ = recover()
-	}()
-	close(gs.shutdownCh)
+	gs.shutdownOnce.Do(func() {
+		close(gs.shutdownCh)
+	})
 }
 
 // ValidateMovement checks if movement from one location to another is legal.

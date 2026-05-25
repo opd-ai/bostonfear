@@ -96,7 +96,7 @@ func (gs *GameServer) performCastWard(player *Player, playerID string, focusSpen
 	if successes >= requiredSuccesses {
 		// Seal any anomaly at the player's current location (reduces doom by 2).
 		// If no anomaly present, manually reduce doom by 2.
-		if !gs.SealAnomalyAtLocation(string(player.Location)) {
+		if !gs.sealAnomalyAtLocation(string(player.Location)) {
 			gs.GameState().Doom = max(gs.GameState().Doom-2, 0)
 		}
 	} else {

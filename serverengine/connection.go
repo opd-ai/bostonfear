@@ -136,8 +136,9 @@ func connectionDisplayName(conn net.Conn) string {
 func generateReconnectToken() string {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		// Fallback to timestamp on crypto failure (should never happen in practice).
-		return fmt.Sprintf("tok_%d", time.Now().UnixNano())
+		// Crypto failure should never happen; reject instead of low-entropy fallback.
+		logging.Error("crypto/rand failed, cannot generate secure token", "error", err)
+		return ""
 	}
 	return hex.EncodeToString(b)
 }
