@@ -133,7 +133,7 @@ type Player struct {
 	Connected          bool             `json:"connected"`
 	Defeated           bool             `json:"defeated"`
 	LostInTimeAndSpace bool             `json:"lostInTimeAndSpace"`
-	ReconnectToken     string           `json:"reconnectToken"`
+	ReconnectToken     string           `json:"-"`
 	DisconnectedAt     time.Time        `json:"disconnectedAt"`
 	InvestigatorType   InvestigatorType `json:"investigatorType"`
 }

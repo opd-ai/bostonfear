@@ -5,6 +5,7 @@ package serverengine
 
 import (
 	"runtime"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -265,7 +266,9 @@ func (gs *GameServer) BroadcastLatencyPercentiles() map[string]float64 {
 	samples := make([]int64, gs.latencySampleCount)
 	copy(samples, gs.latencySamples[:gs.latencySampleCount])
 
-	// Simple percentile calculation without full sort (good enough for ring buffer)
+	// Sort samples to calculate actual percentiles
+	sort.Slice(samples, func(i, j int) bool { return samples[i] < samples[j] })
+
 	// For 50th percentile
 	idx50 := (gs.latencySampleCount * 50) / 100
 	if idx50 >= gs.latencySampleCount {

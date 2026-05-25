@@ -133,13 +133,15 @@ func connectionDisplayName(conn net.Conn) string {
 
 // generateReconnectToken returns a cryptographically random 16-byte hex token
 // used to restore a disconnected player's slot on reconnection.
-func generateReconnectToken() string {
+// Returns an error if crypto/rand fails.
+func generateReconnectToken() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		// Fallback to timestamp on crypto failure (should never happen in practice).
-		return fmt.Sprintf("tok_%d", time.Now().UnixNano())
+		// Crypto failure should never happen; reject instead of low-entropy fallback.
+		logging.Error("crypto/rand failed, cannot generate secure token", "error", err)
+		return "", err
 	}
-	return hex.EncodeToString(b)
+	return hex.EncodeToString(b), nil
 }
 
 // registerPlayer adds a new player to the game state and starts their monitoring.
@@ -161,6 +163,12 @@ func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string,
 		return "", fmt.Errorf("%w (max %d players)", ErrGameFull, MaxPlayers)
 	}
 
+	reconnectToken, tokenErr := generateReconnectToken()
+	if tokenErr != nil {
+		logging.Error("failed to generate reconnect token during registration", "playerID", playerID, "error", tokenErr)
+		return "", fmt.Errorf("failed to generate reconnect token")
+	}
+
 	gs.gameState.Players[playerID] = &Player{
 		ID:          playerID,
 		DisplayName: displayName,
@@ -172,7 +180,7 @@ func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string,
 		},
 		ActionsRemaining: 0,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   reconnectToken,
 	}
 	gs.gameState.TurnOrder = append(gs.gameState.TurnOrder, playerID)
 	gs.playerConns[playerID] = conn
@@ -204,22 +212,25 @@ func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string,
 func (gs *GameServer) sendConnectionStatus(conn net.Conn, playerID string) {
 	gs.mutex.RLock()
 	token := ""
+	displayName := ""
 	if p, ok := gs.gameState.Players[playerID]; ok {
 		token = p.ReconnectToken
+		displayName = p.DisplayName
 	}
 	gs.mutex.RUnlock()
 
 	msg := map[string]interface{}{
 		"type":        "connectionStatus",
 		"playerId":    playerID,
-		"displayName": "",
+		"displayName": displayName,
 		"token":       token,
 		"status":      "connected",
 	}
-	if p, ok := gs.gameState.Players[playerID]; ok && p != nil {
-		msg["displayName"] = p.DisplayName
+	data, err := json.Marshal(msg)
+	if err != nil {
+		logging.Error("sendConnectionStatus: marshal failed", "error", err)
+		return
 	}
-	data, _ := json.Marshal(msg)
 	gs.writeToConn(conn, conn.RemoteAddr().String(), data) //nolint:errcheck
 }
 
@@ -245,10 +256,17 @@ func (gs *GameServer) runMessageLoop(ctx context.Context, conn net.Conn, playerI
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				logging.Warn("Connection timeout for player", "playerID", playerID)
 				gs.mutex.Lock()
-				gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
-				gs.checkGameEndConditions()
-				gs.mutex.Unlock()
-				gs.broadcastGameState()
+				// Only increment doom if this is the current player's turn during playing phase
+				if gs.gameState.CurrentPlayer == playerID && gs.gameState.GamePhase == "playing" {
+					gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
+					gs.checkGameEndConditions()
+					gs.mutex.Unlock()
+					gs.broadcastGameState()
+				} else {
+					gs.mutex.Unlock()
+				}
+				// Don't break - allow the player to continue after timeout
+				continue
 			} else {
 				logging.Error("WebSocket read error", "error", err, "playerID", playerID)
 			}
@@ -345,8 +363,13 @@ func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn, displayN
 			continue
 		}
 		p.Connected = true
-		p.DisconnectedAt = time.Time{}              // clear disconnect timestamp
-		p.ReconnectToken = generateReconnectToken() // rotate token
+		p.DisconnectedAt = time.Time{} // clear disconnect timestamp
+		rotatedToken, tokenErr := generateReconnectToken()
+		if tokenErr != nil {
+			logging.Error("failed to rotate reconnect token", "playerID", id, "error", tokenErr)
+		} else {
+			p.ReconnectToken = rotatedToken // rotate token
+		}
 		if strings.TrimSpace(p.DisplayName) == "" && strings.TrimSpace(displayName) != "" {
 			p.DisplayName = strings.TrimSpace(displayName)
 		}

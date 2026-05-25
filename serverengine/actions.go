@@ -94,9 +94,11 @@ func (gs *GameServer) performCastWard(player *Player, playerID string, focusSpen
 	results, successes, tentacles := gs.RollDicePool(3, focusSpend, player)
 	actionResult := "success"
 	if successes >= requiredSuccesses {
-		gs.GameState().Doom = max(gs.GameState().Doom-2, 0)
-		// Seal any anomaly at the player's current location.
-		gs.SealAnomalyAtLocation(string(player.Location))
+		// Seal any anomaly at the player's current location (reduces doom by 2).
+		// If no anomaly present, manually reduce doom by 2.
+		if !gs.sealAnomalyAtLocation(string(player.Location)) {
+			gs.gameState.Doom = max(gs.gameState.Doom-2, 0)
+		}
 	} else {
 		actionResult = "fail"
 	}
@@ -301,11 +303,7 @@ func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResul
 	}
 
 	results, successes, tentacles := gs.RollDicePool(2, 0, player)
-	doomIncrease := 0
-	if tentacles > 0 {
-		doomIncrease = tentacles
-		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
-	}
+	doomIncrease := tentacles
 
 	engaged.Health -= successes
 	actionResult := "success"
@@ -344,11 +342,7 @@ func (gs *GameServer) performEvade(player *Player, playerID string) (*DiceResult
 	}
 
 	results, successes, tentacles := gs.RollDicePool(2, 0, player)
-	doomIncrease := 0
-	if tentacles > 0 {
-		doomIncrease = tentacles
-		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
-	}
+	doomIncrease := tentacles
 
 	actionResult := "fail"
 	if successes >= 1 {

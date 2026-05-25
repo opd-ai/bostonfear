@@ -203,17 +203,17 @@ func (gs *GameServer) broadcastConnectionQuality() {
 	gs.qualityMutex.RUnlock()
 
 	gs.mutex.RLock()
-	playerIDs := make([]string, 0, len(gs.gameState.Players))
-	for playerID := range gs.gameState.Players {
-		playerIDs = append(playerIDs, playerID)
+	playerDisplayNames := make(map[string]string)
+	for playerID, player := range gs.gameState.Players {
+		displayName := playerID
+		if player != nil && strings.TrimSpace(player.DisplayName) != "" {
+			displayName = player.DisplayName
+		}
+		playerDisplayNames[playerID] = displayName
 	}
 	gs.mutex.RUnlock()
 
-	for _, playerID := range playerIDs {
-		displayName := playerID
-		if player, ok := gs.gameState.Players[playerID]; ok && player != nil && strings.TrimSpace(player.DisplayName) != "" {
-			displayName = player.DisplayName
-		}
+	for playerID, displayName := range playerDisplayNames {
 		statusMsg := ConnectionStatusMessage{
 			Type:               "connectionQuality",
 			PlayerID:           playerID,
