@@ -79,7 +79,8 @@ type GameServer struct {
 	connectionEvents  []ConnectionEventSimplified
 	performanceMutex  sync.RWMutex
 
-	// Per-action type counters (using sync.Map for lock-free concurrent access)
+	// Per-action type counters (sync.Map for concurrent lookup, atomic counters
+	// for per-action increments without a global mutex)
 	actionTypeCounters sync.Map
 
 	// Doom level histogram (tracks doom distribution across games)

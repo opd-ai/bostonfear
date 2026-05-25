@@ -414,8 +414,8 @@ func (gs *GameServer) trackMessage(messageType string) {
 // trackActionType increments the counter for the specified action type.
 // Called after each successful action execution to build per-action histograms.
 func (gs *GameServer) trackActionType(actionType ActionType) {
-	// Store one atomic counter per action type so concurrent increments do not
-	// lose updates between the load and store steps.
+	// Store one atomic counter per action type so sync.Map handles concurrent
+	// lookup while the counter itself absorbs increments without lost updates.
 	counter := &atomic.Int64{}
 	actual, _ := gs.actionTypeCounters.LoadOrStore(actionType, counter)
 	actual.(*atomic.Int64).Add(1)

@@ -118,8 +118,9 @@ func TestProcessAction_Attack(t *testing.T) {
 			_, doomInc, _, _ := gs.performAttack(player, pid)
 			if doomInc > 0 {
 				gotTentacle = true
-				// GAP-03: performAttack returns doomIncrease but does NOT directly increment doom.
-				// processActionCore applies the doom increment. This test validates that
+				// GAP-03 regression check: performAttack returns doomIncrease, but
+				// processActionCore is responsible for applying it to game-state doom.
+				// This test validates that
 				// tentacles are detected while the game state's doom value remains unchanged.
 				if gs.gameState.Doom != initialDoom {
 					t.Errorf("performAttack mutated doom directly: got %d, want %d", gs.gameState.Doom, initialDoom)

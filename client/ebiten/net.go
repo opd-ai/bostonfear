@@ -186,9 +186,9 @@ const (
 	reconnectWaitRequested
 )
 
-// waitForReconnectOrCancel waits once for either a reconnect signal, timeout,
-// or context cancellation so reconnectLoop does not accidentally double the
-// backoff delay between attempts.
+// waitForReconnectOrCancel performs the single backoff wait for reconnectLoop
+// and reports whether that wait ended because the timer expired, a reconnect
+// was requested, or the client context was cancelled.
 func (c *NetClient) waitForReconnectOrCancel(delay time.Duration) reconnectWaitResult {
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
