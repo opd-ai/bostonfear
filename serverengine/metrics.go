@@ -66,7 +66,10 @@ func (gs *GameServer) collectPerformanceMetrics() PerformanceMetrics {
 	}
 	messagesPerSecond := 0.0
 	if uptime.Seconds() > 0 {
-		messagesPerSecond = float64(gs.totalMessagesSent+gs.totalMessagesRecv) / uptime.Seconds()
+		// Use atomic loads for message counters
+		sent := atomic.LoadInt64(&gs.totalMessagesSent)
+		recv := atomic.LoadInt64(&gs.totalMessagesRecv)
+		messagesPerSecond = float64(sent+recv) / uptime.Seconds()
 	}
 
 	activeSessions, avgSessionLength := gs.aggregateSessionMetrics()
@@ -295,11 +298,12 @@ func (gs *GameServer) BroadcastLatencyPercentiles() map[string]float64 {
 
 // collectMessageThroughput calculates message performance metrics
 func (gs *GameServer) collectMessageThroughput(runtime time.Duration) MessageThroughputMetrics {
-	gs.performanceMutex.RLock()
-	defer gs.performanceMutex.RUnlock()
+	// Use atomic loads for message counters
+	sent := atomic.LoadInt64(&gs.totalMessagesSent)
+	recv := atomic.LoadInt64(&gs.totalMessagesRecv)
+	totalMessages := sent + recv
 
 	// Calculate messages per second — guard against zero uptime on startup
-	totalMessages := gs.totalMessagesSent + gs.totalMessagesRecv
 	messagesPerSecond := 0.0
 	if runtime.Seconds() > 0 {
 		messagesPerSecond = float64(totalMessages) / runtime.Seconds()
@@ -308,8 +312,8 @@ func (gs *GameServer) collectMessageThroughput(runtime time.Duration) MessageThr
 	broadcastLatency := gs.averageBroadcastLatencyMs()
 	return MessageThroughputMetrics{
 		MessagesPerSecond:     messagesPerSecond,
-		TotalMessagesSent:     gs.totalMessagesSent,
-		TotalMessagesReceived: gs.totalMessagesRecv,
+		TotalMessagesSent:     sent,
+		TotalMessagesReceived: recv,
 		AverageLatency:        broadcastLatency,
 		BroadcastLatency:      broadcastLatency,
 	}
@@ -399,34 +403,38 @@ func (gs *GameServer) trackPlayerSession(playerID, eventType string) {
 
 // trackMessage increments message counters for throughput analysis
 func (gs *GameServer) trackMessage(messageType string) {
-	gs.performanceMutex.Lock()
-	defer gs.performanceMutex.Unlock()
-
 	switch messageType {
 	case "sent":
-		gs.totalMessagesSent++
+		atomic.AddInt64(&gs.totalMessagesSent, 1)
 	case "received":
-		gs.totalMessagesRecv++
+		atomic.AddInt64(&gs.totalMessagesRecv, 1)
 	}
 }
 
 // trackActionType increments the counter for the specified action type.
 // Called after each successful action execution to build per-action histograms.
 func (gs *GameServer) trackActionType(actionType ActionType) {
-	gs.actionCounterMutex.Lock()
-	defer gs.actionCounterMutex.Unlock()
-	gs.actionTypeCounters[actionType]++
+	// Use a Load fast path for the common case so existing counters can absorb
+	// increments without allocating, while LoadOrStore safely installs the first
+	// counter for each action type.
+	if actual, ok := gs.actionTypeCounters.Load(actionType); ok {
+		actual.(*atomic.Int64).Add(1)
+		return
+	}
+
+	counter := &atomic.Int64{}
+	actual, _ := gs.actionTypeCounters.LoadOrStore(actionType, counter)
+	actual.(*atomic.Int64).Add(1)
 }
 
 // getActionTypeCounters returns a snapshot of all action type counters.
 // Used by Prometheus metrics endpoint to expose per-action statistics.
 func (gs *GameServer) getActionTypeCounters() map[ActionType]int64 {
-	gs.actionCounterMutex.RLock()
-	defer gs.actionCounterMutex.RUnlock()
-	result := make(map[ActionType]int64, len(gs.actionTypeCounters))
-	for k, v := range gs.actionTypeCounters {
-		result[k] = v
-	}
+	result := make(map[ActionType]int64)
+	gs.actionTypeCounters.Range(func(key, value interface{}) bool {
+		result[key.(ActionType)] = value.(*atomic.Int64).Load()
+		return true
+	})
 	return result
 }
 

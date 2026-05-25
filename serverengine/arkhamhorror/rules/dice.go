@@ -78,13 +78,32 @@ func RollDicePoolWithFocus(baseDice, focusSpend int, spender FocusTokenSpender) 
 	results, successes, tentacles := RollDice(totalDice)
 
 	// Each focus token spent grants one reroll of a non-success die.
+	// Priority: Reroll tentacles first (to minimize doom), then blanks.
+	// This provides better strategic value than left-to-right reroll.
 	rerollsLeft := focusSpend
+	
+	// First pass: reroll all tentacles (up to rerollsLeft)
 	for i := 0; i < len(results) && rerollsLeft > 0; i++ {
-		if results[i] != DiceSuccess {
-			// Reroll this die.
-			if results[i] == DiceTentacle {
-				tentacles--
+		if results[i] == DiceTentacle {
+			tentacles-- // Remove old tentacle count
+			roll := mathrand.Intn(3)
+			switch roll {
+			case 0:
+				results[i] = DiceSuccess
+				successes++
+			case 1:
+				results[i] = DiceBlank
+			case 2:
+				results[i] = DiceTentacle
+				tentacles++
 			}
+			rerollsLeft--
+		}
+	}
+	
+	// Second pass: reroll blanks (if rerolls remain)
+	for i := 0; i < len(results) && rerollsLeft > 0; i++ {
+		if results[i] == DiceBlank {
 			roll := mathrand.Intn(3)
 			switch roll {
 			case 0:

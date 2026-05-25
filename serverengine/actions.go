@@ -6,11 +6,11 @@ package serverengine
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	arkcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 	arkscenarios "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/scenarios"
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // performMove executes the Move action: validates adjacency and updates player location.
@@ -195,7 +195,7 @@ func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 			deck = make([]EncounterCard, len(discard))
 			copy(deck, discard)
 			gs.gameState.EncounterDiscards[loc] = []EncounterCard{}
-			log.Printf("Reshuffling encounter discard pile for location %s (%d cards)", loc, len(deck))
+			logging.Info("Reshuffling encounter discard pile", "location", loc, "cardCount", len(deck))
 		} else {
 			// Both deck and discard empty - use defaults
 			defaults := defaultEncounterDecks()
@@ -203,7 +203,7 @@ func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 			if len(deck) == 0 {
 				return fmt.Errorf("no encounter cards for location %s", loc)
 			}
-			log.Printf("Rebuilding encounter deck for location %s from defaults (%d cards)", loc, len(deck))
+			logging.Info("Rebuilding encounter deck from defaults", "location", loc, "cardCount", len(deck))
 		}
 	}
 
@@ -236,7 +236,7 @@ func (gs *GameServer) performEncounter(player *Player, playerID string) error {
 	// Add card to discard pile
 	gs.gameState.EncounterDiscards[loc] = append(gs.gameState.EncounterDiscards[loc], card)
 
-	log.Printf("Encounter at %s for %s: %s (%s %+d)", loc, playerID, card.FlavorText, card.EffectType, card.Magnitude)
+	logging.Info("Encounter", "location", loc, "playerID", playerID, "flavorText", card.FlavorText, "effectType", card.EffectType, "magnitude", card.Magnitude)
 	return nil
 }
 
@@ -281,13 +281,13 @@ func (gs *GameServer) performComponent(player *Player, playerID string) (string,
 	// Free encounter draw (Detective street contacts).
 	if ability.DrawEncounter {
 		if err := gs.performEncounter(player, playerID); err != nil {
-			log.Printf("Component encounter draw failed for %s: %v", playerID, err)
+			logging.Warn("Component encounter draw failed", "playerID", playerID, "error", err)
 		}
 	}
 
 	gs.ValidateResources(&player.Resources)
 	gs.CheckInvestigatorDefeat(playerID)
-	log.Printf("Component action by %s (%s): %s", playerID, invType, ability.Name)
+	logging.Info("Component action", "playerID", playerID, "investigatorType", invType, "abilityName", ability.Name)
 	return "success", nil
 }
 
@@ -315,7 +315,7 @@ func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResul
 		// Enemy defeated — remove it and award a clue.
 		delete(gs.gameState.Enemies, engaged.ID)
 		player.Resources.Clues = min(player.Resources.Clues+1, MaxClues)
-		log.Printf("Enemy %s defeated by %s; clue awarded", engaged.Name, playerID)
+		logging.Info("Enemy defeated", "enemyName", engaged.Name, "playerID", playerID, "clueAwarded", true)
 	}
 
 	diceResult := &DiceResultMessage{
@@ -326,7 +326,7 @@ func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResul
 		Success:   successes > 0,
 		Action:    ActionAttack,
 	}
-	log.Printf("Attack by %s on %s: %d successes, doom +%d", playerID, engaged.Name, successes, doomIncrease)
+	logging.Info("Attack", "playerID", playerID, "enemyName", engaged.Name, "successes", successes, "doomIncrease", doomIncrease)
 	return diceResult, doomIncrease, actionResult, nil
 }
 
@@ -365,7 +365,7 @@ func (gs *GameServer) performEvade(player *Player, playerID string) (*DiceResult
 		Success:   successes >= 1,
 		Action:    ActionEvade,
 	}
-	log.Printf("Evade by %s from %s: %d successes, doom +%d", playerID, engaged.Name, successes, doomIncrease)
+	logging.Info("Evade", "playerID", playerID, "enemyName", engaged.Name, "successes", successes, "doomIncrease", doomIncrease)
 	return diceResult, doomIncrease, actionResult, nil
 }
 
@@ -398,7 +398,7 @@ func (gs *GameServer) performCloseGate(player *Player, playerID string) (string,
 			gs.gameState.OpenGates = append(gs.gameState.OpenGates[:i], gs.gameState.OpenGates[i+1:]...)
 			player.Resources.Clues -= clueCost
 			gs.gameState.Doom = max(gs.gameState.Doom-1, 0)
-			log.Printf("Gate closed at %s by %s (doom=%d)", loc, playerID, gs.gameState.Doom)
+			logging.Info("Gate closed", "location", loc, "playerID", playerID, "doom", gs.gameState.Doom)
 			return "success", nil
 		}
 	}
@@ -431,7 +431,7 @@ func (gs *GameServer) performSelectInvestigator(player *Player, playerID, target
 		return fmt.Errorf("unknown investigator type %q", target)
 	}
 	player.InvestigatorType = invType
-	log.Printf("Player %s selected investigator type: %s", playerID, invType)
+	logging.Info("Player selected investigator type", "playerID", playerID, "investigatorType", invType)
 	return nil
 }
 
@@ -470,7 +470,7 @@ func (gs *GameServer) performSelectScenario(target string) error {
 	if scenario.SetupFn != nil {
 		scenario.SetupFn(gs.gameState)
 	}
-	log.Printf("Scenario selected: %s", scenarioID)
+	logging.Info("Scenario selected", "scenarioID", scenarioID)
 	return nil
 }
 
@@ -495,6 +495,6 @@ func (gs *GameServer) performChat(playerID, phrase string) error {
 	if phrase == "" {
 		return fmt.Errorf("chat phrase must not be empty")
 	}
-	log.Printf("Chat from %s: %s", playerID, phrase)
+	logging.Info("Chat", "playerID", playerID, "phrase", phrase)
 	return nil
 }

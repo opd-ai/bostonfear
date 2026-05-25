@@ -107,20 +107,23 @@ func TestProcessAction_Attack(t *testing.T) {
 			Engaged: []string{pid},
 		}
 		gs.gameState.Enemies = map[string]*Enemy{"e1": enemy}
-		initialDoom := gs.gameState.Doom
 
 		player := gs.gameState.Players[pid]
+		initialDoom := gs.gameState.Doom
 		// Run many times; tentacles are 1-in-3 chance per die.
 		gotTentacle := false
 		for i := 0; i < 100; i++ {
 			enemy.Health = 10 // reset
 			enemy.Engaged = []string{pid}
-			gs.gameState.Doom = initialDoom
 			_, doomInc, _, _ := gs.performAttack(player, pid)
 			if doomInc > 0 {
 				gotTentacle = true
-				if gs.gameState.Doom != initialDoom+doomInc {
-					t.Errorf("doom not updated: want %d+%d, got %d", initialDoom, doomInc, gs.gameState.Doom)
+				// GAP-03 regression check: performAttack returns doomIncrease, but
+				// processActionCore is responsible for applying it to game-state doom.
+				// This test validates that
+				// tentacles are detected while the game state's doom value remains unchanged.
+				if gs.gameState.Doom != initialDoom {
+					t.Errorf("performAttack mutated doom directly: got %d, want %d", gs.gameState.Doom, initialDoom)
 				}
 				break
 			}

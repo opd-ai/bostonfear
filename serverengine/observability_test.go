@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -117,11 +118,11 @@ func TestTrackMessage(t *testing.T) {
 	gs.trackMessage("sent")
 	gs.trackMessage("received")
 	gs.trackMessage("sent")
-	if gs.totalMessagesSent != 2 {
-		t.Errorf("expected 2 sent, got %d", gs.totalMessagesSent)
+	if atomic.LoadInt64(&gs.totalMessagesSent) != 2 {
+		t.Errorf("expected 2 sent, got %d", atomic.LoadInt64(&gs.totalMessagesSent))
 	}
-	if gs.totalMessagesRecv != 1 {
-		t.Errorf("expected 1 received, got %d", gs.totalMessagesRecv)
+	if atomic.LoadInt64(&gs.totalMessagesRecv) != 1 {
+		t.Errorf("expected 1 received, got %d", atomic.LoadInt64(&gs.totalMessagesRecv))
 	}
 }
 

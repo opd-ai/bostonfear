@@ -255,15 +255,18 @@ func (gs *GameServer) runMessageLoop(ctx context.Context, conn net.Conn, playerI
 			}
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				logging.Warn("Connection timeout for player", "playerID", playerID)
-				gs.mutex.Lock()
-				// Only increment doom if this is the current player's turn during playing phase
-				if gs.gameState.CurrentPlayer == playerID && gs.gameState.GamePhase == "playing" {
-					gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
-					gs.checkGameEndConditions()
-					gs.mutex.Unlock()
-					gs.broadcastGameState()
-				} else {
-					gs.mutex.Unlock()
+				// Only penalize timeout if context is still active (not during shutdown)
+				if ctx.Err() == nil {
+					gs.mutex.Lock()
+					// Only increment doom if this is the current player's turn during playing phase
+					if gs.gameState.CurrentPlayer == playerID && gs.gameState.GamePhase == "playing" {
+						gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
+						gs.checkGameEndConditions()
+						gs.mutex.Unlock()
+						gs.broadcastGameState()
+					} else {
+						gs.mutex.Unlock()
+					}
 				}
 				// Don't break - allow the player to continue after timeout
 				continue

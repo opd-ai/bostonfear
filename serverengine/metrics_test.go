@@ -1,6 +1,9 @@
 package serverengine
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestActionTypeTracking(t *testing.T) {
 	gs, pid := newTestServer(t)
@@ -48,4 +51,31 @@ func TestDoomHistogramTracking(t *testing.T) {
 	}
 
 	_ = pid // unused but required by newTestServer
+}
+
+func TestActionTypeTracking_Concurrent(t *testing.T) {
+	gs, _ := newTestServer(t)
+
+	const goroutines = 32
+	const incrementsPerGoroutine = 64
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	for range goroutines {
+		go func() {
+			defer wg.Done()
+			for range incrementsPerGoroutine {
+				gs.trackActionType(ActionMove)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	counters := gs.getActionTypeCounters()
+	want := int64(goroutines * incrementsPerGoroutine)
+	if counters[ActionMove] != want {
+		t.Fatalf("expected move count %d, got %d", want, counters[ActionMove])
+	}
 }

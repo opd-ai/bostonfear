@@ -205,6 +205,37 @@ func TestNextBackoff(t *testing.T) {
 	}
 }
 
+func TestNextReconnectDelay(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	client := NewNetClient(NewLocalState("ws://localhost:8080/ws"))
+
+	if got := client.nextReconnectDelay(initialReconnectDelay); got != 10*time.Second {
+		t.Fatalf("nextReconnectDelay(%s) = %s, want %s", initialReconnectDelay, got, 10*time.Second)
+	}
+}
+
+func TestWaitForReconnectOrCancel(t *testing.T) {
+	t.Run("reconnect request returns immediately", func(t *testing.T) {
+		t.Setenv("HOME", t.TempDir())
+		client := NewNetClient(NewLocalState("ws://localhost:8080/ws"))
+		client.Reconnect()
+
+		if got := client.waitForReconnectOrCancel(100 * time.Millisecond); got != reconnectWaitRequested {
+			t.Fatalf("waitForReconnectOrCancel() = %v, want %v", got, reconnectWaitRequested)
+		}
+	})
+
+	t.Run("cancel returns cancelled", func(t *testing.T) {
+		t.Setenv("HOME", t.TempDir())
+		client := NewNetClient(NewLocalState("ws://localhost:8080/ws"))
+		client.Disconnect()
+
+		if got := client.waitForReconnectOrCancel(100 * time.Millisecond); got != reconnectWaitCancelled {
+			t.Fatalf("waitForReconnectOrCancel() = %v, want %v", got, reconnectWaitCancelled)
+		}
+	})
+}
+
 // TestApplyDiceResult_UpdatesState verifies applyDiceResult unmarshals and stores a dice result.
 func TestApplyDiceResult_UpdatesState(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
