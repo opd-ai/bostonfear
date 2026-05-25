@@ -103,3 +103,12 @@ func (s *testServerWithCleanup) connectPlayerWithToken(t testing.TB, token strin
 	conn.SetReadDeadline(time.Time{})
 	return conn, playerID
 }
+
+func mustReconnectToken(t testing.TB) string {
+	t.Helper()
+	token, err := generateReconnectToken()
+	if err != nil {
+		t.Fatalf("generateReconnectToken() failed: %v", err)
+	}
+	return token
+}

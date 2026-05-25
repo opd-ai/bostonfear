@@ -282,9 +282,6 @@ func (gs *GameServer) spawnEnemiesForDoom() {
 	}
 }
 
-// sealAnomalyAtLocation removes the first anomaly found at neighbourhood and
-// reduces doom by 2. This is the sealing effect applied on a successful Ward.
-// Caller must hold gs.mutex.
 // sealAnomalyAtLocation finds and removes an anomaly at the given neighbourhood,
 // reducing doom by 2 when found. Returns true if an anomaly was sealed.
 // Caller must hold gs.mutex.

@@ -83,7 +83,7 @@ func TestMultiplayerIntegration_ThreePlayersConnectAndTakeTurns(t *testing.T) {
 		Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 		ActionsRemaining: 2,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["player1"] = player1
 
@@ -100,7 +100,7 @@ func TestMultiplayerIntegration_ThreePlayersConnectAndTakeTurns(t *testing.T) {
 		Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 		ActionsRemaining: 0,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["player2"] = player2
 
@@ -117,7 +117,7 @@ func TestMultiplayerIntegration_ThreePlayersConnectAndTakeTurns(t *testing.T) {
 		Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 		ActionsRemaining: 0,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["player3"] = player3
 
@@ -206,7 +206,7 @@ func TestLateJoinerIntegration_PlayerJoinsGameInProgress(t *testing.T) {
 		Resources:        Resources{Health: 9, Sanity: 8, Clues: 1},
 		ActionsRemaining: 0,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["player1"] = player1
 
@@ -216,7 +216,7 @@ func TestLateJoinerIntegration_PlayerJoinsGameInProgress(t *testing.T) {
 		Resources:        Resources{Health: 10, Sanity: 9, Clues: 0},
 		ActionsRemaining: 2,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["player2"] = player2
 
@@ -230,7 +230,7 @@ func TestLateJoinerIntegration_PlayerJoinsGameInProgress(t *testing.T) {
 		Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 		ActionsRemaining: 0,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["player3"] = player3
 	gs.gameState.TurnOrder = append(gs.gameState.TurnOrder, "player3")
@@ -278,7 +278,7 @@ func TestStateUpdateBroadcast_AllPlayersReceiveUpdates(t *testing.T) {
 			Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 			ActionsRemaining: 0,
 			Connected:        true,
-			ReconnectToken:   generateReconnectToken(),
+			ReconnectToken:   mustReconnectToken(t),
 		}
 		gs.gameState.TurnOrder = append(gs.gameState.TurnOrder, playerID)
 	}
@@ -327,7 +327,7 @@ func TestGameMechanicsIntegration_MechanicsWorkTogether(t *testing.T) {
 		Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 		ActionsRemaining: 2,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["player1"] = player
 

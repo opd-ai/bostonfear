@@ -35,7 +35,7 @@ func newTestServer(t *testing.T) (*GameServer, string) {
 		Resources:        Resources{Health: 10, Sanity: 10, Clues: 0},
 		ActionsRemaining: 2,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   mustReconnectToken(t),
 	}
 	gs.gameState.Players["p1"] = p
 	gs.gameState.TurnOrder = []string{"p1"}

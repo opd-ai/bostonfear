@@ -133,14 +133,15 @@ func connectionDisplayName(conn net.Conn) string {
 
 // generateReconnectToken returns a cryptographically random 16-byte hex token
 // used to restore a disconnected player's slot on reconnection.
-func generateReconnectToken() string {
+// Returns an error if crypto/rand fails.
+func generateReconnectToken() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		// Crypto failure should never happen; reject instead of low-entropy fallback.
 		logging.Error("crypto/rand failed, cannot generate secure token", "error", err)
-		return ""
+		return "", err
 	}
-	return hex.EncodeToString(b)
+	return hex.EncodeToString(b), nil
 }
 
 // registerPlayer adds a new player to the game state and starts their monitoring.
@@ -162,6 +163,12 @@ func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string,
 		return "", fmt.Errorf("%w (max %d players)", ErrGameFull, MaxPlayers)
 	}
 
+	reconnectToken, tokenErr := generateReconnectToken()
+	if tokenErr != nil {
+		logging.Error("failed to generate reconnect token during registration", "playerID", playerID, "error", tokenErr)
+		return "", fmt.Errorf("failed to generate reconnect token")
+	}
+
 	gs.gameState.Players[playerID] = &Player{
 		ID:          playerID,
 		DisplayName: displayName,
@@ -173,7 +180,7 @@ func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string,
 		},
 		ActionsRemaining: 0,
 		Connected:        true,
-		ReconnectToken:   generateReconnectToken(),
+		ReconnectToken:   reconnectToken,
 	}
 	gs.gameState.TurnOrder = append(gs.gameState.TurnOrder, playerID)
 	gs.playerConns[playerID] = conn
@@ -356,8 +363,13 @@ func (gs *GameServer) restorePlayerByToken(token string, conn net.Conn, displayN
 			continue
 		}
 		p.Connected = true
-		p.DisconnectedAt = time.Time{}              // clear disconnect timestamp
-		p.ReconnectToken = generateReconnectToken() // rotate token
+		p.DisconnectedAt = time.Time{} // clear disconnect timestamp
+		rotatedToken, tokenErr := generateReconnectToken()
+		if tokenErr != nil {
+			logging.Error("failed to rotate reconnect token", "playerID", id, "error", tokenErr)
+		} else {
+			p.ReconnectToken = rotatedToken // rotate token
+		}
 		if strings.TrimSpace(p.DisplayName) == "" && strings.TrimSpace(displayName) != "" {
 			p.DisplayName = strings.TrimSpace(displayName)
 		}
