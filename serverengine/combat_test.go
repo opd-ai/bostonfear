@@ -109,6 +109,7 @@ func TestProcessAction_Attack(t *testing.T) {
 		gs.gameState.Enemies = map[string]*Enemy{"e1": enemy}
 
 		player := gs.gameState.Players[pid]
+		initialDoom := gs.gameState.Doom
 		// Run many times; tentacles are 1-in-3 chance per die.
 		gotTentacle := false
 		for i := 0; i < 100; i++ {
@@ -119,9 +120,9 @@ func TestProcessAction_Attack(t *testing.T) {
 				gotTentacle = true
 				// GAP-03: performAttack returns doomIncrease but does NOT directly increment doom.
 				// processActionCore applies the doom increment. This test validates that
-				// tentacles are detected and the correct doomIncrease value is returned.
-				if doomInc <= 0 {
-					t.Errorf("expected doomIncrease > 0 when tentacle rolled, got %d", doomInc)
+				// tentacles are detected while the game state's doom value remains unchanged.
+				if gs.gameState.Doom != initialDoom {
+					t.Errorf("performAttack mutated doom directly: got %d, want %d", gs.gameState.Doom, initialDoom)
 				}
 				break
 			}

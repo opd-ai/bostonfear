@@ -302,7 +302,7 @@ func (gs *GameServer) collectMessageThroughput(runtime time.Duration) MessageThr
 	sent := atomic.LoadInt64(&gs.totalMessagesSent)
 	recv := atomic.LoadInt64(&gs.totalMessagesRecv)
 	totalMessages := sent + recv
-	
+
 	// Calculate messages per second — guard against zero uptime on startup
 	messagesPerSecond := 0.0
 	if runtime.Seconds() > 0 {
@@ -414,14 +414,11 @@ func (gs *GameServer) trackMessage(messageType string) {
 // trackActionType increments the counter for the specified action type.
 // Called after each successful action execution to build per-action histograms.
 func (gs *GameServer) trackActionType(actionType ActionType) {
-	// Load current value, increment, and store back atomically.
-	// Using sync.Map for the action type counters to avoid exclusive locks.
-	val, _ := gs.actionTypeCounters.Load(actionType)
-	if val == nil {
-		val = int64(0)
-	}
-	count := val.(int64)
-	gs.actionTypeCounters.Store(actionType, count+1)
+	// Store one atomic counter per action type so concurrent increments do not
+	// lose updates between the load and store steps.
+	counter := &atomic.Int64{}
+	actual, _ := gs.actionTypeCounters.LoadOrStore(actionType, counter)
+	actual.(*atomic.Int64).Add(1)
 }
 
 // getActionTypeCounters returns a snapshot of all action type counters.
@@ -429,7 +426,7 @@ func (gs *GameServer) trackActionType(actionType ActionType) {
 func (gs *GameServer) getActionTypeCounters() map[ActionType]int64 {
 	result := make(map[ActionType]int64)
 	gs.actionTypeCounters.Range(func(key, value interface{}) bool {
-		result[key.(ActionType)] = value.(int64)
+		result[key.(ActionType)] = value.(*atomic.Int64).Load()
 		return true
 	})
 	return result

@@ -119,10 +119,14 @@ func (c *NetClient) reconnectLoop() {
 		if err != nil {
 			log.Printf("net: dial %s failed: %v — retrying in %s", c.state.ServerURL, err, delay)
 			c.state.SetConnected(false)
-			delay = c.nextReconnectDelay(delay)
-			// Wait for delay or context cancellation
-			if !c.waitForReconnectOrCancel(delay) {
-				return // context cancelled
+			switch c.waitForReconnectOrCancel(delay) {
+			case reconnectWaitCancelled:
+				return
+			case reconnectWaitRequested:
+				delay = initialReconnectDelay
+				continue
+			case reconnectWaitTimedOut:
+				delay = c.nextReconnectDelay(delay)
 			}
 			continue
 		}
@@ -136,10 +140,13 @@ func (c *NetClient) reconnectLoop() {
 
 		c.state.SetConnected(false)
 		log.Printf("net: connection lost — retrying in %s", delay)
-		delay = c.nextReconnectDelay(delay)
-		// Wait for delay or context cancellation
-		if !c.waitForReconnectOrCancel(delay) {
-			return // context cancelled
+		switch c.waitForReconnectOrCancel(delay) {
+		case reconnectWaitCancelled:
+			return
+		case reconnectWaitRequested:
+			delay = initialReconnectDelay
+		case reconnectWaitTimedOut:
+			delay = c.nextReconnectDelay(delay)
 		}
 	}
 }
@@ -161,9 +168,6 @@ func (c *NetClient) dialURL() string {
 }
 
 func (c *NetClient) nextReconnectDelay(delay time.Duration) time.Duration {
-	if waitForReconnectSignal(c.reconnectCh, delay) {
-		return initialReconnectDelay
-	}
 	return nextBackoff(delay, maxReconnectDelay)
 }
 
@@ -174,25 +178,28 @@ func drainReconnectSignal(reconnectCh <-chan struct{}) {
 	}
 }
 
-// waitForReconnectOrCancel waits for either a reconnect signal, timeout, or context cancellation.
-// Returns true if reconnect was signaled or timeout expired; false if context was cancelled.
-func (c *NetClient) waitForReconnectOrCancel(delay time.Duration) bool {
-	select {
-	case <-time.After(delay):
-		return true
-	case <-c.reconnectCh:
-		return true
-	case <-c.ctx.Done():
-		return false
-	}
-}
+type reconnectWaitResult int
 
-func waitForReconnectSignal(reconnectCh <-chan struct{}, delay time.Duration) bool {
+const (
+	reconnectWaitCancelled reconnectWaitResult = iota
+	reconnectWaitTimedOut
+	reconnectWaitRequested
+)
+
+// waitForReconnectOrCancel waits once for either a reconnect signal, timeout,
+// or context cancellation so reconnectLoop does not accidentally double the
+// backoff delay between attempts.
+func (c *NetClient) waitForReconnectOrCancel(delay time.Duration) reconnectWaitResult {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
 	select {
-	case <-time.After(delay):
-		return false
-	case <-reconnectCh:
-		return true
+	case <-timer.C:
+		return reconnectWaitTimedOut
+	case <-c.reconnectCh:
+		return reconnectWaitRequested
+	case <-c.ctx.Done():
+		return reconnectWaitCancelled
 	}
 }
 
