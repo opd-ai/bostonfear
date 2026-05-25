@@ -204,20 +204,19 @@ func (gs *GameServer) registerPlayer(conn net.Conn, displayName string) (string,
 func (gs *GameServer) sendConnectionStatus(conn net.Conn, playerID string) {
 	gs.mutex.RLock()
 	token := ""
+	displayName := ""
 	if p, ok := gs.gameState.Players[playerID]; ok {
 		token = p.ReconnectToken
+		displayName = p.DisplayName
 	}
 	gs.mutex.RUnlock()
 
 	msg := map[string]interface{}{
 		"type":        "connectionStatus",
 		"playerId":    playerID,
-		"displayName": "",
+		"displayName": displayName,
 		"token":       token,
 		"status":      "connected",
-	}
-	if p, ok := gs.gameState.Players[playerID]; ok && p != nil {
-		msg["displayName"] = p.DisplayName
 	}
 	data, _ := json.Marshal(msg)
 	gs.writeToConn(conn, conn.RemoteAddr().String(), data) //nolint:errcheck

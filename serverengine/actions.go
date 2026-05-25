@@ -301,11 +301,7 @@ func (gs *GameServer) performAttack(player *Player, playerID string) (*DiceResul
 	}
 
 	results, successes, tentacles := gs.RollDicePool(2, 0, player)
-	doomIncrease := 0
-	if tentacles > 0 {
-		doomIncrease = tentacles
-		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
-	}
+	doomIncrease := tentacles
 
 	engaged.Health -= successes
 	actionResult := "success"
@@ -344,11 +340,7 @@ func (gs *GameServer) performEvade(player *Player, playerID string) (*DiceResult
 	}
 
 	results, successes, tentacles := gs.RollDicePool(2, 0, player)
-	doomIncrease := 0
-	if tentacles > 0 {
-		doomIncrease = tentacles
-		gs.gameState.Doom = min(gs.gameState.Doom+tentacles, 12)
-	}
+	doomIncrease := tentacles
 
 	actionResult := "fail"
 	if successes >= 1 {
