@@ -2536,11 +2536,11 @@ const (
 )
 
 func currentUILayoutProfile() layoutProfile {
-	w, h := ebiten.WindowSize()
-	if w <= 0 || h <= 0 {
-		w = screenWidth
-		h = screenHeight
-	}
+	// Use logical dimensions updated by LayoutF rather than the raw physical
+	// window size from ebiten.WindowSize() so that the profile always matches
+	// the actual render resolution used by the draw pipeline.
+	w := screenWidth
+	h := screenHeight
 	if w < 480 && h > w {
 		return layoutPortraitMobile
 	}

@@ -199,12 +199,33 @@ func TestStressTest_6Players(t *testing.T) {
 	lastCurrentPlayer := ""
 	turnStagnantSince := startTime
 
+	// playerSnapshot holds a race-free copy of a single player's invariant fields.
+	type playerSnapshot struct {
+		Health int
+		Sanity int
+		Clues  int
+	}
+
 	for {
 		select {
 		case <-ticker.C:
+			// Deep-copy only the fields needed for invariant checks while holding
+			// the read lock. A shallow copy of gs.gameState would still share
+			// *Player pointers with the live state, causing a data race when
+			// processActionCore writes player resources under the write lock.
 			gs.mutex.RLock()
 			doom := int32(gs.gameState.Doom)
-			stateCopy := *gs.gameState // shallow copy for inspection
+			gamePhase := gs.gameState.GamePhase
+			currentPlayer := gs.gameState.CurrentPlayer
+			playerCount := len(gs.gameState.Players)
+			playerSnaps := make(map[string]playerSnapshot, playerCount)
+			for pid, p := range gs.gameState.Players {
+				playerSnaps[pid] = playerSnapshot{
+					Health: p.Resources.Health,
+					Sanity: p.Resources.Sanity,
+					Clues:  p.Resources.Clues,
+				}
+			}
 			gs.mutex.RUnlock()
 
 			// Track max doom
@@ -221,29 +242,29 @@ func TestStressTest_6Players(t *testing.T) {
 				metrics.gameStateErrors.Add(1)
 			}
 
-			for playerID, player := range stateCopy.Players {
-				if player.Resources.Health < 0 || player.Resources.Health > 10 {
-					t.Logf("FAIL: Health out of bounds for %s: %d", playerID, player.Resources.Health)
+			for playerID, snap := range playerSnaps {
+				if snap.Health < 0 || snap.Health > 10 {
+					t.Logf("FAIL: Health out of bounds for %s: %d", playerID, snap.Health)
 					metrics.gameStateErrors.Add(1)
 				}
-				if player.Resources.Sanity < 0 || player.Resources.Sanity > 10 {
-					t.Logf("FAIL: Sanity out of bounds for %s: %d", playerID, player.Resources.Sanity)
+				if snap.Sanity < 0 || snap.Sanity > 10 {
+					t.Logf("FAIL: Sanity out of bounds for %s: %d", playerID, snap.Sanity)
 					metrics.gameStateErrors.Add(1)
 				}
-				if player.Resources.Clues < 0 || player.Resources.Clues > 5 {
-					t.Logf("FAIL: Clues out of bounds for %s: %d", playerID, player.Resources.Clues)
+				if snap.Clues < 0 || snap.Clues > 5 {
+					t.Logf("FAIL: Clues out of bounds for %s: %d", playerID, snap.Clues)
 					metrics.gameStateErrors.Add(1)
 				}
 			}
 
-			if stateCopy.GamePhase == "playing" {
-				if stateCopy.CurrentPlayer == lastCurrentPlayer {
+			if gamePhase == "playing" {
+				if currentPlayer == lastCurrentPlayer {
 					if time.Since(turnStagnantSince) > 20*time.Second {
-						t.Logf("FAIL: Turn appears stuck on %s for %v", stateCopy.CurrentPlayer, time.Since(turnStagnantSince).Round(time.Second))
+						t.Logf("FAIL: Turn appears stuck on %s for %v", currentPlayer, time.Since(turnStagnantSince).Round(time.Second))
 						metrics.gameStateErrors.Add(1)
 					}
 				} else {
-					lastCurrentPlayer = stateCopy.CurrentPlayer
+					lastCurrentPlayer = currentPlayer
 					turnStagnantSince = time.Now()
 				}
 			}
@@ -253,7 +274,7 @@ func TestStressTest_6Players(t *testing.T) {
 			throughput := float64(actionCount) / elapsed.Seconds()
 			t.Logf("[%v] Actions: %d, Throughput: %.1f/sec, Doom: %d, Players: %d, Phase: %s",
 				elapsed.Round(time.Second), actionCount, throughput, doom,
-				len(stateCopy.Players), stateCopy.GamePhase)
+				playerCount, gamePhase)
 
 		case <-testTimer.C:
 			// Test duration completed

@@ -37,13 +37,19 @@ if [ -z "$SIMULATOR_SLICE" ]; then
 fi
 
 echo "Found simulator slice: $SIMULATOR_SLICE"
+echo "Contents of simulator slice:"
+ls -la "$SIMULATOR_SLICE/"
 
-# Verify framework headers and module
-FRAMEWORK_PATH="$SIMULATOR_SLICE/Mobile.framework"
-if [ ! -d "$FRAMEWORK_PATH" ]; then
-    echo "ERROR: Mobile.framework not found in simulator slice"
+# Find any .framework directory in the simulator slice.
+# ebitenmobile derives the framework name from the Go package name; discover it
+# dynamically rather than hardcoding "Mobile.framework".
+FRAMEWORK_PATH=$(find "$SIMULATOR_SLICE" -name "*.framework" -maxdepth 1 -type d | head -n1)
+if [ -z "$FRAMEWORK_PATH" ]; then
+    echo "ERROR: No .framework bundle found in simulator slice"
     exit 1
 fi
+
+echo "Found framework: $FRAMEWORK_PATH"
 
 if [ ! -d "$FRAMEWORK_PATH/Headers" ]; then
     echo "ERROR: Framework headers not found"
@@ -55,14 +61,15 @@ if [ ! -d "$FRAMEWORK_PATH/Modules" ]; then
     exit 1
 fi
 
-# Verify the Mobile binary exists
-MOBILE_BINARY="$FRAMEWORK_PATH/Mobile"
+# Verify the framework binary exists (name matches the .framework bundle without extension)
+FRAMEWORK_BUNDLE_NAME=$(basename "$FRAMEWORK_PATH" .framework)
+MOBILE_BINARY="$FRAMEWORK_PATH/$FRAMEWORK_BUNDLE_NAME"
 if [ ! -f "$MOBILE_BINARY" ]; then
-    echo "ERROR: Mobile binary not found in framework"
+    echo "ERROR: Framework binary '$FRAMEWORK_BUNDLE_NAME' not found in $FRAMEWORK_PATH"
     exit 1
 fi
 
-echo "Checking Mobile binary architecture..."
+echo "Checking framework binary architecture..."
 file "$MOBILE_BINARY"
 otool -L "$MOBILE_BINARY" | head -10
 
