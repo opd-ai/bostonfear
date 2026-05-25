@@ -296,7 +296,7 @@ func TestRulesAnomalyGateMechanics(t *testing.T) {
 		gs.spawnAnomaly(string(Downtown))
 		gs.gameState.Doom = 6
 		// Directly seal the anomaly to test the sealing path.
-		gs.SealAnomalyAtLocation(string(Downtown))
+		gs.sealAnomalyAtLocation(string(Downtown))
 		if len(gs.gameState.Anomalies) != 0 {
 			t.Errorf("ward success should seal anomaly; got %d anomalies", len(gs.gameState.Anomalies))
 		}
@@ -310,7 +310,7 @@ func TestRulesAnomalyGateMechanics(t *testing.T) {
 		gs, _ := newTestServer(t)
 		gs.gameState.Doom = 5
 		// No anomaly — sealing should be a no-op.
-		gs.SealAnomalyAtLocation(string(Downtown))
+		gs.sealAnomalyAtLocation(string(Downtown))
 		if gs.gameState.Doom != 5 {
 			t.Errorf("no anomaly seal should not change doom; got %d", gs.gameState.Doom)
 		}
