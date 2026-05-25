@@ -218,7 +218,11 @@ func (gs *GameServer) sendConnectionStatus(conn net.Conn, playerID string) {
 		"token":       token,
 		"status":      "connected",
 	}
-	data, _ := json.Marshal(msg)
+	data, err := json.Marshal(msg)
+	if err != nil {
+		logging.Error("sendConnectionStatus: marshal failed", "error", err)
+		return
+	}
 	gs.writeToConn(conn, conn.RemoteAddr().String(), data) //nolint:errcheck
 }
 
