@@ -20,6 +20,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev xorg-dev xvfb
+      # Install go-stats-generator for documentation coverage analysis
+      - name: Install go-stats-generator
+        run: go install github.com/opd-ai/go-stats-generator@latest
       - name: go vet
         run: go vet ./...
       - name: Check documentation coverage threshold
