@@ -1,6 +1,7 @@
 package ebiten
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/url"
@@ -42,15 +43,20 @@ type NetClient struct {
 	state       *LocalState
 	actionsCh   chan PlayerActionMessage
 	reconnectCh chan struct{} // buffered; send to trigger an immediate redial
+	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
 // NewNetClient creates a NetClient wired to the given LocalState.
 // The returned client is not yet connected; call Connect to start.
 func NewNetClient(state *LocalState) *NetClient {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &NetClient{
 		state:       state,
 		actionsCh:   make(chan PlayerActionMessage, 16),
 		reconnectCh: make(chan struct{}, 1),
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 }
 
@@ -77,9 +83,16 @@ func (c *NetClient) SendAction(action PlayerActionMessage) {
 // Connect dials the server and starts goroutines for reading and writing.
 // It returns immediately; reconnection is handled automatically with a 5-second
 // initial delay matching the legacy JS client behaviour.
+// The connection loop can be stopped by cancelling the context stored in the NetClient.
 func (c *NetClient) Connect() {
 	updateHostStatus("Connecting...")
 	go c.reconnectLoop()
+}
+
+// Disconnect stops the reconnect loop by cancelling the internal context.
+// Once called, the client will not automatically reconnect.
+func (c *NetClient) Disconnect() {
+	c.cancel()
 }
 
 // reconnectLoop dials, runs the read/write pair, and retries on failure.
@@ -88,10 +101,18 @@ func (c *NetClient) Connect() {
 // the server can restore the previous player slot.
 // Sending on reconnectCh (via Reconnect()) aborts the current backoff and
 // redials immediately with the current ServerURL.
+// The loop exits cleanly when c.ctx is cancelled.
 func (c *NetClient) reconnectLoop() {
 	delay := initialReconnectDelay
 
 	for {
+		select {
+		case <-c.ctx.Done():
+			log.Printf("net: reconnect loop exiting (context cancelled)")
+			return
+		default:
+		}
+
 		drainReconnectSignal(c.reconnectCh)
 
 		conn, err := dialWebSocket(c.dialURL())
@@ -99,6 +120,10 @@ func (c *NetClient) reconnectLoop() {
 			log.Printf("net: dial %s failed: %v — retrying in %s", c.state.ServerURL, err, delay)
 			c.state.SetConnected(false)
 			delay = c.nextReconnectDelay(delay)
+			// Wait for delay or context cancellation
+			if !c.waitForReconnectOrCancel(delay) {
+				return // context cancelled
+			}
 			continue
 		}
 
@@ -112,6 +137,10 @@ func (c *NetClient) reconnectLoop() {
 		c.state.SetConnected(false)
 		log.Printf("net: connection lost — retrying in %s", delay)
 		delay = c.nextReconnectDelay(delay)
+		// Wait for delay or context cancellation
+		if !c.waitForReconnectOrCancel(delay) {
+			return // context cancelled
+		}
 	}
 }
 
@@ -142,6 +171,19 @@ func drainReconnectSignal(reconnectCh <-chan struct{}) {
 	select {
 	case <-reconnectCh:
 	default:
+	}
+}
+
+// waitForReconnectOrCancel waits for either a reconnect signal, timeout, or context cancellation.
+// Returns true if reconnect was signaled or timeout expired; false if context was cancelled.
+func (c *NetClient) waitForReconnectOrCancel(delay time.Duration) bool {
+	select {
+	case <-time.After(delay):
+		return true
+	case <-c.reconnectCh:
+		return true
+	case <-c.ctx.Done():
+		return false
 	}
 }
 
