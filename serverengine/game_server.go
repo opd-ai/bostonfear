@@ -72,16 +72,15 @@ type GameServer struct {
 	activeConnections int64 // managed atomically; mirrors len(gs.connections)
 	peakConnections   int
 	totalGamesPlayed  int64
-	totalMessagesSent int64
-	totalMessagesRecv int64
+	totalMessagesSent int64 // managed atomically
+	totalMessagesRecv int64 // managed atomically
 	errorCount        int64 // incremented atomically at every error site
 	playerSessions    map[string]*PlayerSessionMetricsSimplified
 	connectionEvents  []ConnectionEventSimplified
 	performanceMutex  sync.RWMutex
 
-	// Per-action type counters
-	actionTypeCounters map[ActionType]int64
-	actionCounterMutex sync.RWMutex
+	// Per-action type counters (using sync.Map for lock-free concurrent access)
+	actionTypeCounters sync.Map
 
 	// Doom level histogram (tracks doom distribution across games)
 	doomHistogram     map[int]int64 // doom level -> count
@@ -180,8 +179,7 @@ func newGameServerWithScenario(scenario Scenario) *GameServer {
 		playerSessions:    make(map[string]*PlayerSessionMetricsSimplified),
 		connectionEvents:  make([]ConnectionEventSimplified, 0),
 
-		// Initialize per-action type counters
-		actionTypeCounters: make(map[ActionType]int64),
+		// actionTypeCounters is now a sync.Map (no initialization needed)
 		doomHistogram:      make(map[int]int64),
 
 		// Initialize connection quality monitoring
