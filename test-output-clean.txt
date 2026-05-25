@@ -1,0 +1,40 @@
+ok  	github.com/opd-ai/bostonfear/client/ebiten	1.041s
+ok  	github.com/opd-ai/bostonfear/protocol	1.014s
+ok  	github.com/opd-ai/bostonfear/serverengine	37.646s
+?   	github.com/opd-ai/bostonfear/serverengine/arkhamhorror	[no test files]
+ok  	github.com/opd-ai/bostonfear/serverengine/arkhamhorror/actions	1.008s
+?   	github.com/opd-ai/bostonfear/serverengine/arkhamhorror/adapters	[no test files]
+ok  	github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content	1.028s
+?   	github.com/opd-ai/bostonfear/serverengine/arkhamhorror/model	[no test files]
+ok  	github.com/opd-ai/bostonfear/serverengine/arkhamhorror/phases	1.012s
+ok  	github.com/opd-ai/bostonfear/serverengine/arkhamhorror/rules	1.007s
+?   	github.com/opd-ai/bostonfear/serverengine/arkhamhorror/scenarios	[no test files]
+?   	github.com/opd-ai/bostonfear/serverengine/common/contracts	[no test files]
+ok  	github.com/opd-ai/bostonfear/serverengine/common/logging	1.011s
+ok  	github.com/opd-ai/bostonfear/serverengine/common/messaging	1.008s
+ok  	github.com/opd-ai/bostonfear/serverengine/common/monitoring	1.007s
+ok  	github.com/opd-ai/bostonfear/serverengine/common/observability	1.007s
+ok  	github.com/opd-ai/bostonfear/serverengine/common/runtime	1.009s
+ok  	github.com/opd-ai/bostonfear/serverengine/common/session	1.007s
+ok  	github.com/opd-ai/bostonfear/serverengine/common/state	1.007s
+ok  	github.com/opd-ai/bostonfear/serverengine/common/validation	1.010s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldersign	1.020s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldersign/actions	1.008s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldersign/adapters	1.007s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldersign/content	1.010s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldersign/model	1.008s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldersign/rules	1.016s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldersign/scenarios	1.007s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldritchhorror	1.010s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldritchhorror/actions	1.007s
+?   	github.com/opd-ai/bostonfear/serverengine/eldritchhorror/adapters	[no test files]
+?   	github.com/opd-ai/bostonfear/serverengine/eldritchhorror/model	[no test files]
+ok  	github.com/opd-ai/bostonfear/serverengine/eldritchhorror/phases	1.007s
+ok  	github.com/opd-ai/bostonfear/serverengine/eldritchhorror/rules	1.016s
+?   	github.com/opd-ai/bostonfear/serverengine/eldritchhorror/scenarios	[no test files]
+ok  	github.com/opd-ai/bostonfear/serverengine/finalhour	1.008s
+ok  	github.com/opd-ai/bostonfear/serverengine/finalhour/adapters	1.008s
+?   	github.com/opd-ai/bostonfear/serverengine/finalhour/model	[no test files]
+ok  	github.com/opd-ai/bostonfear/serverengine/finalhour/rules	1.008s
+?   	github.com/opd-ai/bostonfear/serverengine/finalhour/scenarios	[no test files]
+ok  	github.com/opd-ai/bostonfear/transport/ws	1.012s
