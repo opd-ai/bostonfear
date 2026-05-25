@@ -1,0 +1,48 @@
+=== RUN   TestCamera_OrbitCyclesEightDirections
+--- PASS: TestCamera_OrbitCyclesEightDirections (0.00s)
+=== RUN   TestCamera_ToggleViewMode
+--- PASS: TestCamera_ToggleViewMode (0.00s)
+=== RUN   TestResolveButtonStyle_SizeVariants
+--- PASS: TestResolveButtonStyle_SizeVariants (0.00s)
+=== RUN   TestResolveButtonStyle_StateAndVariantBehavior
+--- PASS: TestResolveButtonStyle_StateAndVariantBehavior (0.00s)
+=== RUN   TestIconRegistry_ActionIconsPresent
+--- PASS: TestIconRegistry_ActionIconsPresent (0.00s)
+=== RUN   TestIconRegistry_Defaults
+--- PASS: TestIconRegistry_Defaults (0.00s)
+=== RUN   TestMotionCatalog_Defaults
+--- PASS: TestMotionCatalog_Defaults (0.00s)
+=== RUN   TestThemeContrastBaseline
+--- PASS: TestThemeContrastBaseline (0.00s)
+=== RUN   TestTokenRegistryRequiredEntries
+--- PASS: TestTokenRegistryRequiredEntries (0.00s)
+=== RUN   TestIconLegibilityAgainstCommonBackgrounds
+--- PASS: TestIconLegibilityAgainstCommonBackgrounds (0.00s)
+=== RUN   TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping
+=== RUN   TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/minimum-800x600
+=== RUN   TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/hd-1280x720
+=== RUN   TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/fullhd-1920x1080
+=== RUN   TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/qhd-2560x1440
+--- PASS: TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping (0.00s)
+    --- PASS: TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/minimum-800x600 (0.00s)
+    --- PASS: TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/hd-1280x720 (0.00s)
+    --- PASS: TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/fullhd-1920x1080 (0.00s)
+    --- PASS: TestCalculateLayoutZones_TargetResolutions_NoOverlapOrClipping/qhd-2560x1440 (0.00s)
+=== RUN   TestCalculateLayoutZones_ReadabilityThresholds
+--- PASS: TestCalculateLayoutZones_ReadabilityThresholds (0.00s)
+=== RUN   TestCalculateLayoutZones_ExtremeAspectFallback
+=== RUN   TestCalculateLayoutZones_ExtremeAspectFallback/ultrawide
+=== RUN   TestCalculateLayoutZones_ExtremeAspectFallback/very-tall
+--- PASS: TestCalculateLayoutZones_ExtremeAspectFallback (0.00s)
+    --- PASS: TestCalculateLayoutZones_ExtremeAspectFallback/ultrawide (0.00s)
+    --- PASS: TestCalculateLayoutZones_ExtremeAspectFallback/very-tall (0.00s)
+=== RUN   TestCalculateLayoutZones_MinimumZoneHeights
+--- PASS: TestCalculateLayoutZones_MinimumZoneHeights (0.00s)
+=== RUN   TestSeedFromGameState_Deterministic
+--- PASS: TestSeedFromGameState_Deterministic (0.00s)
+=== RUN   TestProceduralGenerate_Deterministic
+--- PASS: TestProceduralGenerate_Deterministic (0.00s)
+=== RUN   TestEffectProfileForTier_ProgressiveLayers
+--- PASS: TestEffectProfileForTier_ProgressiveLayers (0.00s)
+PASS
+ok  	github.com/opd-ai/bostonfear/client/ebiten/ui	1.010s
