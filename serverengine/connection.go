@@ -244,10 +244,17 @@ func (gs *GameServer) runMessageLoop(ctx context.Context, conn net.Conn, playerI
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				logging.Warn("Connection timeout for player", "playerID", playerID)
 				gs.mutex.Lock()
-				gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
-				gs.checkGameEndConditions()
-				gs.mutex.Unlock()
-				gs.broadcastGameState()
+				// Only increment doom if this is the current player's turn during playing phase
+				if gs.gameState.CurrentPlayer == playerID && gs.gameState.GamePhase == "playing" {
+					gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
+					gs.checkGameEndConditions()
+					gs.mutex.Unlock()
+					gs.broadcastGameState()
+				} else {
+					gs.mutex.Unlock()
+				}
+				// Don't break - allow the player to continue after timeout
+				continue
 			} else {
 				logging.Error("WebSocket read error", "error", err, "playerID", playerID)
 			}
