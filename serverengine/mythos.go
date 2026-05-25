@@ -6,13 +6,13 @@ package serverengine
 
 import (
 	"fmt"
-	"log"
 	mathrand "math/rand"
 	"strings"
 	"sync/atomic"
 
 	arkcontent "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/content"
 	arkhamphases "github.com/opd-ai/bostonfear/serverengine/arkhamhorror/phases"
+	"github.com/opd-ai/bostonfear/serverengine/common/logging"
 )
 
 // advanceTurn moves the CurrentPlayer pointer to the next active investigator.
@@ -117,12 +117,10 @@ func (gs *GameServer) rescaleActDeck(playerCount int) {
 		}
 	}
 	if len(gs.gameState.ActDeck) >= 3 {
-		log.Printf("Act deck rescaled for %d player(s): thresholds %d / %d / %d",
-			n,
-			gs.gameState.ActDeck[0].ClueThreshold,
-			gs.gameState.ActDeck[1].ClueThreshold,
-			gs.gameState.ActDeck[2].ClueThreshold,
-		)
+		logging.Info("Act deck rescaled", "playerCount", n,
+			"threshold0", gs.gameState.ActDeck[0].ClueThreshold,
+			"threshold1", gs.gameState.ActDeck[1].ClueThreshold,
+			"threshold2", gs.gameState.ActDeck[2].ClueThreshold)
 	}
 }
 
@@ -147,14 +145,14 @@ func (gs *GameServer) checkActAdvance() {
 		if totalClues < act.ClueThreshold {
 			break
 		}
-		log.Printf("Act advanced: %q (clues=%d)", act.Title, totalClues)
+		logging.Info("Act advanced", "actTitle", act.Title, "totalClues", totalClues)
 		gs.gameState.ActDeck = gs.gameState.ActDeck[1:]
 		if len(gs.gameState.ActDeck) == 0 {
 			gs.gameState.WinCondition = true
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
 			gs.trackDoomLevel(gs.gameState.Doom)
-			log.Printf("Game ended: Victory! Final act completed")
+			logging.Info("Game ended: Victory! Final act completed")
 			return
 		}
 		// Update required clues display for next card.
@@ -173,14 +171,14 @@ func (gs *GameServer) checkAgendaAdvance() {
 		if gs.gameState.Doom < agenda.DoomThreshold {
 			break
 		}
-		log.Printf("Agenda advanced: %q (doom=%d)", agenda.Title, gs.gameState.Doom)
+		logging.Info("Agenda advanced", "agendaTitle", agenda.Title, "doom", gs.gameState.Doom)
 		gs.gameState.AgendaDeck = gs.gameState.AgendaDeck[1:]
 		if len(gs.gameState.AgendaDeck) == 0 {
 			gs.gameState.LoseCondition = true
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
 			gs.trackDoomLevel(gs.gameState.Doom)
-			log.Printf("Game ended: Final agenda reached — Ancient One awakens")
+			logging.Info("Game ended: Final agenda reached — Ancient One awakens")
 			return
 		}
 	}
@@ -202,7 +200,7 @@ func (gs *GameServer) checkGameEndConditions() {
 		gs.gameState.GamePhase = "ended"
 		atomic.AddInt64(&gs.totalGamesPlayed, 1)
 		gs.trackDoomLevel(gs.gameState.Doom)
-		log.Printf("Game ended: Doom counter reached 12")
+		logging.Info("Game ended: Doom counter reached 12")
 		return
 	}
 
@@ -213,7 +211,7 @@ func (gs *GameServer) checkGameEndConditions() {
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
 			gs.trackDoomLevel(gs.gameState.Doom)
-			log.Printf("Game ended: scenario lose condition triggered")
+			logging.Info("Game ended: scenario lose condition triggered")
 			return
 		}
 	} else {
@@ -230,7 +228,7 @@ func (gs *GameServer) checkGameEndConditions() {
 			gs.gameState.GamePhase = "ended"
 			atomic.AddInt64(&gs.totalGamesPlayed, 1)
 			gs.trackDoomLevel(gs.gameState.Doom)
-			log.Printf("Game ended: scenario win condition triggered")
+			logging.Info("Game ended: scenario win condition triggered")
 		}
 	} else {
 		gs.checkActAdvance()
@@ -246,7 +244,7 @@ func (gs *GameServer) spawnAnomaly(neighbourhood string) {
 	})
 	gs.gameState.LocationDoomTokens[neighbourhood]++
 	gs.gameState.Doom = min(gs.gameState.Doom+1, 12)
-	log.Printf("Anomaly spawned at %s (doom=%d)", neighbourhood, gs.gameState.Doom)
+	logging.Info("Anomaly spawned", "neighbourhood", neighbourhood, "doom", gs.gameState.Doom)
 }
 
 // spawnEnemiesForDoom spawns 1 enemy for every 3 doom on the board, up to maxEnemiesOnBoard.
@@ -278,7 +276,7 @@ func (gs *GameServer) spawnEnemiesForDoom() {
 			Engaged:   nil,
 		}
 		gs.gameState.Enemies[id] = e
-		log.Printf("Enemy spawned: %s at %s (doom=%d)", e.Name, loc, gs.gameState.Doom)
+		logging.Info("Enemy spawned", "enemyName", e.Name, "location", loc, "doom", gs.gameState.Doom)
 	}
 }
 
@@ -290,7 +288,7 @@ func (gs *GameServer) sealAnomalyAtLocation(neighbourhood string) bool {
 		if a.NeighbourhoodID == neighbourhood {
 			gs.gameState.Anomalies = append(gs.gameState.Anomalies[:i], gs.gameState.Anomalies[i+1:]...)
 			gs.gameState.Doom = max(gs.gameState.Doom-2, 0)
-			log.Printf("Anomaly sealed at %s (doom=%d)", neighbourhood, gs.gameState.Doom)
+			logging.Info("Anomaly sealed", "neighbourhood", neighbourhood, "doom", gs.gameState.Doom)
 			return true
 		}
 	}
@@ -308,5 +306,5 @@ func (gs *GameServer) openGateAtLocation(loc Location) {
 	}
 	id := fmt.Sprintf("gate_%s_%d", loc, mathrand.Int())
 	gs.gameState.OpenGates = append(gs.gameState.OpenGates, Gate{ID: id, Location: loc})
-	log.Printf("Gate opened at %s (doom=%d)", loc, gs.gameState.Doom)
+	logging.Info("Gate opened", "location", loc, "doom", gs.gameState.Doom)
 }
