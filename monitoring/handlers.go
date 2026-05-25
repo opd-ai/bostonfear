@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/opd-ai/bostonfear/monitoringdata"
@@ -135,11 +136,7 @@ func buildGameMetrics(perf monitoringdata.PerformanceMetrics, conn monitoringdat
 		fmt.Sprintf("arkham_horror_reconnection_rate_percent %.2f", conn.ReconnectionRate),
 		"",
 	}
-	result := ""
-	for _, line := range lines {
-		result += line + "\n"
-	}
-	return result
+	return strings.Join(lines, "\n") + "\n"
 }
 
 func buildMemoryMetrics(mem monitoringdata.MemoryMetrics, gc monitoringdata.GCMetrics) string {
@@ -165,11 +162,7 @@ func buildMemoryMetrics(mem monitoringdata.MemoryMetrics, gc monitoringdata.GCMe
 		fmt.Sprintf("arkham_horror_gc_pause_seconds_total %.6f", gc.PauseTotal.Seconds()),
 		"",
 	}
-	result := ""
-	for _, line := range lines {
-		result += line + "\n"
-	}
-	return result
+	return strings.Join(lines, "\n") + "\n"
 }
 
 func buildActionMetrics(counters map[string]int64) string {
@@ -186,11 +179,7 @@ func buildActionMetrics(counters map[string]int64) string {
 	}
 	lines = append(lines, "")
 
-	result := ""
-	for _, line := range lines {
-		result += line + "\n"
-	}
-	return result
+	return strings.Join(lines, "\n") + "\n"
 }
 
 func buildDoomHistogram(histogram map[int]int64) string {
@@ -207,11 +196,7 @@ func buildDoomHistogram(histogram map[int]int64) string {
 	}
 	lines = append(lines, "")
 
-	result := ""
-	for _, line := range lines {
-		result += line + "\n"
-	}
-	return result
+	return strings.Join(lines, "\n") + "\n"
 }
 
 func buildLatencyPercentiles(percentiles map[string]float64) string {
@@ -232,9 +217,5 @@ func buildLatencyPercentiles(percentiles map[string]float64) string {
 	}
 	lines = append(lines, "")
 
-	result := ""
-	for _, line := range lines {
-		result += line + "\n"
-	}
-	return result
+	return strings.Join(lines, "\n") + "\n"
 }
