@@ -177,7 +177,11 @@ func TestSpriteCoords_WithinAtlas(t *testing.T) {
 // TestDecodeSpritesheet_EmbeddedPNG verifies that the embedded sprites.png
 // decodes without error and produces an image with the expected atlas dimensions.
 func TestDecodeSpritesheet_EmbeddedPNG(t *testing.T) {
-	img, err := decodeSpritesheet(spritesheetPNG)
+	data, err := embeddedAssetsFS.ReadFile("assets/sprites.png")
+	if err != nil {
+		t.Fatalf("embeddedAssetsFS.ReadFile(assets/sprites.png) error: %v", err)
+	}
+	img, err := decodeSpritesheet(data)
 	if err != nil {
 		t.Fatalf("decodeSpritesheet(spritesheetPNG) error: %v", err)
 	}

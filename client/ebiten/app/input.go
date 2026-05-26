@@ -466,10 +466,11 @@ func registerTouchActionHitBoxes(mapper *input.InputMapper) {
 
 func actionGridRows() [][]string {
 	actions := []string{"gather", "investigate", "ward", "focus", "research", "trade", "component", "attack", "evade", "closegate", "encounter"}
-	sw, sh := ebiten.WindowSize()
-	if sw <= 0 || sh <= 0 {
-		sw, sh = screenWidth, screenHeight
-	}
+	// Use the package-level logical dimensions set by LayoutF, not the physical
+	// window size from ebiten.WindowSize(). The logical width controls the grid
+	// layout so tests (which use the default 800×600) produce the same row
+	// layout as the running game at 800×600.
+	sw, sh := screenWidth, screenHeight
 	if sw < 480 && sh > sw {
 		return [][]string{
 			actions[0:3],
