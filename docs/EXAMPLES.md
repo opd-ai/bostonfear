@@ -29,9 +29,9 @@ go run . server
 
 ```bash
 # Terminal 2: Connect desktop client
-go run ./cmd/desktop -server ws://localhost:8080/ws
+go run ./cmd/desktop --server ws://localhost:8080/ws
 
-# Expected: Client window opens, you spawn at Downtown with 5 Health, 5 Sanity, 0 Clues
+# Expected: Client window opens, you spawn at Downtown with 10 Health, 10 Sanity, 0 Clues
 ```
 
 **Actions you can perform**:
@@ -51,12 +51,12 @@ go run . server
 
 ```bash
 # Terminal 2: Player 1
-go run ./cmd/desktop -server ws://localhost:8080/ws
+go run ./cmd/desktop --server ws://localhost:8080/ws
 ```
 
 ```bash
 # Terminal 3: Player 2
-go run ./cmd/desktop -server ws://localhost:8080/ws
+go run ./cmd/desktop --server ws://localhost:8080/ws
 
 # Both players see each other's positions, resources, and turn indicator
 ```
@@ -71,11 +71,11 @@ go run ./cmd/desktop -server ws://localhost:8080/ws
 # Step 1: Build WASM binary
 GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web
 
-# Step 2: Start server (serves WASM at /play)
+# Step 2: Start server (serves WASM host page at /)
 go run . server
 
 # Step 3: Open browser
-# Navigate to http://localhost:8080/play
+# Navigate to http://localhost:8080/
 # Game loads in browser (2MB WASM binary)
 ```
 

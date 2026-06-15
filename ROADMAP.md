@@ -46,7 +46,7 @@
 | 6 | **1–6 concurrent players** | ✅ Achieved | `serverengine/game_constants.go:8` MaxPlayers=6; enforced in HandleConnectionWithContext; tested in soak tests | — |
 | 7 | **Join game in progress** (late-join) | ✅ Achieved | Players enter turn rotation automatically at Downtown; tested in integration suite | — |
 | 8 | **Sub-500ms state synchronization** | ✅ Achieved (exceeded) | CI enforces ≤200ms via BenchmarkBroadcastLatency; README claims 500ms but implementation is 2.5× better | — |
-| 9 | **30-second inactivity timeout** | ✅ Achieved | `serverengine/connection_handler.go:93-109` ReadDeadline-based timeout; doom increments on idle | — |
+| 9 | **30-second inactivity timeout** | ✅ Achieved | `serverengine/connection.go:247-273` ReadDeadline-based timeout; current-turn player doom increments on idle | — |
 | 10 | **WebSocket client with exponential backoff reconnect** (5s → 30s cap) | ✅ Achieved | `client/ebiten/net.go:86-143` implements retry with 5s initial, doubling per attempt, 30s max | — |
 | 11 | **Token-based session reclaim** on reconnect | ✅ Achieved | Server issues reconnectToken in connectionStatus; client appends ?token= query param on redial | — |
 | 12 | **Win condition**: 4 clues per investigator before doom reaches 12 | ✅ Achieved | Scenario-driven Act deck with clue thresholds; checked in `serverengine/game_server.go:767-781` | — |
@@ -54,9 +54,9 @@
 | 14 | **Prometheus `/metrics` endpoint** | ✅ Achieved | `monitoring/handlers.go:197-266` MetricsHandler; Prometheus text format; scraped metrics tested | — |
 | 15 | **JSON `/health` endpoint** with performance metrics | ✅ Achieved | `monitoring/handlers.go:50-194` HealthHandler; corruption history, uptime, connections, response time | — |
 | 16 | **Desktop build** (Linux, macOS, Windows) | ✅ Achieved | `cmd/desktop/main.go`; CI builds and runs under Xvfb on Ubuntu; cross-platform Go | — |
-| 17 | **WASM build** for web browsers | ✅ Achieved | `cmd/web/main.go`; CI GOOS=js GOARCH=wasm build passes; served at /play route | — |
+| 17 | **WASM build** for web browsers | ✅ Achieved | `cmd/web/main.go`; CI GOOS=js GOARCH=wasm build passes; served at `/` route | — |
 | 18 | **Mobile build** (Android AAR / iOS xcframework) | ✅ Achieved | CI builds both artifacts; Android emulator tests with touch automation; iOS simulator validates framework | — |
-| 19 | **Interface-based networking** (net.Conn, net.Listener, net.Addr) | ✅ Achieved | `transport/ws/server.go` and `serverengine/connection_handler.go` use interfaces; ADR 002; enables mocks | — |
+| 19 | **Interface-based networking** (net.Conn, net.Listener, net.Addr) | ✅ Achieved | `transport/ws/server.go` and `serverengine/connection.go` use interfaces; ADR 002; enables mocks | — |
 | 20 | **Go-style error handling** with explicit checks | ✅ Achieved | All functions return errors appropriately; no panic-driven flow; go vet clean | — |
 | 21 | **Goroutines and channels** for concurrent connection management | ✅ Achieved | `serverengine/game_server.go:164-202` goroutines per connection; channels for broadcast/actions; mutex-protected state | — |
 | 22 | **JSON message protocol** with 5 required message types | ✅ Achieved | `protocol/protocol.go` defines gameState, playerAction, gameUpdate, diceResult, connectionStatus | — |

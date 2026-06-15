@@ -1,4 +1,5 @@
 # Connection Quality Indicators Implementation
+<!-- REVIEW: This completion report includes JavaScript/CSS-specific client details and a standalone `connectionQuality` message type; current implementation is Go/Ebitengine and uses `connectionStatus` payloads for quality data. Confirm whether this file should be archived as historical context or updated to match current protocol. -->
 
 > **⚠️ Intellectual Property Notice**
 > BostonFear is a **rules-only game engine** designed to execute the mechanics of the

@@ -58,7 +58,7 @@ A multiplayer implementation of Arkham Horror featuring investigators managing r
 
 ### Step 1: Install Dependencies
 ```bash
-cd /workspaces/bostonfear
+cd /path/to/bostonfear
 go mod tidy
 ```
 
@@ -124,7 +124,7 @@ Each player gets 2 actions per turn:
 
 ### Connection Behaviour
 - The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap). Example: first retry after 5 s, second after 10 s, third after 20 s, all subsequent retries after 30 s. There is no upper limit on attempts.
-- The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the doom counter is incremented and the connection is closed. This is an idle/inactivity deadline, not a reconnection window.
+- The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the current-turn player is penalized with +1 doom. The connection stays open and the loop continues. This is an idle/inactivity deadline, not a reconnection window.
 - **Session Persistence**: The Ebitengine desktop/WASM client supports token-based slot reclaim — the token received in a `connectionStatus` message is stored and re-sent as a `?token=` query parameter on the next dial attempt for full session persistence.
 
 ## Technical Implementation
@@ -382,7 +382,7 @@ make assets-ui            # UI elements
 ## Monitoring and Observability
 
 ### WASM Launcher
-When running `go run . server`, open `http://localhost:8080/play` to load the WASM host page from `client/wasm/index.html`.
+When running `go run . server`, open `http://localhost:8080/` to load the WASM host page from `client/wasm/index.html`.
 
 ### Monitoring Endpoints
 Use these server endpoints for operational visibility:
@@ -460,7 +460,7 @@ As a pre-v1 project, breaking changes may occur without deprecation periods. The
 - Verify WebSocket support in browser or Ebitengine client connectivity
 
 ### Game State Sync Issues
-- Reload the WASM page at `/play` to re-establish the browser session
+- Reload the WASM page at `/` to re-establish the browser session
 - Restart desktop client to reconnect (Ebitengine client)
 - Check browser console or client logs for WebSocket errors
 - Verify all players are using same server instance
