@@ -25,13 +25,14 @@ const broadcastLatencyThreshold = 200 * time.Millisecond
 // before the mean can be evaluated against broadcastLatencyThreshold.
 const broadcastSampleDeadline = 5 * time.Second
 
-func setPlayerActionsRemaining(gs *GameServer, playerID string, actions int) {
+func setPlayerActionsRemaining(t testing.TB, gs *GameServer, playerID string, actions int) {
+	t.Helper()
 	gs.mutex.Lock()
 	defer gs.mutex.Unlock()
 
 	player, ok := gs.gameState.Players[playerID]
 	if !ok {
-		return
+		t.Fatalf("player %s not found", playerID)
 	}
 	player.ActionsRemaining = actions
 }
@@ -47,7 +48,7 @@ func BenchmarkBroadcastLatency(b *testing.B) {
 
 	conn, playerID, _ := srv.connectPlayer(b)
 	defer conn.Close()
-	setPlayerActionsRemaining(srv.GameServer, playerID, b.N+1)
+	setPlayerActionsRemaining(b, srv.GameServer, playerID, b.N+1)
 
 	action := map[string]interface{}{
 		"type":     "playerAction",
@@ -97,7 +98,7 @@ func TestBroadcastLatency_Threshold(t *testing.T) {
 	conn, playerID, _ := srv.connectPlayer(t)
 	defer conn.Close()
 	const samples = 10
-	setPlayerActionsRemaining(srv.GameServer, playerID, samples+1)
+	setPlayerActionsRemaining(t, srv.GameServer, playerID, samples+1)
 
 	action := map[string]interface{}{
 		"type":     "playerAction",
