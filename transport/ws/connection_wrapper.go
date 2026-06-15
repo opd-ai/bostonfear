@@ -3,6 +3,7 @@ package ws
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -15,6 +16,7 @@ type connectionWrapper struct {
 	localAddr   net.Addr
 	remoteAddr  net.Addr
 	displayName string
+	writeMu     sync.Mutex
 }
 
 func newConnectionWrapper(wsConn *websocket.Conn, localAddr, remoteAddr net.Addr, displayName string) net.Conn {
@@ -36,6 +38,9 @@ func (c *connectionWrapper) Read(b []byte) (n int, err error) {
 }
 
 func (c *connectionWrapper) Write(b []byte) (n int, err error) {
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
 	if err := c.ws.WriteMessage(websocket.TextMessage, b); err != nil {
 		return 0, err
 	}
