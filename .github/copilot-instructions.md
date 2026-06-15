@@ -23,7 +23,7 @@ The primary audience is Go developers extending the engine, transport, content, 
 - **Domain**: A fan-made, original-content, rules-only engine for Arkham Horror-style cooperative investigation gameplay with turn-based actions, dice tests, mythos escalation, and scenario-driven progression.
 - **Architecture**: Centralized server authority with JSON protocol types in `protocol/`, WebSocket adaptation in `transport/ws`, monitoring endpoints in `monitoring/`, and an ADR-backed modular engine that defaults to `serverengine/arkhamhorror`.
 - **Key Directories**: `cmd/server`, `cmd/desktop`, and `cmd/web` are platform entrypoints; `client/ebiten/` contains scenes, rendering, and networking; `serverengine/` contains engine/runtime logic; `serverengine/arkhamhorror/content/nightglass/` contains default scenario content; `docs/adr/` records architecture decisions.
-- **Configuration**: Root `config.toml` controls `server.game`, listen settings, desktop/web server URLs, `network.allowed_origins`, and `scenario.default_id`; production changes should keep config/docs/CLI behavior in sync.
+- **Configuration**: Root `config.toml` controls `server.game`, listen settings, desktop/web server URLs, `network.allowed-origins`, and `scenario.default_id`; production changes should keep config/docs/CLI behavior in sync.
 
 ## Quality Standards
 - Run and preserve the existing validation flow: `go vet ./...`, the relevant `go test` commands (including `-race` and `-tags=requires_display` when applicable), and Web/WASM or desktop builds for touched areas.
