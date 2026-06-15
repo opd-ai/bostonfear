@@ -1,4 +1,5 @@
 # Performance Monitoring Dashboard - Implementation Complete
+<!-- REVIEW: This report references legacy files under `cmd/server/*.go` (for example `types.go`, `game_server.go`, `utils.go`) that no longer exist at those paths. Verify whether the document should be rewritten to point at current locations or retained as historical record. -->
 
 > **⚠️ Intellectual Property Notice**
 > BostonFear is a **rules-only game engine** designed to execute the mechanics of the

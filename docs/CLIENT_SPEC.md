@@ -75,7 +75,7 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 
 ### Player Slots
 
-- Display 1–6 slots; minimum 1 player to start (source: RULES.md — "1-6 player support"; `cmd/server/constants.go` `MinPlayers=1`, `MaxPlayers=6`)
+- Display 1–6 slots; minimum 1 player to start (source: RULES.md — "1-6 player support"; `serverengine/game_constants.go` `MinPlayers=1`, `MaxPlayers=6`)
 - Highlight open vs. filled slots
 - When all 6 slots are filled, display "Game Full (6/6)" and disable the Join button
 
@@ -88,7 +88,7 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 
 ### Error States
 
-- **Server unreachable**: "Cannot connect to <address> — retrying every 5 s" (source: README.md — "Automatic reconnection with 5-second retry")
+- **Server unreachable**: "Cannot connect to <address> — retrying with exponential backoff (5 s, 10 s, 20 s, 30 s cap)" (source: README.md — Connection Behaviour)
 - **Game full (6/6)**: "Game is full. Waiting for a slot…"
 
 ---
@@ -229,12 +229,12 @@ Idle → Connecting → WaitingForPlayers (show slot count) → InProgress
 | Render rate | 60 FPS | Ebitengine default; ROADMAP.md Phase 5 |
 | Input latency | < 16 ms click → action send | 1-frame budget at 60 FPS |
 | State render lag | ≤ 1 frame after `gameState` receipt | README.md Performance Standards |
-| Reconnect token storage | Browser `localStorage` or file-based per platform | README.md — "Session Persistence: The JS browser client reclaims its player slot automatically using a server-issued reconnect token (stored in `localStorage`)" |
+| Reconnect token storage | Session file `~/.bostonfear/session.json` | `client/ebiten/state.go` token persistence (`LoadTokenFromFile`, `SaveTokenToFile`) |
 | Minimum window size | 800×600 | Equal to current logical resolution |
 | Max players | 6 | serverengine/game_constants.go — `MaxPlayers = 6` |
 | State sync SLA | < 500 ms | README.md Performance Standards — "Real-time game state synchronization"; ROADMAP.md Priority 1 broadcast latency gate |
 | Automatic reconnection retry | 5s initial, doubles per attempt, capped at 30s | README.md — "The client retries indefinitely using exponential backoff (5 s initial delay, doubling each attempt, 30 s cap)" |
-| Inactivity timeout | 30 seconds | README.md — "The server applies a **30-second inactivity timeout**: if no message arrives from a connected player within 30 seconds, the doom counter is incremented and the connection is closed" |
+| Inactivity timeout | 30 seconds | README.md + `serverengine/connection.go`: idle turn-owner is penalized with +1 doom on timeout; connection remains open |
 
 ---
 

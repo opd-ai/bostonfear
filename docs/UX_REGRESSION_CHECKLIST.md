@@ -56,8 +56,8 @@ If any item fails, capture a repro note and open a follow-up task.
 
 ## Execution Notes
 
-- Desktop run: `go run ./cmd/desktop -server ws://localhost:8080/ws`
-- WASM run: build with `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` and open `/play`
+- Desktop run: `go run ./cmd/desktop --server ws://localhost:8080/ws`
+- WASM run: build with `GOOS=js GOARCH=wasm go build -o client/wasm/game.wasm ./cmd/web` and open `/`
 - Server run: `go run . server`
 - Automated baseline checks:
   - `xvfb-run -a go test -race ./...`

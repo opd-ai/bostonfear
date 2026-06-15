@@ -41,7 +41,7 @@ If `AllowedOrigins` is not set or is empty, the server accepts all origins.
 
 ### Connection Inactivity Timeout
 
-The server applies a 30-second inactivity timeout on all connections. If a player sends no messages for 30 seconds, the doom counter is incremented and the connection is closed. This prevents blocked connections from affecting game state indefinitely.
+The server applies a 30-second inactivity timeout on all connections. If a player sends no messages for 30 seconds, the server applies a doom penalty when that player currently owns the turn. The connection remains open and the read loop continues, preventing turn stalls while still penalizing inactivity.
 
 ### Recommended Practices
 
