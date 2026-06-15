@@ -25,6 +25,17 @@ const broadcastLatencyThreshold = 200 * time.Millisecond
 // before the mean can be evaluated against broadcastLatencyThreshold.
 const broadcastSampleDeadline = 5 * time.Second
 
+func setPlayerActionsRemaining(gs *GameServer, playerID string, actions int) {
+	gs.mutex.Lock()
+	defer gs.mutex.Unlock()
+
+	player, ok := gs.gameState.Players[playerID]
+	if !ok {
+		return
+	}
+	player.ActionsRemaining = actions
+}
+
 // BenchmarkBroadcastLatency measures round-trip time from submitting a player action
 // to the next gameState message arriving on the same connection. Uses a real
 // httptest server so the full broadcast pipeline (actionHandler → broadcastHandler →
@@ -36,11 +47,12 @@ func BenchmarkBroadcastLatency(b *testing.B) {
 
 	conn, playerID, _ := srv.connectPlayer(b)
 	defer conn.Close()
+	setPlayerActionsRemaining(srv.GameServer, playerID, b.N+1)
 
 	action := map[string]interface{}{
 		"type":     "playerAction",
 		"playerId": playerID,
-		"action":   "gather",
+		"action":   "focus",
 	}
 	actionBytes, _ := json.Marshal(action)
 
@@ -68,7 +80,7 @@ func BenchmarkBroadcastLatency(b *testing.B) {
 }
 
 // TestBroadcastLatency_Threshold enforces the 200ms average latency SLA defined in
-// ROADMAP §Priority 3. It sends 10 gather actions and measures the round-trip time
+// ROADMAP §Priority 3. It sends 10 focus actions and measures the round-trip time
 // from submission to the first broadcast response (gameState or gameUpdate). The test
 // fails if the mean exceeds broadcastLatencyThreshold (200ms). Each sample uses a
 // generous per-sample deadline (broadcastSampleDeadline) so GC or scheduler jitter
@@ -84,15 +96,16 @@ func TestBroadcastLatency_Threshold(t *testing.T) {
 
 	conn, playerID, _ := srv.connectPlayer(t)
 	defer conn.Close()
+	const samples = 10
+	setPlayerActionsRemaining(srv.GameServer, playerID, samples+1)
 
 	action := map[string]interface{}{
 		"type":     "playerAction",
 		"playerId": playerID,
-		"action":   "gather",
+		"action":   "focus",
 	}
 	actionBytes, _ := json.Marshal(action)
 
-	const samples = 10
 	var total time.Duration
 	for i := 0; i < samples; i++ {
 		start := time.Now()
