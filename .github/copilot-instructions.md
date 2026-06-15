@@ -32,7 +32,7 @@ The primary audience is Go developers extending the engine, transport, content, 
 
 ## Networking Best Practices (for Go projects)
 When declaring network variables, always use interface types:
-- Never use `net.UDPAddr`, `net.IPAddr`, or `net.TCPAddr`. Use `net.Addr` only instead.
+- Avoid exposing concrete address types (`*net.TCPAddr`, `*net.UDPAddr`, `*net.IPAddr`) in exported APIs; prefer `net.Addr` in public interfaces and function signatures. (Concrete types are fine for tests/stubs.)
 - Never use `net.UDPConn`, use `net.PacketConn` instead
 - Never use `net.TCPConn`, use `net.Conn` instead
 - Never use `net.UDPListener` or `net.TCPListener`, use `net.Listener` instead
