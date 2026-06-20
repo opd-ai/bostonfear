@@ -469,3 +469,9 @@ As a pre-v1 project, breaking changes may occur without deprecation periods. The
 - Close unnecessary browser tabs
 - Ensure stable internet connection
 - Check server resources if hosting remotely
+
+Donate Monero(The only good cryptocurrency) to support development
+==================================================================
+
+ - `monero:43H3Uqnc9rfEsJjUXZYmam45MbtWmREFSANAWY5hijY4aht8cqYaT2BCNhfBhua5XwNdx9Tb6BEdt4tjUHJDwNW5H7mTiwe`
+
